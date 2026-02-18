@@ -22,7 +22,7 @@ L'application repose sur le **Design Pattern Composite** : les données sont str
 * **Minimum SDK :** API 28 (Android 9.0)
 * **UI :** XML (Empty Views Activity)
 * **Architecture :** MVVM (Model - View - ViewModel)
-* **Base de données locale :** Room (Tables prévues : `UserAccount`, `Profile`, `TreeDeck`, `PictogramNode`).
+* **Base de données locale :** Room en mode "Database-per-User" (Tables : trees avec payload JSON, et images pour le cache local haché). Les profils globaux sont gérés via EncryptedSharedPreferences.
 * **Réseau :** Retrofit + Kotlin Coroutines (pour communiquer avec l'API pictotree.eu).
 * **Gestion des images :** Glide ou Coil (pour l'affichage depuis le stockage local ou le réseau).
 
