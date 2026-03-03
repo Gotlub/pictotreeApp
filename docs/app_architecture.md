@@ -43,9 +43,9 @@ Elle est développée "Offline-First" (priorité au mode hors-ligne) et pensée 
 
 ### A. Base de Données (SQLite)
 La base de données locale (implémentée idéalement via la librairie Android Room) est la source de vérité de l'application.
-* **Table `users` :** Gère les identités locales.
-* **Table `trees` :** Gère les métadonnées des arbres téléchargés (lié à l'utilisateur).
-* **Table `nodes` :** Gère la structure de la liste chaînée.
+* **Table trees :** Gère les métadonnées des arbres et contient l'arborescence complète via un payload JSON.
+* **Table images :** Gère le cache local (hachage des URL) pour le mode hors-ligne.
+(Note : Les identités locales des utilisateurs sont gérées globalement par les EncryptedSharedPreferences).
 
 ### B. Système de Fichiers (File System)
 Pour éviter les conflits en collectivité et faciliter la gestion des données :

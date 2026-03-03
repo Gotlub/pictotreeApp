@@ -19,23 +19,23 @@ Voici à quoi doit ressembler la chaîne JSON stockée en base de données :
   "root_node": {
     "node_id": "root_01",
     "label": "Je veux",
-    "image_url": "[https://pictotree.eu/static/public/arasaac/want.png](https://pictotree.eu/static/public/arasaac/want.png)",
+    "image_url": "https://pictotree.eu/static/public/arasaac/want.png",
     "children": [
       {
         "node_id": "node_10",
         "label": "Manger",
-        "image_url": "[https://pictotree.eu/static/public/arasaac/eat.png](https://pictotree.eu/static/public/arasaac/eat.png)",
+        "image_url": "https://pictotree.eu/static/public/arasaac/eat.png",
         "children": [
           {
             "node_id": "node_101",
             "label": "Une pomme",
-            "image_url": "[https://pictotree.eu/static/public/arasaac/apple.png](https://pictotree.eu/static/public/arasaac/apple.png)",
+            "image_url": "https://pictotree.eu/static/public/arasaac/apple.png",
             "children": [] 
           },
           {
             "node_id": "node_102",
             "label": "Un gâteau",
-            "image_url": "[https://pictotree.eu/static/public/arasaac/cake.png](https://pictotree.eu/static/public/arasaac/cake.png)",
+            "image_url": "https://pictotree.eu/static/public/arasaac/cake.png",
             "children": []
           }
         ]
@@ -43,12 +43,12 @@ Voici à quoi doit ressembler la chaîne JSON stockée en base de données :
       {
         "node_id": "node_20",
         "label": "Boire",
-        "image_url": "[https://pictotree.eu/static/public/arasaac/drink.png](https://pictotree.eu/static/public/arasaac/drink.png)",
+        "image_url": "https://pictotree.eu/static/public/arasaac/drink.png",
         "children": [
           {
             "node_id": "node_201",
             "label": "De l'eau",
-            "image_url": "[https://pictotree.eu/static/public/arasaac/water.png](https://pictotree.eu/static/public/arasaac/water.png)",
+            "image_url": "https://pictotree.eu/static/public/arasaac/water.png",
             "children": []
           }
         ]

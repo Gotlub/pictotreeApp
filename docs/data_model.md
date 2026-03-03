@@ -10,7 +10,7 @@ Pour afficher la View 1 (Liste des comptes locaux) sans avoir à ouvrir de base 
 
 ### B. Espace Utilisateur (User Level)
 Lorsqu'un utilisateur se connecte, l'application "pointe" vers son dossier personnel isolé :
-`Internal Storage > Android > data > com.pictotree.app > files > {username}/`
+`Internal Storage > Android > data > org.libera.pictotree > files > {username}/`
 
 Ce dossier contient :
 1. **Le dossier `/images/`** : Contient tous les pictogrammes téléchargés pour cet utilisateur.

@@ -1,3 +1,9 @@
 <resources>
     <string name="app_name">Pictotree App</string>
+    <!-- Login View Strings -->
+    <string name="login_select_user_hint">Select user / New user</string>
+    <string name="login_new_user">New user</string>
+    <string name="login_online_mode">Online mode</string>
+    <string name="login_password_hint">Password</string>
+    <string name="login_button">Login</string>
 </resources>
