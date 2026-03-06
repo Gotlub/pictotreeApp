@@ -1,0 +1,37 @@
+name: 🤖 Android Code Review & Tests
+
+# 1. Le déclencheur : À chaque fois que tu fais un push, sur n'importe quelle branche.
+on: [push]
+
+jobs:
+  review-code:
+    name: Lint & Unit Tests
+    runs-on: ubuntu-latest # Le serveur Linux gratuit que GitHub te prête
+
+    steps:
+      # Étape 1 : Le robot télécharge ton code
+      - name: 📥 Checkout du code
+        uses: actions/checkout@v4
+
+      # Étape 2 : Il installe Java 17 (Nécessaire pour Kotlin/Android moderne)
+      - name: ☕ Configuration de Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      # Étape 3 : Il met en cache Gradle pour que les prochains lancements soient super rapides
+      - name: 🐘 Configuration de Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      # Étape 4 : On donne les droits d'exécution au script Gradle
+      - name: 🔑 Droits d'exécution pour gradlew
+        run: chmod +x ./gradlew
+
+      # Étape 5 : L'analyseur de code (Lint). Cherche les failles, le code sale, les variables inutilisées.
+      - name: 🕵️‍♂️ Analyse statique du code (Android Lint)
+        run: ./gradlew lintDebug
+
+      # Étape 6 : Lancement de tes fameux tests automatiques
+      - name: 🧪 Lancement des tests unitaires
+        run: ./gradlew testDebugUnitTest
