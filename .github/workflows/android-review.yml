@@ -23,6 +23,8 @@ jobs:
       # Étape 3 : Il met en cache Gradle pour que les prochains lancements soient super rapides
       - name: 🐘 Configuration de Gradle
         uses: gradle/actions/setup-gradle@v3
+        with:
+          cache-disabled: true
 
       # Étape 4 : On donne les droits d'exécution au script Gradle
       - name: 🔑 Droits d'exécution pour gradlew
