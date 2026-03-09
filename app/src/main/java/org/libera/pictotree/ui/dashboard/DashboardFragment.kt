@@ -5,15 +5,21 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
+import android.widget.ProgressBar
+import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+import com.google.android.material.textfield.TextInputEditText
+import com.google.android.material.textfield.TextInputLayout
 import kotlinx.coroutines.launch
 import org.libera.pictotree.R
 import org.libera.pictotree.data.database.AppDatabase
@@ -25,8 +31,9 @@ class DashboardFragment : Fragment() {
     private lateinit var adapter: ProfileAdapter
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
+            inflater: LayoutInflater,
+            container: ViewGroup?,
+            savedInstanceState: Bundle?
     ): View? {
         return inflater.inflate(R.layout.fragment_dashboard, container, false)
     }
@@ -42,30 +49,60 @@ class DashboardFragment : Fragment() {
 
         // Setup UI
         val rvProfiles = view.findViewById<RecyclerView>(R.id.rvProfiles)
+        val progressBar = view.findViewById<ProgressBar>(R.id.progressBar)
+        val tvEmptyState = view.findViewById<TextView>(R.id.tvEmptyState)
         val fabAddProfile = view.findViewById<ExtendedFloatingActionButton>(R.id.fabAddProfile)
         val ivAdminStatus = view.findViewById<ImageView>(R.id.ivAdminStatus)
 
-        adapter = ProfileAdapter(
-            onProfileClick = { profile ->
-                Toast.makeText(context, "Opening View 4 for ${profile.name}", Toast.LENGTH_SHORT).show()
-                // TODO: Naviguer vers le fragment View 4 (Parcours)
-            },
-            onEditClick = { profile ->
-                Toast.makeText(context, "Editing ${profile.name} (View 3)", Toast.LENGTH_SHORT).show()
-                // TODO: Naviguer vers le fragment View 3 (Gestion)
-            }
-        )
+        adapter =
+                ProfileAdapter(
+                        onProfileClick = { profile ->
+                            Toast.makeText(
+                                            context,
+                                            "Opening View 4 for ${profile.name}",
+                                            Toast.LENGTH_SHORT
+                                    )
+                                    .show()
+                            // TODO: Naviguer vers le fragment View 4 (Parcours)
+                        },
+                        onEditClick = { profile ->
+                            Toast.makeText(
+                                            context,
+                                            "Editing ${profile.name} (View 3)",
+                                            Toast.LENGTH_SHORT
+                                    )
+                                    .show()
+                            // TODO: Naviguer vers le fragment View 3 (Gestion)
+                        }
+                )
         rvProfiles.layoutManager = LinearLayoutManager(requireContext())
         rvProfiles.adapter = adapter
 
         // Setup Observers
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                
-                // Observer for Profiles List
+
+                // Observer for UI State
                 launch {
-                    viewModel.profiles.collect { profiles ->
-                        adapter.submitList(profiles)
+                    viewModel.uiState.collect { state ->
+                        when (state) {
+                            is DashboardUiState.Loading -> {
+                                progressBar.visibility = View.VISIBLE
+                                tvEmptyState.visibility = View.GONE
+                                rvProfiles.visibility = View.GONE
+                            }
+                            is DashboardUiState.Empty -> {
+                                progressBar.visibility = View.GONE
+                                tvEmptyState.visibility = View.VISIBLE
+                                rvProfiles.visibility = View.GONE
+                            }
+                            is DashboardUiState.Success -> {
+                                progressBar.visibility = View.GONE
+                                tvEmptyState.visibility = View.GONE
+                                rvProfiles.visibility = View.VISIBLE
+                                adapter.submitList(state.profiles)
+                            }
+                        }
                     }
                 }
 
@@ -73,11 +110,13 @@ class DashboardFragment : Fragment() {
                 launch {
                     viewModel.isAdminMode.collect { isAdmin ->
                         adapter.isAdminMode = isAdmin
-                        
+
                         // Toggle UI Elements
                         if (isAdmin) {
                             fabAddProfile.visibility = View.VISIBLE
-                            //ivAdminStatus.setImageResource(android.R.drawable.ic_menu_unlock) // unlocked
+                            ivAdminStatus.setImageResource(
+                                    android.R.drawable.ic_partial_secure
+                            ) // unlocked
                         } else {
                             fabAddProfile.visibility = View.GONE
                             ivAdminStatus.setImageResource(android.R.drawable.ic_secure) // locked
@@ -88,14 +127,42 @@ class DashboardFragment : Fragment() {
         }
 
         // Setup Listeners
-        fabAddProfile.setOnClickListener {
-            // TODO: Afficher une dialog pour ajouter un profil
-            viewModel.addProfile("Nouveau Patient ${adapter.itemCount + 1}")
-        }
-        
+        fabAddProfile.setOnClickListener { showCreateProfileDialog() }
+
         // Debug pour le développeur (clic sur le cadenas pour basculer le mode)
-        ivAdminStatus.setOnClickListener {
-            viewModel.setAdminMode(!viewModel.isAdminMode.value)
+        ivAdminStatus.setOnClickListener { viewModel.setAdminMode(!viewModel.isAdminMode.value) }
+    }
+
+    private fun showCreateProfileDialog() {
+        val dialogView =
+                LayoutInflater.from(requireContext()).inflate(R.layout.dialog_create_profile, null)
+        val tilProfileName = dialogView.findViewById<TextInputLayout>(R.id.tilProfileName)
+        val etProfileName = dialogView.findViewById<TextInputEditText>(R.id.etProfileName)
+
+        val dialog =
+                MaterialAlertDialogBuilder(requireContext())
+                        .setTitle(R.string.dialog_create_profile_title)
+                        .setView(dialogView)
+                        .setPositiveButton(R.string.dialog_create_profile_btn_add, null)
+                        .setNegativeButton(R.string.dialog_create_profile_btn_cancel) { d, _ ->
+                            d.dismiss()
+                        }
+                        .create()
+
+        dialog.setOnShowListener {
+            val positiveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE)
+            positiveButton.setOnClickListener {
+                val name = etProfileName.text?.toString()?.trim()
+                if (name.isNullOrEmpty()) {
+                    tilProfileName.error = getString(R.string.dialog_create_profile_name_error)
+                } else {
+                    tilProfileName.error = null
+                    viewModel.addProfile(name)
+                    dialog.dismiss()
+                }
+            }
         }
+
+        dialog.show()
     }
 }

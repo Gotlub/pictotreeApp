@@ -10,4 +10,12 @@
     <string name="dashboard_title">Who are you?</string>
     <string name="dashboard_admin_status_desc">Admin status</string>
     <string name="dashboard_add_profile_btn">New</string>
+    <string name="dashboard_empty_state">No profiles found, tap + to start</string>
+
+    <!-- Create Profile Dialog -->
+    <string name="dialog_create_profile_title">Create new profile</string>
+    <string name="dialog_create_profile_name_hint">Name</string>
+    <string name="dialog_create_profile_name_error">Name cannot be empty</string>
+    <string name="dialog_create_profile_btn_cancel">Cancel</string>
+    <string name="dialog_create_profile_btn_add">Add</string>
 </resources>
