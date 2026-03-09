@@ -14,6 +14,7 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import androidx.navigation.fragment.findNavController
 import com.google.android.material.textfield.MaterialAutoCompleteTextView
 import com.google.android.material.textfield.TextInputLayout
 import kotlinx.coroutines.launch
@@ -25,8 +26,9 @@ class LoginFragment : Fragment() {
     private val viewModel: LoginViewModel by viewModels()
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
+            inflater: LayoutInflater,
+            container: ViewGroup?,
+            savedInstanceState: Bundle?
     ): View? {
         return inflater.inflate(R.layout.fragment_login, container, false)
     }
@@ -40,15 +42,16 @@ class LoginFragment : Fragment() {
         val btnLogin: Button = view.findViewById(R.id.btn_login)
 
         // Setup AutoCompleteTextView Adapter with an empty list initially
-        val adapter = ArrayAdapter<String>(
-            requireContext(),
-            android.R.layout.simple_dropdown_item_1line,
-            mutableListOf()
-        )
+        val adapter =
+                ArrayAdapter<String>(
+                        requireContext(),
+                        android.R.layout.simple_dropdown_item_1line,
+                        mutableListOf()
+                )
         actvUsers.setAdapter(adapter)
 
         // View Interactions
-        
+
         // Listen to typed text and selection
         actvUsers.doAfterTextChanged { editable ->
             val username = editable?.toString() ?: ""
@@ -78,7 +81,10 @@ class LoginFragment : Fragment() {
                     // Select correct item securely avoiding infinite loop
                     state.selectedUser?.let { selected ->
                         if (actvUsers.text.toString() != selected) {
-                            actvUsers.setText(selected, false) // false avoids triggering dropdown/filtering
+                            actvUsers.setText(
+                                    selected,
+                                    false
+                            ) // false avoids triggering dropdown/filtering
                         }
                     }
 
@@ -88,7 +94,8 @@ class LoginFragment : Fragment() {
                     }
 
                     // 3. Update Password Visibility
-                    tilPassword.visibility = if (state.isPasswordVisible) View.VISIBLE else View.GONE
+                    tilPassword.visibility =
+                            if (state.isPasswordVisible) View.VISIBLE else View.GONE
 
                     // 4. Update Loading State on Button
                     if (state.isLoading) {
@@ -106,7 +113,13 @@ class LoginFragment : Fragment() {
 
                     // 6. Handle Success
                     if (state.isLoginSuccessful) {
-                        Toast.makeText(requireContext(), "Connexion réussie ! Token reçu", Toast.LENGTH_LONG).show()
+                        Toast.makeText(
+                                        requireContext(),
+                                        "Connexion réussie ! Token reçu",
+                                        Toast.LENGTH_LONG
+                                )
+                                .show()
+                        findNavController().navigate(R.id.action_loginFragment_to_dashboardFragment)
                     }
                 }
             }

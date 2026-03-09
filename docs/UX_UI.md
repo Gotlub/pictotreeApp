@@ -26,8 +26,13 @@ Le geste de glissement rectiligne (Swipe/Fling) peut être impossible pour certa
 * Taper sur le bord droit/gauche de l'écran = Swipe Droite/Gauche.
 * Taper sur l'image centrale = Valider (déclenche l'action du Swipe Bas).
 
-## 5. Instructions Techniques pour l'IA (Android Natif)
-Pour implémenter cette vue en Kotlin / XML, respecter strictement cette stack :
+## 5. L'Écran des Profils (View 2) : "Safe Mode" vs "Admin Mode"
+Avant d'arriver sur le carrousel, l'utilisateur passe par la sélection de profil. Cet écran illustre la gestion granulaire de la charge cognitive :
+* **Safe Mode (Hors-Ligne / Patient) :** L'écran est verrouillé. Il n'y a que de gros boutons avec la photo/picto du profil. Le geste est unique : **Un Tap simple = Ouvre directement la communication (View 4)**. Aucune distraction, aucun risque de suppression.
+* **Admin Mode (En Ligne / Accompagnant) :** Déverrouillé par l'éducateur. Des boutons "Éditer ⚙️" apparaissent à côté de chaque profil pour configurer leurs arbres associés (View 3), et un bouton "+ Nouveau" permet d'ajouter un patient.
+
+## 6. Instructions Techniques pour l'IA (Android Natif)
+Pour implémenter la vue de communication (View 4) en Kotlin / XML, respecter strictement cette stack :
 1. **ViewPager2 :** Pour gérer la liste horizontale et le recyclage des vues.
 2. **CompositePageTransformer :** Pour gérer l'effet CoverFlow (`scaleY 1.0` au centre, `scaleY 0.85` sur les côtés, gestion de l'`alpha` et de la `translationX`).
 3. **GestureDetector :** Appliqué sur la vue centrale pour détecter les événements `onFling` verticaux (Haut/Bas).

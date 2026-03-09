@@ -1,0 +1,300 @@
+﻿Transforming annotations-23.0.0.jar with BuildToolsApiClasspathEntrySnapshotTransform
+Transforming resourceinspection-annotation-1.0.1.jar with BuildToolsApiClasspathEntrySnapshotTransform
+Transforming jspecify-1.0.0.jar with BuildToolsApiClasspathEntrySnapshotTransform
+Transforming graphics-shapes-release-api.jar with BuildToolsApiClasspathEntrySnapshotTransform
+Transforming gson-2.8.5.jar with BuildToolsApiClasspathEntrySnapshotTransform
+Transforming android.jar with BuildToolsApiClasspathEntrySnapshotTransform
+Transforming core-lambda-stubs.jar with BuildToolsApiClasspathEntrySnapshotTransform
+Caching disabled for task ':app:kaptGenerateStubsDebugKotlin' because:
+  Build cache is disabled
+Skipping task ':app:kaptGenerateStubsDebugKotlin' as it is up-to-date.
+Resolve mutations for :app:kaptDebugKotlin (Thread[#1001,Execution worker Thread 10,5,main]) started.
+:app:kaptDebugKotlin (Thread[#1001,Execution worker Thread 10,5,main]) started.
+This JVM does not support getting OS memory, so no OS memory status updates will be broadcast
+.\gradlew : WARNING: An illegal reflective access 
+operation has occurred
+Au caractère Ligne:1 : 1
++ .\gradlew :app:kaptDebugKotlin --info > kapt_log.txt 
+2>&1
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~
+    + CategoryInfo          : NotSpecified: (WARNING: A 
+   n ill...on has occurred:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+WARNING: Illegal reflective access by org.jetbrains.kotl
+in.kapt3.base.util.ModuleManipulationUtilsKt (file:/C:/U
+sers/randomfriday/.gradle/caches/modules-2/files-2.1/org
+.jetbrains.kotlin/kotlin-annotation-processing-gradle/2.
+0.21/b3be9823176d79cb0fc710e77309cfe599be9abf/kotlin-ann
+otation-processing-gradle-2.0.21.jar) to constructor 
+com.sun.tools.javac.util.Context()
+WARNING: Please consider reporting this to the 
+maintainers of org.jetbrains.kotlin.kapt3.base.util.Modu
+leManipulationUtilsKt
+WARNING: Use --illegal-access=warn to enable warnings 
+of further illegal reflective access operations
+WARNING: All illegal access operations will be denied 
+in a future release
+
+> Task :app:kaptDebugKotlin
+Transforming R.jar with StructureTransformAction
+Transforming material-1.13.0-api.jar with StructureTransformAction
+Transforming appcompat-resources-1.7.1-api.jar with StructureTransformAction
+Transforming appcompat-1.7.1-api.jar with StructureTransformAction
+Transforming viewpager2-1.0.0-api.jar with StructureTransformAction
+Transforming fragment-1.8.6-api.jar with StructureTransformAction
+Transforming fragment-ktx-1.8.6-api.jar with StructureTransformAction
+Transforming activity-ktx-1.9.3-api.jar with StructureTransformAction
+Transforming activity-1.9.3-api.jar with StructureTransformAction
+Transforming drawerlayout-1.1.1-api.jar with StructureTransformAction
+Transforming coordinatorlayout-1.1.0-api.jar with StructureTransformAction
+Transforming dynamicanimation-1.1.0-api.jar with StructureTransformAction
+Transforming recyclerview-1.2.1-api.jar with StructureTransformAction
+Transforming transition-1.5.0-api.jar with StructureTransformAction
+Transforming vectordrawable-animated-1.1.0-api.jar with StructureTransformAction
+Transforming vectordrawable-1.1.0-api.jar with StructureTransformAction
+Transforming viewpager-1.0.0-api.jar with StructureTransformAction
+Transforming customview-1.1.0-api.jar with StructureTransformAction
+Transforming loader-1.0.0-api.jar with StructureTransformAction
+Transforming core-1.13.1-api.jar with StructureTransformAction
+Transforming lifecycle-common-jvm-2.8.7.jar with StructureTransformAction
+Transforming lifecycle-livedata-2.8.7-api.jar with StructureTransformAction
+Transforming lifecycle-viewmodel-2.8.7-api.jar with StructureTransformAction
+Transforming lifecycle-viewmodel-release-api.jar with StructureTransformAction
+Transforming lifecycle-runtime-release-api.jar with StructureTransformAction
+Transforming lifecycle-livedata-core-2.8.7-api.jar with StructureTransformAction
+Transforming lifecycle-runtime-ktx-release-api.jar with StructureTransformAction
+Transforming lifecycle-viewmodel-ktx-2.8.7-api.jar with StructureTransformAction
+Transforming lifecycle-livedata-core-ktx-2.8.7-api.jar with StructureTransformAction
+Transforming lifecycle-viewmodel-savedstate-2.8.7-api.jar with StructureTransformAction
+Transforming core-ktx-1.13.1-api.jar with StructureTransformAction
+Transforming converter-gson-2.9.0.jar with StructureTransformAction
+Transforming retrofit-2.9.0.jar with StructureTransformAction
+Transforming logging-interceptor-4.11.0.jar with StructureTransformAction
+Transforming okhttp-4.11.0.jar with StructureTransformAction
+Transforming room-common-2.6.1.jar with StructureTransformAction
+Transforming room-runtime-2.6.1-api.jar with StructureTransformAction
+Transforming room-ktx-2.6.1-api.jar with StructureTransformAction
+Transforming savedstate-ktx-1.2.1-api.jar with StructureTransformAction
+Transforming savedstate-1.2.1-api.jar with StructureTransformAction
+Transforming annotation-experimental-1.4.1-api.jar with StructureTransformAction
+Transforming kotlinx-coroutines-core-jvm-1.7.3.jar with StructureTransformAction
+Transforming kotlinx-coroutines-android-1.7.3.jar with StructureTransformAction
+Transforming okio-jvm-3.2.0.jar with StructureTransformAction
+Transforming kotlin-stdlib-jdk8-1.8.22.jar with StructureTransformAction
+Transforming cursoradapter-1.0.0-api.jar with StructureTransformAction
+Transforming cardview-1.0.0-api.jar with StructureTransformAction
+Transforming sqlite-framework-2.4.0-api.jar with StructureTransformAction
+Transforming sqlite-2.4.0-api.jar with StructureTransformAction
+Transforming versionedparcelable-1.1.1-api.jar with StructureTransformAction
+Transforming interpolator-1.0.0-api.jar with StructureTransformAction
+Transforming collection-ktx-1.4.2.jar with StructureTransformAction
+Transforming collection-jvm-1.4.2.jar with StructureTransformAction
+Transforming core-runtime-2.2.0-api.jar with StructureTransformAction
+Transforming core-common-2.2.0.jar with StructureTransformAction
+Transforming annotation-jvm-1.8.1.jar with StructureTransformAction
+Transforming kotlin-stdlib-jdk7-1.8.22.jar with StructureTransformAction
+Transforming kotlin-stdlib-2.0.21.jar with StructureTransformAction
+Transforming constraintlayout-2.2.1-api.jar with StructureTransformAction
+Transforming annotations-23.0.0.jar with StructureTransformAction
+Transforming resourceinspection-annotation-1.0.1.jar with StructureTransformAction
+Transforming jspecify-1.0.0.jar with StructureTransformAction
+Transforming graphics-shapes-release-api.jar with StructureTransformAction
+Transforming gson-2.8.5.jar with StructureTransformAction
+Transforming android.jar with StructureTransformAction
+Transforming core-lambda-stubs.jar with StructureTransformAction
+file or directory 'D:\picto\pictotreeApp\app\src\debug\kotlin', not found
+file or directory 'D:\picto\pictotreeApp\app\src\debug\java', not found
+file or directory 'D:\picto\pictotreeApp\app\src\debug\kotlin', not found
+file or directory 'D:\picto\pictotreeApp\app\src\debug\kotlin', not found
+file or directory 'D:\picto\pictotreeApp\app\src\debug\java', not found
+file or directory 'D:\picto\pictotreeApp\app\src\main\kotlin', not found
+file or directory 'D:\picto\pictotreeApp\app\src\main\kotlin', not found
+file or directory 'D:\picto\pictotreeApp\app\src\main\kotlin', not found
+file or directory 'D:\picto\pictotreeApp\app\src\main\kotlin', not found
+file or directory 'D:\picto\pictotreeApp\app\src\main\kotlin', not found
+file or directory 'D:\picto\pictotreeApp\app\src\main\kotlin', not found
+file or directory 'D:\picto\pictotreeApp\app\src\debug\kotlin', not found
+file or directory 'D:\picto\pictotreeApp\app\src\debug\java', not found
+file or directory 'D:\picto\pictotreeApp\app\src\debug\kotlin', not found
+file or directory 'D:\picto\pictotreeApp\app\src\debug\kotlin', not found
+file or directory 'D:\picto\pictotreeApp\app\src\debug\java', not found
+file or directory 'D:\picto\pictotreeApp\app\src\debug\java', not found
+Caching disabled for task ':app:kaptDebugKotlin' because:
+  Build cache is disabled
+Task ':app:kaptDebugKotlin' is not up-to-date because:
+  Task has failed previously.
+The input changes require a full rebuild for incremental task ':app:kaptDebugKotlin'.
+Running kapt annotation processing using the Gradle Worker API
+GradleBuildProject.Builder should not be accessed through AnalyticsConfiguratorService after AnalyticsService is created. Analytics information of this build might be incomplete.
+Using workers PROCESS isolation mode to run kapt
+Kapt worker classpath: [C:\Users\randomfriday\.gradle\caches\modules-2\files-2.1\org.jetbrains.kotlin\kotlin-annotation-processing-gradle\2.0.21\b3be9823176d79cb0fc710e77309cfe599be9abf\kotlin-annotation-processing-gradle-2.0.21.jar, C:\Users\randomfriday\.gradle\caches\modules-2\files-2.1\org.jetbrains.kotlin\kotlin-stdlib\2.0.21\618b539767b4899b4660a83006e052b63f1db551\kotlin-stdlib-2.0.21.jar, C:\Users\randomfriday\.gradle\caches\modules-2\files-2.1\org.jetbrains\annotations\13.0\919f0dfe192fb4e063e7dacadee7f8bb9a2672a9\annotations-13.0.jar]
+Starting process 'Gradle Worker Daemon 5'. Working directory: C:\Users\randomfriday\.gradle\workers Command: C:\Program Files\Amazon Corretto\jdk11.0.19_7\bin\java.exe @C:\Users\randomfriday\.gradle\.tmp\gradle-worker-classpath7472463793136973287txt -Xmx512m -Dfile.encoding=UTF-8 -Duser.country=FR -Duser.language=fr -Duser.variant worker.org.gradle.process.internal.worker.GradleWorkerMain 'Gradle Worker Daemon 5'
+Successfully started process 'Gradle Worker Daemon 5'
+Started Gradle worker daemon (0.461 secs) with fork options DaemonForkOptions{executable=C:\Program Files\Amazon Corretto\jdk11.0.19_7\bin\java.exe, minHeapSize=null, maxHeapSize=null, jvmArgs=[], keepAliveMode=SESSION}.
+java.nio.file.AccessDeniedException: C:\WINDOWS\sqlite-3
+.41.2.2-066d5e47-354c-45a6-9997-82923e52f1c6-sqlitejdbc.
+dll.lck
+	at java.base/sun.nio.fs.WindowsException.translateToIOE
+xception(WindowsException.java:89)
+	at java.base/sun.nio.fs.WindowsException.rethrowAsIOExc
+eption(WindowsException.java:103)
+	at java.base/sun.nio.fs.WindowsException.rethrowAsIOExc
+eption(WindowsException.java:108)
+	at java.base/sun.nio.fs.WindowsFileSystemProvider.newBy
+teChannel(WindowsFileSystemProvider.java:235)
+	at java.base/java.nio.file.Files.newByteChannel(Files.j
+ava:371)
+	at 
+java.base/java.nio.file.Files.createFile(Files.java:648)
+	at org.sqlite.SQLiteJDBCLoader.extractAndLoadLibraryFil
+e(SQLiteJDBCLoader.java:214)
+	at org.sqlite.SQLiteJDBCLoader.loadSQLiteNativeLibrary(
+SQLiteJDBCLoader.java:338)
+	at org.sqlite.SQLiteJDBCLoader.initialize(SQLiteJDBCLoa
+der.java:72)
+	at androidx.room.verifier.DatabaseVerifier.<clinit>(Dat
+abaseVerifier.kt:79)
+	at androidx.room.processor.DatabaseProcessor.doProcess(
+DatabaseProcessor.kt:81)
+	at androidx.room.processor.DatabaseProcessor.process(Da
+tabaseProcessor.kt:60)
+	at androidx.room.DatabaseProcessingStep$process$databas
+es$1$1.invoke(DatabaseProcessingStep.kt:68)
+	at androidx.room.DatabaseProcessingStep$process$databas
+es$1$1.invoke(DatabaseProcessingStep.kt:64)
+	at androidx.room.processor.Context.collectLogs(Context.
+kt:192)
+	at androidx.room.DatabaseProcessingStep.process(Databas
+eProcessingStep.kt:64)
+	at androidx.room.compiler.processing.CommonProcessorDel
+egate.processRound(XBasicAnnotationProcessor.kt:130)
+	at androidx.room.compiler.processing.javac.JavacBasicAn
+notationProcessor.process(JavacBasicAnnotationProcessor.
+kt:73)
+	at org.jetbrains.kotlin.kapt3.base.incremental.Incremen
+talProcessor.process(incrementalProcessors.kt:90)
+	at org.jetbrains.kotlin.kapt3.base.ProcessorWrapper.pro
+cess(annotationProcessing.kt:216)
+	at jdk.compiler/com.sun.tools.javac.processing.JavacPro
+cessingEnvironment.callProcessor(JavacProcessingEnvironm
+ent.java:985)
+	at jdk.compiler/com.sun.tools.javac.processing.JavacPro
+cessingEnvironment.discoverAndRunProcs(JavacProcessingEn
+vironment.java:901)
+	at jdk.compiler/com.sun.tools.javac.processing.JavacPro
+cessingEnvironment$Round.run(JavacProcessingEnvironment.
+java:1227)
+	at jdk.compiler/com.sun.tools.javac.processing.JavacPro
+cessingEnvironment.doProcessing(JavacProcessingEnvironme
+nt.java:1340)
+	at jdk.compiler/com.sun.tools.javac.main.JavaCompiler.p
+rocessAnnotations(JavaCompiler.java:1254)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorI
+mpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorI
+mpl.invoke(NativeMethodAccessorImpl.java:62)
+	at java.base/jdk.internal.reflect.DelegatingMethodAcces
+sorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.jav
+a:566)
+	at org.jetbrains.kotlin.kapt3.base.AnnotationProcessing
+Kt.doAnnotationProcessing(annotationProcessing.kt:97)
+	at org.jetbrains.kotlin.kapt3.base.AnnotationProcessing
+Kt.doAnnotationProcessing(annotationProcessing.kt:36)
+	at 
+org.jetbrains.kotlin.kapt3.base.Kapt.kapt(Kapt.kt:46)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorI
+mpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorI
+mpl.invoke(NativeMethodAccessorImpl.java:62)
+	at java.base/jdk.internal.reflect.DelegatingMethodAcces
+sorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.jav
+a:566)
+	at org.jetbrains.kotlin.gradle.internal.KaptExecution.r
+un(KaptWithoutKotlincTask.kt:325)
+	at org.jetbrains.kotlin.gradle.internal.KaptWithoutKotl
+incTask$KaptExecutionWorkAction.execute(KaptWithoutKotli
+ncTask.kt:266)
+	at org.gradle.workers.internal.DefaultWorkerServer.exec
+ute(DefaultWorkerServer.java:63)
+	at org.gradle.workers.internal.AbstractClassLoaderWorke
+r$1.create(AbstractClassLoaderWorker.java:54)
+	at org.gradle.workers.internal.AbstractClassLoaderWorke
+r$1.create(AbstractClassLoaderWorker.java:48)
+	at org.gradle.internal.classloader.ClassLoaderUtils.exe
+cuteInClassloader(ClassLoaderUtils.java:100)
+	at org.gradle.workers.internal.AbstractClassLoaderWorke
+r.executeInClassLoader(AbstractClassLoaderWorker.java:48
+)
+	at org.gradle.workers.internal.IsolatedClassloaderWorke
+r.run(IsolatedClassloaderWorker.java:49)
+	at org.gradle.workers.internal.IsolatedClassloaderWorke
+r.run(IsolatedClassloaderWorker.java:30)
+	at org.gradle.workers.internal.WorkerDaemonServer.run(W
+orkerDaemonServer.java:103)
+	at org.gradle.workers.internal.WorkerDaemonServer.run(W
+orkerDaemonServer.java:72)
+	at org.gradle.process.internal.worker.request.WorkerAct
+ion$1.call(WorkerAction.java:152)
+	at org.gradle.process.internal.worker.child.WorkerLogEv
+entListener.withWorkerLoggingProtocol(WorkerLogEventList
+ener.java:41)
+	at org.gradle.process.internal.worker.request.WorkerAct
+ion.lambda$run$1(WorkerAction.java:149)
+	at org.gradle.internal.operations.CurrentBuildOperation
+Ref.with(CurrentBuildOperationRef.java:85)
+	at org.gradle.process.internal.worker.request.WorkerAct
+ion.run(WorkerAction.java:141)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorI
+mpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorI
+mpl.invoke(NativeMethodAccessorImpl.java:62)
+	at java.base/jdk.internal.reflect.DelegatingMethodAcces
+sorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.jav
+a:566)
+	at org.gradle.internal.dispatch.ReflectionDispatch.disp
+atch(ReflectionDispatch.java:36)
+	at org.gradle.internal.dispatch.ReflectionDispatch.disp
+atch(ReflectionDispatch.java:24)
+	at org.gradle.internal.remote.internal.hub.MessageHubBa
+ckedObjectConnection$DispatchWrapper.dispatch(MessageHub
+BackedObjectConnection.java:182)
+	at org.gradle.internal.remote.internal.hub.MessageHubBa
+ckedObjectConnection$DispatchWrapper.dispatch(MessageHub
+BackedObjectConnection.java:164)
+	at org.gradle.internal.remote.internal.hub.MessageHub$H
+andler.run(MessageHub.java:414)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchA
+ndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.AbstractManagedExecut
+or$1.run(AbstractManagedExecutor.java:48)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.ru
+nWorker(ThreadPoolExecutor.java:1128)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Wo
+rker.run(ThreadPoolExecutor.java:628)
+	at java.base/java.lang.Thread.run(Thread.java:829)
+
+> Task :app:kaptDebugKotlin FAILED
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:kaptDebugKotlin'.
+> A failure occurred while executing org.jetbrains.kotli
+n.gradle.internal.KaptWithoutKotlincTask$KaptExecutionWo
+rkAction
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 4s
+16 actionable tasks: 1 executed, 15 up-to-date
+Watched directory hierarchies: [D:\picto\pictotreeApp]
+Stopped 1 worker daemon(s).

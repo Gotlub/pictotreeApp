@@ -1,0 +1,100 @@
+﻿	at java.base/java.lang.reflect.Method.invoke(Method.jav
+a:566)
+	at org.jetbrains.kotlin.kapt3.base.AnnotationProcessing
+Kt.doAnnotationProcessing(annotationProcessing.kt:97)
+	at org.jetbrains.kotlin.kapt3.base.AnnotationProcessing
+Kt.doAnnotationProcessing(annotationProcessing.kt:36)
+	at 
+org.jetbrains.kotlin.kapt3.base.Kapt.kapt(Kapt.kt:46)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorI
+mpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorI
+mpl.invoke(NativeMethodAccessorImpl.java:62)
+	at java.base/jdk.internal.reflect.DelegatingMethodAcces
+sorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.jav
+a:566)
+	at org.jetbrains.kotlin.gradle.internal.KaptExecution.r
+un(KaptWithoutKotlincTask.kt:325)
+	at org.jetbrains.kotlin.gradle.internal.KaptWithoutKotl
+incTask$KaptExecutionWorkAction.execute(KaptWithoutKotli
+ncTask.kt:266)
+	at org.gradle.workers.internal.DefaultWorkerServer.exec
+ute(DefaultWorkerServer.java:63)
+	at org.gradle.workers.internal.AbstractClassLoaderWorke
+r$1.create(AbstractClassLoaderWorker.java:54)
+	at org.gradle.workers.internal.AbstractClassLoaderWorke
+r$1.create(AbstractClassLoaderWorker.java:48)
+	at org.gradle.internal.classloader.ClassLoaderUtils.exe
+cuteInClassloader(ClassLoaderUtils.java:100)
+	at org.gradle.workers.internal.AbstractClassLoaderWorke
+r.executeInClassLoader(AbstractClassLoaderWorker.java:48
+)
+	at org.gradle.workers.internal.IsolatedClassloaderWorke
+r.run(IsolatedClassloaderWorker.java:49)
+	at org.gradle.workers.internal.IsolatedClassloaderWorke
+r.run(IsolatedClassloaderWorker.java:30)
+	at org.gradle.workers.internal.WorkerDaemonServer.run(W
+orkerDaemonServer.java:103)
+	at org.gradle.workers.internal.WorkerDaemonServer.run(W
+orkerDaemonServer.java:72)
+	at org.gradle.process.internal.worker.request.WorkerAct
+ion$1.call(WorkerAction.java:152)
+	at org.gradle.process.internal.worker.child.WorkerLogEv
+entListener.withWorkerLoggingProtocol(WorkerLogEventList
+ener.java:41)
+	at org.gradle.process.internal.worker.request.WorkerAct
+ion.lambda$run$1(WorkerAction.java:149)
+	at org.gradle.internal.operations.CurrentBuildOperation
+Ref.with(CurrentBuildOperationRef.java:85)
+	at org.gradle.process.internal.worker.request.WorkerAct
+ion.run(WorkerAction.java:141)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorI
+mpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorI
+mpl.invoke(NativeMethodAccessorImpl.java:62)
+	at java.base/jdk.internal.reflect.DelegatingMethodAcces
+sorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.jav
+a:566)
+	at org.gradle.internal.dispatch.ReflectionDispatch.disp
+atch(ReflectionDispatch.java:36)
+	at org.gradle.internal.dispatch.ReflectionDispatch.disp
+atch(ReflectionDispatch.java:24)
+	at org.gradle.internal.remote.internal.hub.MessageHubBa
+ckedObjectConnection$DispatchWrapper.dispatch(MessageHub
+BackedObjectConnection.java:182)
+	at org.gradle.internal.remote.internal.hub.MessageHubBa
+ckedObjectConnection$DispatchWrapper.dispatch(MessageHub
+BackedObjectConnection.java:164)
+	at org.gradle.internal.remote.internal.hub.MessageHub$H
+andler.run(MessageHub.java:414)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchA
+ndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.AbstractManagedExecut
+or$1.run(AbstractManagedExecutor.java:48)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.ru
+nWorker(ThreadPoolExecutor.java:1128)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Wo
+rker.run(ThreadPoolExecutor.java:628)
+	at java.base/java.lang.Thread.run(Thread.java:829)
+
+> Task :app:kaptDebugKotlin FAILED
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:kaptDebugKotlin'.
+> A failure occurred while executing org.jetbrains.kotli
+n.gradle.internal.KaptWithoutKotlincTask$KaptExecutionWo
+rkAction
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log 
+output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 4s
+28 actionable tasks: 1 executed, 27 up-to-date

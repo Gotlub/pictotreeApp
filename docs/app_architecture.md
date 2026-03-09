@@ -15,23 +15,26 @@ Elle est développée "Offline-First" (priorité au mode hors-ligne) et pensée 
   * **Hors-ligne :** Connexion directe sans mot de passe aux comptes locaux existants. Bloque l'accès aux appels API.
   * **En ligne :** Authentification classique. À la première connexion d'un compte non répertorié : création automatique de l'environnement local (Dossier utilisateur + entrée dans la base SQLite).
 
-### View 2 : Tableau de bord (Dashboard)
-* **Objectif :** Afficher et sélectionner les arbres disponibles pour l'utilisateur connecté.
+### View 2 : Tableau de bord (Dashboard / Profils)
+* **Objectif :** Afficher et sélectionner le profil du patient/enfant pour accéder à ses arbres de communication. Conçu avec une approche « Safe Mode » (Hors-ligne) et « Admin Mode » (En ligne).
 * **Composants UI :**
-  * Liste cliquable des arbres locaux (la sélection redirige vers la **View 4**).
-  * *Conditionnel (si mode En Ligne actif) :* Boutons "Menu de gestion" et "Créer un nouvel arbre".
-* **Comportement "Créer un nouvel arbre" :**
-  * Ouverture d'un **DialogFragment** (fenêtre superposée).
-  * Sélection du type d'import depuis `pictotree.eu` via boutons radio exclusifs : "Arbre Public" ou "Arbre Personnel".
-  * Liste déroulante (Spinner) mise à jour dynamiquement selon le type choisi.
-  * Boutons d'action : "Annuler" et "Importer" (le bouton "Importer" est désactivé / grisé tant qu'aucun arbre de la liste n'est sélectionné).
+  * Icône "Cadenas" en haut à droite indiquant le mode de connexion (Safe / Admin).
+  * Liste verticale des profils locaux (gros boutons tactiles centrés).
+* **Comportement "Safe Mode" (Hors-ligne) :**
+  * Interface épurée, aucun bouton d'édition.
+  * Un Tap simple sur un profil ouvre la **View 4** en chargeant les arbres associés à ce profil.
+* **Comportement "Admin Mode" (En Ligne) :**
+  * L'icône du Cadenas est ouverte.
+  * Chaque profil affiche un bouton "Éditer" (icône ⚙️ ou ✏️) sur sa droite.
+  * Un large bouton "+ Nouveau Profil" est visible à la fin de la liste.
+  * Le Tap sur "Éditer" ouvre la gestion du profil (nom, avatar, et gestion de ses arbres associés via la **View 3**).
 
 ### View 3 : Menu de Gestion (Management)
-* **Objectif :** Gérer les ressources de l'utilisateur.
+* **Objectif :** Gérer les ressources associées à un Profil spécifique.
 * **Composants UI :**
-  * Liste déroulante de sélection des arbres stockés localement.
-  * Option contextuelle : "Supprimer" (efface l'arbre de la BDD SQLite et nettoie les fichiers médias associés).
-  * *Note pour plus tard :* Cet espace accueillera les futurs paramètres d'options graphiques pour la View 4.
+  * Liste réordonnable des arbres associés au profil sélectionné.
+  * Bouton "Ajouter un arbre" (ouvre un dialogue d'import public/privé depuis pictotree.eu).
+  * Option de suppression d'un arbre pour ce profil (sans forcément le supprimer de la base s'il est utilisé par un autre profil).
 
 ### View 4 : Parcours d'Arbre (Core UX)
 * **Objectif :** Visualisation, interaction et construction de la liste chaînée.
@@ -41,11 +44,14 @@ Elle est développée "Offline-First" (priorité au mode hors-ligne) et pensée 
 
 ## 3. Gestion des Données et Stockage
 
-### A. Base de Données (SQLite)
-La base de données locale (implémentée idéalement via la librairie Android Room) est la source de vérité de l'application.
-* **Table trees :** Gère les métadonnées des arbres et contient l'arborescence complète via un payload JSON.
-* **Table images :** Gère le cache local (hachage des URL) pour le mode hors-ligne.
-(Note : Les identités locales des utilisateurs sont gérées globalement par les EncryptedSharedPreferences).
+### A. Base de Données (SQLite / Room)
+La base de données locale (implémentée via Android Room) est stockée dans le dossier isolé de l'utilisateur. Elle gère la relation dynamique : 1 Utilisateur -> N Profils -> N Arbres.
+
+* **Table `Profile` :** Représente le patient/enfant (id, name, avatarUrl).
+* **Table `Tree` :** Contient les métadonnées globales des arbres et l'arborescence (id, name, json_payload).
+* **Table de jointure `ProfileTreeCrossRef` :** Associe un arbre à un profil, avec une gestion de l'ordre d'affichage (profileId, treeId, displayOrder).
+* **Table `images` :** Gère le cache local (hachage des URL) pour le mode hors-ligne.
+(Note : Les identités locales des utilisateurs parents/aidants sont gérées globalement par les EncryptedSharedPreferences).
 
 ### B. Système de Fichiers (File System)
 Pour éviter les conflits en collectivité et faciliter la gestion des données :
