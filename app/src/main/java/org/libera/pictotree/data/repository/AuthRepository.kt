@@ -1,4 +1,4 @@
-package org.libera.pictotree.repository
+package org.libera.pictotree.data.repository
 
 import org.libera.pictotree.network.AuthApiService
 import org.libera.pictotree.network.LoginRequest

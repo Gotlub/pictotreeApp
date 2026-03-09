@@ -1,4 +1,4 @@
-package org.libera.pictotree.ui
+package org.libera.pictotree.ui.login
 
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -19,16 +19,15 @@ import com.google.android.material.textfield.MaterialAutoCompleteTextView
 import com.google.android.material.textfield.TextInputLayout
 import kotlinx.coroutines.launch
 import org.libera.pictotree.R
-import org.libera.pictotree.viewmodel.LoginViewModel
 
 class LoginFragment : Fragment() {
 
     private val viewModel: LoginViewModel by viewModels()
 
     override fun onCreateView(
-            inflater: LayoutInflater,
-            container: ViewGroup?,
-            savedInstanceState: Bundle?
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
     ): View? {
         return inflater.inflate(R.layout.fragment_login, container, false)
     }
@@ -43,11 +42,11 @@ class LoginFragment : Fragment() {
 
         // Setup AutoCompleteTextView Adapter with an empty list initially
         val adapter =
-                ArrayAdapter<String>(
-                        requireContext(),
-                        android.R.layout.simple_dropdown_item_1line,
-                        mutableListOf()
-                )
+            ArrayAdapter<String>(
+                requireContext(),
+                android.R.layout.simple_dropdown_item_1line,
+                mutableListOf()
+            )
         actvUsers.setAdapter(adapter)
 
         // View Interactions

@@ -1,4 +1,4 @@
-package org.libera.pictotree.viewmodel
+package org.libera.pictotree.ui.login
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.libera.pictotree.network.RetrofitClient
-import org.libera.pictotree.repository.AuthRepository
+import org.libera.pictotree.data.repository.AuthRepository
 
 /**
  * UI State for the Login Screen

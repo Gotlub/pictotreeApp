@@ -6,4 +6,8 @@
     <string name="login_online_mode">Online mode</string>
     <string name="login_password_hint">Password</string>
     <string name="login_button">Login</string>
+    <!-- Dashboard View Strings -->
+    <string name="dashboard_title">Who are you?</string>
+    <string name="dashboard_admin_status_desc">Admin status</string>
+    <string name="dashboard_add_profile_btn">New</string>
 </resources>
