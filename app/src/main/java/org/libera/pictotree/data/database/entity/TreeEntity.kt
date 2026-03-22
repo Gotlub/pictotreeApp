@@ -8,5 +8,7 @@ data class TreeEntity(
     @PrimaryKey
     val id: Int,
     val name: String,
-    val jsonPayload: String
+    val jsonPayload: String,
+    val isPublic: Boolean = false,
+    val lastSync: Long = System.currentTimeMillis()
 )

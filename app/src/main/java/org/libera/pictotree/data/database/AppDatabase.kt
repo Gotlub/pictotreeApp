@@ -8,15 +8,20 @@ import org.libera.pictotree.data.database.dao.ProfileDao
 import org.libera.pictotree.data.database.entity.Profile
 import org.libera.pictotree.data.database.entity.ProfileTreeCrossRef
 import org.libera.pictotree.data.database.entity.TreeEntity
+import org.libera.pictotree.data.database.dao.ImageDao
+import org.libera.pictotree.data.database.dao.TreeDao
+import org.libera.pictotree.data.database.entity.ImageEntity
 
 @Database(
-    entities = [Profile::class, TreeEntity::class, ProfileTreeCrossRef::class],
-    version = 1,
+    entities = [Profile::class, TreeEntity::class, ProfileTreeCrossRef::class, ImageEntity::class],
+    version = 2,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun profileDao(): ProfileDao
+    abstract fun treeDao(): TreeDao
+    abstract fun imageDao(): ImageDao
 
     companion object {
         @Volatile
@@ -28,7 +33,9 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "pictotree_database"
-                ).build()
+                )
+                .fallbackToDestructiveMigration()
+                .build()
                 INSTANCE = instance
                 instance
             }

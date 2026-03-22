@@ -1,0 +1,71 @@
+package org.libera.pictotree.data.repository
+
+import android.content.Context
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import org.libera.pictotree.data.database.dao.ImageDao
+import org.libera.pictotree.data.database.entity.ImageEntity
+import org.libera.pictotree.network.dto.TreeNodeDTO
+import java.io.File
+import java.io.FileOutputStream
+import java.net.URL
+import java.security.MessageDigest
+
+class ImageSyncEngine(
+    private val context: Context,
+    private val imageDao: ImageDao,
+    private val username: String // Isoler hermétiquement le stockage par utilisateur (Cahier des charges)
+) {
+    suspend fun syncImagesFromNode(node: TreeNodeDTO) {
+        if (node.imageUrl.isNotBlank()) {
+            downloadAndHashImage(node.imageUrl)
+        }
+        for (child in node.children) {
+            syncImagesFromNode(child)
+        }
+    }
+
+    private suspend fun downloadAndHashImage(remoteUrl: String) = withContext(Dispatchers.IO) {
+        val hash = hashUrlSha256(remoteUrl)
+        val ext = remoteUrl.substringAfterLast('.', "png")
+        // Génération d'un anti-doublon universel : a5b3f...c12.png
+        val fileName = "$hash.$ext" 
+        
+        // Si l'application possède DÉJÀ cette empreinte, on annule silencieusement la requête
+        val existing = imageDao.getImageByRemotePath(remoteUrl)
+        if (existing != null) return@withContext
+
+        // Scaffold de l'architecture dossier
+        val userImagesDir = File(context.filesDir, "$username/images")
+        if (!userImagesDir.exists()) userImagesDir.mkdirs()
+        
+        val file = File(userImagesDir, fileName)
+        val localPath = "images/$fileName" // On sauve le chemin de façon relative pour SQLite
+        
+        if (!file.exists()) {
+            try {
+                // Flux binaire d'import en tâche de fond IO
+                URL(remoteUrl).openStream().use { input ->
+                    FileOutputStream(file).use { output ->
+                        input.copyTo(output)
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                return@withContext
+            }
+        }
+        
+        // Finalement, on met la Base de données à jour
+        imageDao.insertImage(ImageEntity(
+            remotePath = remoteUrl,
+            localPath = localPath,
+            name = fileName
+        ))
+    }
+
+    private fun hashUrlSha256(url: String): String {
+        val bytes = MessageDigest.getInstance("SHA-256").digest(url.toByteArray())
+        return bytes.joinToString("") { "%02x".format(it) }
+    }
+}
