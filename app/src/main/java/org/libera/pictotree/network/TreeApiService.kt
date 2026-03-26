@@ -10,7 +10,10 @@ import retrofit2.http.Path
 interface TreeApiService {
     @GET("trees")
     suspend fun getAvailableTrees(
-        @Header("Authorization") authHeader: String
+        @Header("Authorization") authHeader: String,
+        @retrofit2.http.Query("is_public") isPublic: Boolean = true,
+        @retrofit2.http.Query("search") search: String? = null,
+        @retrofit2.http.Query("limit") limit: Int = 50
     ): Response<List<TreeMetadataDTO>>
 
     @GET("trees/{id}")

@@ -6,6 +6,8 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -19,6 +21,9 @@ class DashboardViewModel(private val repository: ProfileRepository) : ViewModel(
     // Pour l'instant on expose un MutableStateFlow qu'on peut modifier pour tester.
     private val _isAdminMode = MutableStateFlow(false)
     val isAdminMode: StateFlow<Boolean> = _isAdminMode
+
+    private val _navigateToProfileEvent = Channel<Long>(Channel.BUFFERED)
+    val navigateToProfileEvent = _navigateToProfileEvent.receiveAsFlow()
 
     // État de l'interface utilisateur exposé à la vue
     val uiState: StateFlow<DashboardUiState> =
@@ -43,7 +48,8 @@ class DashboardViewModel(private val repository: ProfileRepository) : ViewModel(
 
     fun addProfile(name: String, avatarUrl: String? = null) {
         viewModelScope.launch {
-            repository.insertProfile(Profile(name = name, avatarUrl = avatarUrl))
+            val id = repository.insertProfile(Profile(name = name, avatarUrl = avatarUrl))
+            _navigateToProfileEvent.send(id)
         }
     }
 

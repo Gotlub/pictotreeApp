@@ -8,8 +8,8 @@ class ProfileRepository(private val profileDao: ProfileDao) {
 
     val allProfiles: Flow<List<Profile>> = profileDao.getAllProfilesFlow()
 
-    suspend fun insertProfile(profile: Profile) {
-        profileDao.insertProfile(profile)
+    suspend fun insertProfile(profile: Profile): Long {
+        return profileDao.insertProfile(profile)
     }
 
     suspend fun deleteProfile(profile: Profile) {

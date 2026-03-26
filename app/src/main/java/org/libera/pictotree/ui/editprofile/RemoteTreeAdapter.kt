@@ -6,6 +6,7 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
+import coil.load
 import org.libera.pictotree.R
 import org.libera.pictotree.network.dto.TreeMetadataDTO
 
@@ -37,11 +38,22 @@ class RemoteTreeAdapter(
         private val nameText: TextView = itemView.findViewById(R.id.textRemoteTreeName)
         private val ownerText: TextView = itemView.findViewById(R.id.textRemoteTreeOwner)
         private val importButton: Button = itemView.findViewById(R.id.buttonImport)
+        private val imageView: android.widget.ImageView = itemView.findViewById(R.id.imageRemoteTreeIcon)
 
         fun bind(tree: TreeMetadataDTO) {
             nameText.text = tree.name
             val visibility = if (tree.isPublic) "Public" else "Private"
             ownerText.text = "Owner: ${tree.owner} ($visibility)"
+            
+            if (!tree.rootImageUrl.isNullOrEmpty()) {
+                imageView.load(tree.rootImageUrl) {
+                    crossfade(true)
+                    placeholder(android.R.drawable.ic_menu_gallery)
+                    error(android.R.drawable.ic_menu_gallery)
+                }
+            } else {
+                imageView.setImageResource(android.R.drawable.ic_menu_gallery)
+            }
             
             importButton.setOnClickListener {
                 onTreeImport(tree)

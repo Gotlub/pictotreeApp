@@ -13,6 +13,7 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.fragment.findNavController
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -42,10 +43,19 @@ class DashboardFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         // Setup Logic
-        val database = AppDatabase.getDatabase(requireContext())
+        val sessionManager = org.libera.pictotree.data.SessionManager(requireContext())
+        val username = sessionManager.getUsername() ?: "default"
+        val database = AppDatabase.getDatabase(requireContext(), username)
+        
         val repository = ProfileRepository(database.profileDao())
         val factory = DashboardViewModelFactory(repository)
         viewModel = ViewModelProvider(this, factory)[DashboardViewModel::class.java]
+        
+        // Initialiser le Mode Admin depuis l'authentification réseau
+        val isAdminInitial = arguments?.getBoolean("isAdmin", false) ?: false
+        if (isAdminInitial) {
+            viewModel.setAdminMode(true)
+        }
 
         // Setup UI
         val rvProfiles = view.findViewById<RecyclerView>(R.id.rvProfiles)
@@ -66,13 +76,8 @@ class DashboardFragment : Fragment() {
                             // TODO: Naviguer vers le fragment View 4 (Parcours)
                         },
                         onEditClick = { profile ->
-                            Toast.makeText(
-                                            context,
-                                            "Editing ${profile.name} (View 3)",
-                                            Toast.LENGTH_SHORT
-                                    )
-                                    .show()
-                            // TODO: Naviguer vers le fragment View 3 (Gestion)
+                            val bundle = Bundle().apply { putLong("profileId", profile.id.toLong()) }
+                            findNavController().navigate(R.id.action_dashboardFragment_to_editProfileFragment, bundle)
                         }
                 )
         rvProfiles.layoutManager = LinearLayoutManager(requireContext())
@@ -81,6 +86,13 @@ class DashboardFragment : Fragment() {
         // Setup Observers
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+
+                launch {
+                    viewModel.navigateToProfileEvent.collect { profileId ->
+                        val bundle = Bundle().apply { putLong("profileId", profileId) }
+                        findNavController().navigate(R.id.action_dashboardFragment_to_editProfileFragment, bundle)
+                    }
+                }
 
                 // Observer for UI State
                 launch {
@@ -129,8 +141,14 @@ class DashboardFragment : Fragment() {
         // Setup Listeners
         fabAddProfile.setOnClickListener { showCreateProfileDialog() }
 
-        // Debug pour le développeur (clic sur le cadenas pour basculer le mode)
-        ivAdminStatus.setOnClickListener { viewModel.setAdminMode(!viewModel.isAdminMode.value) }
+        // Listener sur le cadenas pour le Mode Admin
+        ivAdminStatus.setOnClickListener { 
+            if (isAdminInitial) {
+                viewModel.setAdminMode(!viewModel.isAdminMode.value) 
+            } else {
+                Toast.makeText(requireContext(), "Mode édition impossible en hors-ligne. Veuillez vous connecter au réseau.", Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     private fun showCreateProfileDialog() {

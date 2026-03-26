@@ -17,11 +17,13 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.textfield.TextInputEditText
 import kotlinx.coroutines.launch
 import org.libera.pictotree.R
+import org.libera.pictotree.data.database.AppDatabase
+import org.libera.pictotree.network.RetrofitClient
+import org.libera.pictotree.data.SessionManager
 
 class EditProfileFragment : Fragment() {
 
-    // NB: L'instance du ViewModel sera idéalement injectée via Hilt/Koin ou ViewModelProvider 
-    // private val viewModel: EditProfileViewModel by viewModels()
+    private lateinit var viewModel: EditProfileViewModel
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -38,11 +40,30 @@ class EditProfileFragment : Fragment() {
         val fabAddTree = view.findViewById<FloatingActionButton>(R.id.fabAddTree)
         val progressBar = view.findViewById<ProgressBar>(R.id.progressBarSync)
 
+        val sessionManagerLocal = SessionManager(requireContext())
+        val username = sessionManagerLocal.getUsername() ?: "default"
+        val database = AppDatabase.getDatabase(requireContext(), username)
+        val factory = EditProfileViewModelFactory(
+            requireActivity().application,
+            database.profileDao(),
+            database.treeDao(),
+            database.imageDao(),
+            RetrofitClient.treeApiService
+        )
+        viewModel = androidx.lifecycle.ViewModelProvider(this, factory)[EditProfileViewModel::class.java]
+
+        val sessionManager = SessionManager(requireContext())
+        val profileId = arguments?.getLong("profileId")?.toInt() ?: -1
+
+        if (profileId != -1) {
+            viewModel.loadProfile(profileId)
+        }
+
         val adapter = ProfileTreeAdapter(
-            onTreeDelete = { tree ->
+            onTreeDelete = { _ ->
                 // viewModel.deleteTree(tree)
             },
-            onOrderChanged = { newTrees ->
+            onOrderChanged = { _ ->
                 // viewModel.updateDisplayOrder(newTrees)
             }
         )
@@ -77,30 +98,63 @@ class EditProfileFragment : Fragment() {
 
         // ================= FAB DIALOG LAUNCHER =================
         fabAddTree.setOnClickListener {
-            Toast.makeText(requireContext(), "Fetch Network API...", Toast.LENGTH_SHORT).show()
-            // viewModel.fetchAvailableTrees() => déclenche un affichage de TreeSelectionDialogFragment
+            val token = sessionManager.getToken()
+            if (token != null) {
+                Toast.makeText(requireContext(), "Ouverture catalogue distant...", Toast.LENGTH_SHORT).show()
+                viewModel.openTreeSelection(token)
+            } else {
+                Toast.makeText(requireContext(), "Erreur: Non authentifié", Toast.LENGTH_SHORT).show()
+            }
         }
 
         // ================= VIEWMODEL OBSERVER =================
-        /* 
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.uiState.collect { state ->
-                    when (state) {
-                        is EditProfileUiState.Loading -> progressBar.visibility = View.VISIBLE
-                        is EditProfileUiState.Success -> {
-                            progressBar.visibility = View.GONE
-                            editProfileName.setText(state.profile.name)
-                            adapter.submitList(state.trees)
-                        }
-                        is EditProfileUiState.Error -> {
-                            progressBar.visibility = View.GONE
-                            Toast.makeText(context, state.message, Toast.LENGTH_LONG).show()
+                
+                launch {
+                    viewModel.showTreeSelectionEvent.collect {
+                        val dialog = TreeSelectionDialogFragment(
+                            remoteTreesFlow = viewModel.remoteTrees,
+                            onSearchRequested = { query, isPublic ->
+                                val token = sessionManager.getToken()
+                                if (token != null) {
+                                    viewModel.searchTrees(token, query, isPublic)
+                                }
+                            },
+                            onTreeSelected = { selectedTree ->
+                                val token = sessionManager.getToken()
+                                val username = sessionManager.getUsername()
+                                if (token != null && username != null && profileId != -1) {
+                                    viewModel.synchronizeAndImportTree(
+                                        treeId = selectedTree.id,
+                                        profileId = profileId,
+                                        authToken = token,
+                                        username = username
+                                    )
+                                }
+                            }
+                        )
+                        dialog.show(childFragmentManager, "TreeSelection")
+                    }
+                }
+
+                launch {
+                    viewModel.uiState.collect { state ->
+                        when (state) {
+                            is EditProfileUiState.Loading -> progressBar.visibility = View.VISIBLE
+                            is EditProfileUiState.Success -> {
+                                progressBar.visibility = View.GONE
+                                editProfileName.setText(state.profile.name)
+                                adapter.submitList(state.trees)
+                            }
+                            is EditProfileUiState.Error -> {
+                                progressBar.visibility = View.GONE
+                                Toast.makeText(context, state.message, Toast.LENGTH_LONG).show()
+                            }
                         }
                     }
                 }
             }
         }
-        */
     }
 }

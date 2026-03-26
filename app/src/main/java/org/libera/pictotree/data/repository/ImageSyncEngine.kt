@@ -44,11 +44,19 @@ class ImageSyncEngine(
         
         if (!file.exists()) {
             try {
-                // Flux binaire d'import en tâche de fond IO
-                URL(remoteUrl).openStream().use { input ->
-                    FileOutputStream(file).use { output ->
-                        input.copyTo(output)
+                val connection = URL(remoteUrl).openConnection() as java.net.HttpURLConnection
+                // Émuler un navigateur pour bypasser les blocages CloudFlare (ex: Arasaac)
+                connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
+                connection.connect()
+                
+                if (connection.responseCode in 200..299) {
+                    connection.inputStream.use { input ->
+                        FileOutputStream(file).use { output ->
+                            input.copyTo(output)
+                        }
                     }
+                } else {
+                    return@withContext
                 }
             } catch (e: Exception) {
                 e.printStackTrace()

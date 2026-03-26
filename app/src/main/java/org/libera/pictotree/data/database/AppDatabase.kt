@@ -14,7 +14,7 @@ import org.libera.pictotree.data.database.entity.ImageEntity
 
 @Database(
     entities = [Profile::class, TreeEntity::class, ProfileTreeCrossRef::class, ImageEntity::class],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -25,18 +25,21 @@ abstract class AppDatabase : RoomDatabase() {
 
     companion object {
         @Volatile
-        private var INSTANCE: AppDatabase? = null
+        private var instances = mutableMapOf<String, AppDatabase>()
 
-        fun getDatabase(context: Context): AppDatabase {
-            return INSTANCE ?: synchronized(this) {
+        fun getDatabase(context: Context, username: String): AppDatabase {
+            val safeUsername = username.lowercase().replace(Regex("[^a-z0-9]"), "_")
+            val dbName = "${safeUsername}_pictotree.db"
+
+            return instances[safeUsername] ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     AppDatabase::class.java,
-                    "pictotree_database"
+                    dbName
                 )
                 .fallbackToDestructiveMigration()
                 .build()
-                INSTANCE = instance
+                instances[safeUsername] = instance
                 instance
             }
         }

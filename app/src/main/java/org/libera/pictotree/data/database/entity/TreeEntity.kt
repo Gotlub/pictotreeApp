@@ -10,5 +10,6 @@ data class TreeEntity(
     val name: String,
     val jsonPayload: String,
     val isPublic: Boolean = false,
-    val lastSync: Long = System.currentTimeMillis()
+    val lastSync: Long = System.currentTimeMillis(),
+    val rootUrl: String? = null
 )

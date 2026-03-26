@@ -19,6 +19,7 @@ import com.google.android.material.textfield.MaterialAutoCompleteTextView
 import com.google.android.material.textfield.TextInputLayout
 import kotlinx.coroutines.launch
 import org.libera.pictotree.R
+import org.libera.pictotree.data.SessionManager
 
 class LoginFragment : Fragment() {
 
@@ -34,6 +35,9 @@ class LoginFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        val sessionManager = SessionManager(requireContext())
+        viewModel.loadKnownUsers(sessionManager.getKnownUsers().toList())
 
         val actvUsers: MaterialAutoCompleteTextView = view.findViewById(R.id.actv_users)
         val switchOnlineMode: SwitchCompat = view.findViewById(R.id.switch_online_mode)
@@ -111,14 +115,15 @@ class LoginFragment : Fragment() {
                     }
 
                     // 6. Handle Success
-                    if (state.isLoginSuccessful) {
-                        Toast.makeText(
-                                        requireContext(),
-                                        "Connexion réussie ! Token reçu",
-                                        Toast.LENGTH_LONG
-                                )
-                                .show()
-                        findNavController().navigate(R.id.action_loginFragment_to_dashboardFragment)
+                    if (state.isLoginSuccessful && state.username != null) {
+                        SessionManager(requireContext()).saveSession(state.username, state.token)
+                        val message = if (state.isOnlineMode) "Connexion réussie !" else "Mode Hors-ligne activé"
+                        Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show()
+                        
+                        val bundle = android.os.Bundle().apply {
+                            putBoolean("isAdmin", state.isOnlineMode)
+                        }
+                        findNavController().navigate(R.id.action_loginFragment_to_dashboardFragment, bundle)
                     }
                 }
             }

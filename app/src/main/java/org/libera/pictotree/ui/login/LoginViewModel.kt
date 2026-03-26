@@ -20,7 +20,9 @@ data class LoginUiState(
     val isPasswordVisible: Boolean = false,
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
-    val isLoginSuccessful: Boolean = false
+    val isLoginSuccessful: Boolean = false,
+    val token: String? = null,
+    val username: String? = null
 )
 
 class LoginViewModel(
@@ -31,10 +33,12 @@ class LoginViewModel(
     val uiState: StateFlow<LoginUiState> = _uiState.asStateFlow()
 
     init {
-        // TODO: Charger la vraie liste des utilisateurs depuis EncryptedSharedPreferences
-        val defaultUsers = listOf("User A", "User B")
-        _uiState.update { 
-            it.copy(availableUsers = defaultUsers) 
+        // Known users are now injected dynamically from the Fragment using loadKnownUsers()
+    }
+
+    fun loadKnownUsers(users: List<String>) {
+        if (_uiState.value.availableUsers != users) {
+             _uiState.update { it.copy(availableUsers = users) }
         }
     }
 
@@ -63,6 +67,7 @@ class LoginViewModel(
 
     fun login(password: String) {
         val username = _uiState.value.selectedUser
+        val isOnline = _uiState.value.isOnlineMode
         
         if (username.isNullOrBlank()) {
             _uiState.update { it.copy(errorMessage = "Veuillez entrer un nom d'utilisateur valide.") }
@@ -72,6 +77,21 @@ class LoginViewModel(
         // On affiche le loading et on efface l'erreur précédente
         _uiState.update { it.copy(isLoading = true, errorMessage = null, isLoginSuccessful = false) }
 
+        if (!isOnline) {
+            _uiState.update { it.copy(isLoading = false) }
+            val knownUsers = _uiState.value.availableUsers
+            if (knownUsers.contains(username)) {
+                _uiState.update { it.copy(
+                    isLoginSuccessful = true,
+                    token = null,
+                    username = username
+                ) }
+            } else {
+                _uiState.update { it.copy(errorMessage = "Utilisateur inconnu localement. Passez en mode Ligne pour vous connecter la première fois.") }
+            }
+            return
+        }
+
         viewModelScope.launch {
             val result = authRepository.login(username, password)
             
@@ -79,11 +99,11 @@ class LoginViewModel(
             _uiState.update { it.copy(isLoading = false) }
 
             result.onSuccess { response ->
-                // TODO: Succès ! Sauvegarder `response.accessToken` (ex: SharedPreferences ou DataStore)
-                // tokenManager.saveToken(response.accessToken)
-                
-                // Mettre à jour l'état si besoin ou déclencher un événement de navigation
-                _uiState.update { it.copy(isLoginSuccessful = true) }
+                _uiState.update { it.copy(
+                    isLoginSuccessful = true,
+                    token = response.accessToken,
+                    username = username
+                ) }
             }.onFailure { exception ->
                 // Afficher le message d'erreur
                 _uiState.update { it.copy(errorMessage = exception.message ?: "Erreur inconnue de connexion") }

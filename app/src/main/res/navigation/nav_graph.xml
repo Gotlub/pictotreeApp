@@ -22,6 +22,21 @@
         android:id="@+id/dashboardFragment"
         android:name="org.libera.pictotree.ui.dashboard.DashboardFragment"
         android:label="Dashboard"
-        tools:layout="@layout/fragment_dashboard" />
+        tools:layout="@layout/fragment_dashboard">
+        
+        <action
+            android:id="@+id/action_dashboardFragment_to_editProfileFragment"
+            app:destination="@id/editProfileFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/editProfileFragment"
+        android:name="org.libera.pictotree.ui.editprofile.EditProfileFragment"
+        android:label="Edit Profile"
+        tools:layout="@layout/fragment_edit_profile">
+        <argument
+            android:name="profileId"
+            app:argType="long" />
+    </fragment>
         
 </navigation>
