@@ -46,6 +46,17 @@
             tools:text="Routine Repas"
             app:layout_constraintTop_toTopOf="@id/imageTreeIcon"
             app:layout_constraintStart_toEndOf="@id/imageTreeIcon"
+            app:layout_constraintEnd_toStartOf="@+id/buttonViewTree" />
+
+        <ImageButton
+            android:id="@+id/buttonViewTree"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@android:drawable/ic_menu_view"
+            android:contentDescription="Visualiser l\'arbre"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toStartOf="@+id/buttonDeleteTree" />
 
         <ImageButton

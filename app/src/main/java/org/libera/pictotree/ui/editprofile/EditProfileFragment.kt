@@ -65,6 +65,11 @@ class EditProfileFragment : Fragment() {
             },
             onOrderChanged = { _ ->
                 // viewModel.updateDisplayOrder(newTrees)
+            },
+            onViewTree = { tree ->
+                val intent = android.content.Intent(requireContext(), org.libera.pictotree.ui.visualizer.TreeVisualizerActivity::class.java)
+                intent.putExtra("TREE_ID", tree.id)
+                startActivity(intent)
             }
         )
         

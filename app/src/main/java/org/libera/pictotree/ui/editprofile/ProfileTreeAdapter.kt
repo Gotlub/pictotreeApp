@@ -15,7 +15,8 @@ import java.util.Collections
 
 class ProfileTreeAdapter(
     private val onTreeDelete: (TreeEntity) -> Unit,
-    private val onOrderChanged: (List<TreeEntity>) -> Unit
+    private val onOrderChanged: (List<TreeEntity>) -> Unit,
+    private val onViewTree: (TreeEntity) -> Unit
 ) : RecyclerView.Adapter<ProfileTreeAdapter.TreeViewHolder>() {
 
     private val trees = mutableListOf<ProfileTreeUiModel>()
@@ -60,12 +61,16 @@ class ProfileTreeAdapter(
     inner class TreeViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val treeName: TextView = itemView.findViewById(R.id.textTreeName)
         private val deleteButton: ImageButton = itemView.findViewById(R.id.buttonDeleteTree)
+        private val viewButton: ImageButton = itemView.findViewById(R.id.buttonViewTree)
         private val imageIcon: ImageView = itemView.findViewById(R.id.imageTreeIcon)
 
         fun bind(model: ProfileTreeUiModel) {
             treeName.text = model.tree.name
             deleteButton.setOnClickListener {
                 onTreeDelete(model.tree)
+            }
+            viewButton.setOnClickListener {
+                onViewTree(model.tree)
             }
             if (model.localThumbnailPath != null) {
                 imageIcon.load(File(model.localThumbnailPath)) {
