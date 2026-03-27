@@ -17,24 +17,27 @@ class ImageSyncEngine(
     private val username: String, // Isoler hermétiquement le stockage par utilisateur (Cahier des charges)
     private val authToken: String // Injection du token JWT pour télécharger les images internes
 ) {
-    suspend fun syncImagesFromNode(node: TreeNodeDTO) {
+    suspend fun syncImagesFromNode(node: TreeNodeDTO, treeId: Int) {
         if (node.imageUrl.isNotBlank()) {
-            downloadAndHashImage(node.imageUrl)
+            downloadAndHashImage(node.imageUrl, treeId)
         }
         for (child in node.children) {
-            syncImagesFromNode(child)
+            syncImagesFromNode(child, treeId)
         }
     }
 
-    private suspend fun downloadAndHashImage(remoteUrl: String) = withContext(Dispatchers.IO) {
+    private suspend fun downloadAndHashImage(remoteUrl: String, treeId: Int) = withContext(Dispatchers.IO) {
         val hash = hashUrlSha256(remoteUrl)
         val ext = remoteUrl.substringAfterLast('.', "png")
         // Génération d'un anti-doublon universel : a5b3f...c12.png
         val fileName = "$hash.$ext" 
         
-        // Si l'application possède DÉJÀ cette empreinte, on annule silencieusement la requête
+        // Si l'application possède DÉJÀ cette empreinte, on la lie directement
         val existing = imageDao.getImageByRemotePath(remoteUrl)
-        if (existing != null) return@withContext
+        if (existing != null) {
+            imageDao.insertTreeImageCrossRef(org.libera.pictotree.data.database.entity.TreeImageCrossRef(treeId, existing.id))
+            return@withContext
+        }
 
         // Scaffold de l'architecture dossier
         val userImagesDir = File(context.filesDir, "$username/images")
@@ -72,11 +75,12 @@ class ImageSyncEngine(
         }
         
         // Finalement, on met la Base de données à jour
-        imageDao.insertImage(ImageEntity(
+        val newImageId = imageDao.insertImage(ImageEntity(
             remotePath = remoteUrl,
             localPath = localPath,
             name = fileName
         ))
+        imageDao.insertTreeImageCrossRef(org.libera.pictotree.data.database.entity.TreeImageCrossRef(treeId, newImageId.toInt()))
     }
 
     private fun hashUrlSha256(url: String): String {

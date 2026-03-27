@@ -108,11 +108,7 @@ class EditProfileViewModel(
                 if (response.isSuccessful && response.body() != null) {
                     val fullTree = response.body()!!
                     
-                    // Étape 2 : Engine d'Importation Hachée d'images
-                    val engine = ImageSyncEngine(getApplication(), imageDao, username, authToken)
-                    fullTree.rootNode?.let { engine.syncImagesFromNode(it) }
-                    
-                    // Étape 3 : Insérer l'Entité de Base (Arbre Textuel)
+                    // Étape 2 : Insérer l'Entité de Base (Arbre Textuel) AVANT les images pour la contrainte ForeignKey CASCADE !
                     val jsonPayload = Gson().toJson(fullTree)
                     val treeEntity = TreeEntity(
                         id = fullTree.treeId,
@@ -124,6 +120,10 @@ class EditProfileViewModel(
                     )
                     treeDao.insertTree(treeEntity)
                     
+                    // Étape 3 : Engine d'Importation Hachée d'images -> Lien via CrossRef avec tree.id
+                    val engine = ImageSyncEngine(getApplication(), imageDao, username, authToken)
+                    fullTree.rootNode?.let { engine.syncImagesFromNode(it, fullTree.treeId) }
+                    
                     // Étape 4 : Lier à ce Profil spécifique (En le mettant tout en bas de la liste)
                     val maxOrder = profileDao.getMaxDisplayOrderForProfile(profileId) ?: -1
                     val crossRef = ProfileTreeCrossRef(profileId, treeEntity.id, maxOrder + 1)
@@ -132,6 +132,46 @@ class EditProfileViewModel(
                     // Étape 5 : Rafraichir le Flow Dynamique Android
                     loadProfile(profileId)
                 }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    fun deleteTree(tree: TreeEntity) {
+        viewModelScope.launch {
+            try {
+                val sessionManager = SessionManager(getApplication())
+                val username = sessionManager.getUsername() ?: return@launch
+                val currentProfile = (_uiState.value as? EditProfileUiState.Success)?.profile ?: return@launch
+                
+                // 1. SUPPRIMER LE LIEN avec le Profil actuel (et surtout pas l'Arbre entier !)
+                profileDao.deleteProfileTreeCrossRefByIds(currentProfile.id, tree.id)
+                
+                // 2. Compter combien d'AUTRES profils utilisent encore cet arbre
+                val remainingProfiles = profileDao.countProfilesForTree(tree.id)
+                
+                if (remainingProfiles == 0) {
+                    // C'EST LE DERNIER PROFIL À UTILISER CET ARBRE ! On le détruit.
+                    val images = imageDao.getImagesForTree(tree.id)
+                    treeDao.deleteTree(tree) // Cascade détruit ses TreeImageCrossRef
+                    
+                    val filesDir = java.io.File(getApplication<Application>().filesDir, username)
+                    images.forEach { image ->
+                        val refCount = imageDao.countImageReferences(image.id)
+                        if (refCount == 0) {
+                            // C'est la dernière arborescence à utiliser cette image ! Purge intégrale.
+                            imageDao.deleteImageById(image.id)
+                            val physicalFile = java.io.File(filesDir, image.localPath)
+                            if (physicalFile.exists()) {
+                                physicalFile.delete()
+                            }
+                        }
+                    }
+                }
+                
+                // 4. Reload Profile
+                loadProfile(currentProfile.id)
             } catch (e: Exception) {
                 e.printStackTrace()
             }

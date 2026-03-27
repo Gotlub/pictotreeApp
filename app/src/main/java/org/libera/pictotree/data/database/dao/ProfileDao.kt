@@ -28,6 +28,12 @@ interface ProfileDao {
     @Delete
     suspend fun deleteProfileTreeCrossRef(crossRef: ProfileTreeCrossRef)
 
+    @Query("DELETE FROM profile_tree_cross_ref WHERE profileId = :profileId AND treeId = :treeId")
+    suspend fun deleteProfileTreeCrossRefByIds(profileId: Int, treeId: Int)
+
+    @Query("SELECT COUNT(*) FROM profile_tree_cross_ref WHERE treeId = :treeId")
+    suspend fun countProfilesForTree(treeId: Int): Int
+
     @Update
     suspend fun updateProfileTreeCrossRef(crossRef: ProfileTreeCrossRef)
 

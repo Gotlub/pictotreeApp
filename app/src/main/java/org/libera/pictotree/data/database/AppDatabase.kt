@@ -11,10 +11,11 @@ import org.libera.pictotree.data.database.entity.TreeEntity
 import org.libera.pictotree.data.database.dao.ImageDao
 import org.libera.pictotree.data.database.dao.TreeDao
 import org.libera.pictotree.data.database.entity.ImageEntity
+import org.libera.pictotree.data.database.entity.TreeImageCrossRef
 
 @Database(
-    entities = [Profile::class, TreeEntity::class, ProfileTreeCrossRef::class, ImageEntity::class],
-    version = 3,
+    entities = [Profile::class, TreeEntity::class, ProfileTreeCrossRef::class, ImageEntity::class, TreeImageCrossRef::class],
+    version = 4,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

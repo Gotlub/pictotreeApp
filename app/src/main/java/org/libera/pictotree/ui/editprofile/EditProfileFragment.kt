@@ -60,8 +60,8 @@ class EditProfileFragment : Fragment() {
         }
 
         val adapter = ProfileTreeAdapter(
-            onTreeDelete = { _ ->
-                // viewModel.deleteTree(tree)
+            onTreeDelete = { tree ->
+                viewModel.deleteTree(tree)
             },
             onOrderChanged = { _ ->
                 // viewModel.updateDisplayOrder(newTrees)
