@@ -14,7 +14,8 @@ import java.security.MessageDigest
 class ImageSyncEngine(
     private val context: Context,
     private val imageDao: ImageDao,
-    private val username: String // Isoler hermétiquement le stockage par utilisateur (Cahier des charges)
+    private val username: String, // Isoler hermétiquement le stockage par utilisateur (Cahier des charges)
+    private val authToken: String // Injection du token JWT pour télécharger les images internes
 ) {
     suspend fun syncImagesFromNode(node: TreeNodeDTO) {
         if (node.imageUrl.isNotBlank()) {
@@ -47,6 +48,12 @@ class ImageSyncEngine(
                 val connection = URL(remoteUrl).openConnection() as java.net.HttpURLConnection
                 // Émuler un navigateur pour bypasser les blocages CloudFlare (ex: Arasaac)
                 connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
+                
+                // Passer le token JWT si l'image provient de notre API locale protégée
+                if (remoteUrl.contains("/api/v1/mobile/")) {
+                    connection.setRequestProperty("Authorization", "Bearer $authToken")
+                }
+                
                 connection.connect()
                 
                 if (connection.responseCode in 200..299) {

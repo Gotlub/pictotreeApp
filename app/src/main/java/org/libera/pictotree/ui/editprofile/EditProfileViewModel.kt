@@ -109,7 +109,7 @@ class EditProfileViewModel(
                     val fullTree = response.body()!!
                     
                     // Étape 2 : Engine d'Importation Hachée d'images
-                    val engine = ImageSyncEngine(getApplication(), imageDao, username)
+                    val engine = ImageSyncEngine(getApplication(), imageDao, username, authToken)
                     fullTree.rootNode?.let { engine.syncImagesFromNode(it) }
                     
                     // Étape 3 : Insérer l'Entité de Base (Arbre Textuel)

@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, minimum-scale=0.5, user-scalable=yes">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=10, minimum-scale=0.01, user-scalable=yes">
     <link rel="stylesheet" href="Treant.css">
     <style>
         body, html { margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden; background-color: #fafafa; }
@@ -75,22 +75,13 @@
             
             let treantNode = {
                 HTMLclass: 'nodeExample1',
-                innerHTML: ''
-                // We use innerHTML to perfectly match custom styling and image behavior
+                text: { name: node.label || '---' }
             };
             
-            // Build custom HTML inside the node
-            let content = '';
             if (node.image_url) {
-                content += '<img src="' + node.image_url + '" onerror="this.src=\'android_asset/placeholder.png\'" />';
+                // By providing the image natively, Treant will render it securely without innerHTML.
+                treantNode.image = node.image_url;
             }
-            if (node.label) {
-                content += '<p>' + node.label + '</p>';
-            }
-            // if neither, just default text
-            if (!content) content = '<p>---</p>';
-            
-            treantNode.innerHTML = content;
             
             if (node.children && node.children.length > 0) {
                 treantNode.children = node.children.map(child => buildTreantNode(child)).filter(c => c != null);
