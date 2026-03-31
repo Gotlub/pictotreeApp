@@ -82,20 +82,68 @@ class EditProfileViewModel(
         }
     }
 
+    private var currentRemotePage = 1
+    private var isRemoteLastPage = false
+    private var isRemoteLoadingMore = false
+    private var currentRemoteQuery = ""
+    private var currentRemoteIsPublic = true
+
     fun searchTrees(authToken: String, query: String, isPublic: Boolean) {
+        currentRemoteQuery = query
+        currentRemoteIsPublic = isPublic
+        currentRemotePage = 1
+        isRemoteLastPage = false
+        
         viewModelScope.launch {
             try {
                 val response = treeApiService.getAvailableTrees(
                     authHeader = "Bearer $authToken",
                     isPublic = isPublic,
                     search = if (query.isBlank()) null else query,
+                    page = currentRemotePage,
                     limit = 50
                 )
                 if (response.isSuccessful) {
-                    _remoteTrees.value = response.body() ?: emptyList()
+                    val items = response.body() ?: emptyList()
+                    _remoteTrees.value = items
+                    if (items.size < 50) isRemoteLastPage = true
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
+            }
+        }
+    }
+
+    fun loadMoreTrees(authToken: String) {
+        if (isRemoteLoadingMore || isRemoteLastPage) return
+        isRemoteLoadingMore = true
+        currentRemotePage++
+        
+        viewModelScope.launch {
+            try {
+                val response = treeApiService.getAvailableTrees(
+                    authHeader = "Bearer $authToken",
+                    isPublic = currentRemoteIsPublic,
+                    search = if (currentRemoteQuery.isBlank()) null else currentRemoteQuery,
+                    page = currentRemotePage,
+                    limit = 50
+                )
+                if (response.isSuccessful) {
+                    val items = response.body() ?: emptyList()
+                    if (items.isEmpty()) {
+                        isRemoteLastPage = true
+                    } else {
+                        _remoteTrees.value = _remoteTrees.value + items
+                        if (items.size < 50) isRemoteLastPage = true
+                    }
+                } else {
+                    currentRemotePage--
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                currentRemotePage--
+            } finally {
+                isRemoteLoadingMore = false
             }
         }
     }
@@ -172,6 +220,19 @@ class EditProfileViewModel(
                 
                 // 4. Reload Profile
                 loadProfile(currentProfile.id)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    fun updateTreesOrder(profileId: Int, reorderedTrees: List<TreeEntity>) {
+        viewModelScope.launch {
+            try {
+                val crossRefs = reorderedTrees.mapIndexed { index, tree ->
+                    ProfileTreeCrossRef(profileId, tree.id, index)
+                }
+                profileDao.updateProfileTreeCrossRefs(crossRefs)
             } catch (e: Exception) {
                 e.printStackTrace()
             }

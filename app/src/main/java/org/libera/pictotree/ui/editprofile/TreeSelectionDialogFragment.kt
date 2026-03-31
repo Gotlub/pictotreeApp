@@ -24,6 +24,7 @@ import org.libera.pictotree.network.dto.TreeMetadataDTO
 class TreeSelectionDialogFragment(
     private val remoteTreesFlow: StateFlow<List<TreeMetadataDTO>>,
     private val onSearchRequested: (String, Boolean) -> Unit,
+    private val onLoadMoreRequested: () -> Unit,
     private val onTreeSelected: (TreeMetadataDTO) -> Unit
 ) : DialogFragment() {
 
@@ -59,6 +60,22 @@ class TreeSelectionDialogFragment(
         
         recyclerView.layoutManager = LinearLayoutManager(requireContext())
         recyclerView.adapter = adapter
+
+        // Handle Infinite Scroll
+        recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                super.onScrolled(recyclerView, dx, dy)
+                val layoutManager = recyclerView.layoutManager as LinearLayoutManager
+                val visibleItemCount = layoutManager.childCount
+                val totalItemCount = layoutManager.itemCount
+                val firstVisibleItemPosition = layoutManager.findFirstVisibleItemPosition()
+
+                if ((visibleItemCount + firstVisibleItemPosition) >= totalItemCount
+                    && firstVisibleItemPosition >= 0) {
+                    onLoadMoreRequested()
+                }
+            }
+        })
 
         // Observer la liste depuis le ViewModel dynamiquement
         viewLifecycleOwner.lifecycleScope.launch {

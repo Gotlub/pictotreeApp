@@ -13,6 +13,7 @@ interface TreeApiService {
         @Header("Authorization") authHeader: String,
         @retrofit2.http.Query("is_public") isPublic: Boolean = true,
         @retrofit2.http.Query("search") search: String? = null,
+        @retrofit2.http.Query("page") page: Int = 1,
         @retrofit2.http.Query("limit") limit: Int = 50
     ): Response<List<TreeMetadataDTO>>
 

@@ -59,17 +59,24 @@ class EditProfileFragment : Fragment() {
             viewModel.loadProfile(profileId)
         }
 
+        var itemTouchHelper: ItemTouchHelper? = null
+
         val adapter = ProfileTreeAdapter(
             onTreeDelete = { tree ->
                 viewModel.deleteTree(tree)
             },
-            onOrderChanged = { _ ->
-                // viewModel.updateDisplayOrder(newTrees)
+            onOrderChanged = { newTrees ->
+                if (profileId != -1) {
+                    viewModel.updateTreesOrder(profileId, newTrees)
+                }
             },
             onViewTree = { tree ->
                 val intent = android.content.Intent(requireContext(), org.libera.pictotree.ui.visualizer.TreeVisualizerActivity::class.java)
                 intent.putExtra("TREE_ID", tree.id)
                 startActivity(intent)
+            },
+            onStartDrag = { viewHolder: RecyclerView.ViewHolder ->
+                itemTouchHelper?.startDrag(viewHolder)
             }
         )
         
@@ -77,9 +84,11 @@ class EditProfileFragment : Fragment() {
         recyclerView.adapter = adapter
 
         // ================= DRAG & DROP ENGINE =================
-        val itemTouchHelper = ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(
+        itemTouchHelper = ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(
             ItemTouchHelper.UP or ItemTouchHelper.DOWN, 0
         ) {
+            override fun isLongPressDragEnabled(): Boolean = false
+
             override fun onMove(
                 recyclerView: RecyclerView,
                 viewHolder: RecyclerView.ViewHolder,
@@ -124,6 +133,12 @@ class EditProfileFragment : Fragment() {
                                 val token = sessionManager.getToken()
                                 if (token != null) {
                                     viewModel.searchTrees(token, query, isPublic)
+                                }
+                            },
+                            onLoadMoreRequested = {
+                                val token = sessionManager.getToken()
+                                if (token != null) {
+                                    viewModel.loadMoreTrees(token)
                                 }
                             },
                             onTreeSelected = { selectedTree ->

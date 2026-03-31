@@ -16,7 +16,8 @@ import java.util.Collections
 class ProfileTreeAdapter(
     private val onTreeDelete: (TreeEntity) -> Unit,
     private val onOrderChanged: (List<TreeEntity>) -> Unit,
-    private val onViewTree: (TreeEntity) -> Unit
+    private val onViewTree: (TreeEntity) -> Unit,
+    private val onStartDrag: (RecyclerView.ViewHolder) -> Unit
 ) : RecyclerView.Adapter<ProfileTreeAdapter.TreeViewHolder>() {
 
     private val trees = mutableListOf<ProfileTreeUiModel>()
@@ -44,6 +45,7 @@ class ProfileTreeAdapter(
     // Once Drag finishes, persist ordering
     fun dispatchUpdates() {
         onOrderChanged(trees.map { it.tree })
+        notifyDataSetChanged() // Re-draw numbers safely according to final position
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TreeViewHolder {
@@ -60,11 +62,31 @@ class ProfileTreeAdapter(
 
     inner class TreeViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val treeName: TextView = itemView.findViewById(R.id.textTreeName)
+        private val textOrderNumber: TextView = itemView.findViewById(R.id.textOrderNumber)
         private val deleteButton: ImageButton = itemView.findViewById(R.id.buttonDeleteTree)
         private val viewButton: ImageButton = itemView.findViewById(R.id.buttonViewTree)
         private val imageIcon: ImageView = itemView.findViewById(R.id.imageTreeIcon)
 
+        private val dragRunnable = java.lang.Runnable { onStartDrag(this) }
+
+        init {
+            itemView.setOnTouchListener { v, event ->
+                val handler = v.handler
+                if (handler != null) {
+                    when (event.actionMasked) {
+                        android.view.MotionEvent.ACTION_DOWN -> handler.postDelayed(dragRunnable, 250)
+                        android.view.MotionEvent.ACTION_UP, android.view.MotionEvent.ACTION_CANCEL -> handler.removeCallbacks(dragRunnable)
+                    }
+                }
+                false
+            }
+        }
+
         fun bind(model: ProfileTreeUiModel) {
+            val position = bindingAdapterPosition
+            if (position != RecyclerView.NO_POSITION) {
+                textOrderNumber.text = "#${position + 1}"
+            }
             treeName.text = model.tree.name
             deleteButton.setOnClickListener {
                 onTreeDelete(model.tree)

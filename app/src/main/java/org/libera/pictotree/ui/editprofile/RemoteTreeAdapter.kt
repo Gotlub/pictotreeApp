@@ -50,6 +50,11 @@ class RemoteTreeAdapter(
                     crossfade(true)
                     placeholder(android.R.drawable.ic_menu_gallery)
                     error(android.R.drawable.ic_menu_gallery)
+                    // Inject Authorization Header natively for local Backend Thumbnails
+                    val token = org.libera.pictotree.data.SessionManager(imageView.context).getToken()
+                    if (!token.isNullOrEmpty() && tree.rootImageUrl.contains("/api/v1/mobile/")) {
+                        addHeader("Authorization", "Bearer ${token}")
+                    }
                 }
             } else {
                 imageView.setImageResource(android.R.drawable.ic_menu_gallery)
