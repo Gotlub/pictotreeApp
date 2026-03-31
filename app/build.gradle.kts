@@ -63,4 +63,11 @@ dependencies {
     
     // Coil for Image Loading
     implementation("io.coil-kt:coil:2.6.0")
+
+    // QA & Testing Ecosystem
+    testImplementation("com.squareup.okhttp3:mockwebserver:4.11.0")
+    testImplementation("io.mockk:mockk:1.13.8")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
+    testImplementation("androidx.arch.core:core-testing:2.2.0")
+    testImplementation("androidx.room:room-testing:$roomVersion")
 }

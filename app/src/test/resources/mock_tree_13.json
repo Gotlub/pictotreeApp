@@ -1,0 +1,82 @@
+{
+    "name": "Test11",
+    "root_node": {
+        "children": [
+            {
+                "children": [
+                    {
+                        "children": [
+                            {
+                                "children": [
+                                    {
+                                        "children": [
+                                            {
+                                                "children": [],
+                                                "image_url": "http://127.0.0.1:5000/api/v1/mobile/pictograms/public/bold/bag-bold.png",
+                                                "label": "bag-bold.png",
+                                                "node_id": "1367"
+                                            }
+                                        ],
+                                        "image_url": "http://127.0.0.1:5000/api/v1/mobile/pictograms/public/bold/arrow-line-right-bold.png",
+                                        "label": "arrow-line-right-bold.png",
+                                        "node_id": "287"
+                                    },
+                                    {
+                                        "children": [],
+                                        "image_url": "https://static.arasaac.org/pictograms/2619/2619_300.png",
+                                        "label": "carotte",
+                                        "node_id": "-1"
+                                    }
+                                ],
+                                "image_url": "http://127.0.0.1:5000/api/v1/mobile/pictograms/public/bold/arrow-bend-double-up-left-bold.png",
+                                "label": "arrow-bend-double-up-left-bold.png",
+                                "node_id": "606"
+                            },
+                            {
+                                "children": [],
+                                "image_url": "http://127.0.0.1:5000/api/v1/mobile/pictograms/public/bold/barbell-bold.png",
+                                "label": "barbell-bold.png",
+                                "node_id": "1163"
+                            },
+                            {
+                                "children": [
+                                    {
+                                        "children": [],
+                                        "image_url": "http://127.0.0.1:5000/api/v1/mobile/pictograms/public/bold/bell-simple-slash-bold.png",
+                                        "label": "bell-simple-slash-bold.png",
+                                        "node_id": "1320"
+                                    }
+                                ],
+                                "image_url": "http://127.0.0.1:5000/api/v1/mobile/pictograms/public/bold/bell-simple-ringing-bold.png",
+                                "label": "bell-simple-ringing-bold.png",
+                                "node_id": "280"
+                            },
+                            {
+                                "children": [],
+                                "image_url": "https://static.arasaac.org/pictograms/3176/3176_300.png",
+                                "label": "se coucher",
+                                "node_id": "-1"
+                            }
+                        ],
+                        "image_url": "http://127.0.0.1:5000/api/v1/mobile/pictograms/public/bold/airplane-bold.png",
+                        "label": "airplane-bold.png",
+                        "node_id": "529"
+                    },
+                    {
+                        "children": [],
+                        "image_url": "http://127.0.0.1:5000/api/v1/mobile/pictograms/public/bold/balloon-bold.png",
+                        "label": "balloon-bold.png",
+                        "node_id": "1201"
+                    }
+                ],
+                "image_url": "http://127.0.0.1:5000/api/v1/mobile/pictograms/public/bold/address-book-tabs-bold.png",
+                "label": "address-book-tabs-bold.png",
+                "node_id": "135"
+            }
+        ],
+        "image_url": "https://static.arasaac.org/pictograms/6522/6522_300.png",
+        "label": "salut",
+        "node_id": "-1"
+    },
+    "tree_id": 13
+}
