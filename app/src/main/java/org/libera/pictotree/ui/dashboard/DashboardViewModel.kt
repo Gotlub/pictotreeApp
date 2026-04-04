@@ -25,6 +25,9 @@ class DashboardViewModel(private val repository: ProfileRepository) : ViewModel(
     private val _navigateToProfileEvent = Channel<Long>(Channel.BUFFERED)
     val navigateToProfileEvent = _navigateToProfileEvent.receiveAsFlow()
 
+    private val _playProfileEvent = Channel<Int>(Channel.BUFFERED)
+    val playProfileEvent = _playProfileEvent.receiveAsFlow()
+
     // État de l'interface utilisateur exposé à la vue
     val uiState: StateFlow<DashboardUiState> =
             repository
@@ -55,6 +58,16 @@ class DashboardViewModel(private val repository: ProfileRepository) : ViewModel(
 
     fun deleteProfile(profile: Profile) {
         viewModelScope.launch { repository.deleteProfile(profile) }
+    }
+
+    fun playProfile(profileId: Int) {
+        viewModelScope.launch {
+            val trees = repository.getTreesForProfileOrdered(profileId)
+            val firstTreeId = trees.firstOrNull()?.id
+            if (firstTreeId != null) {
+                _playProfileEvent.send(firstTreeId)
+            }
+        }
     }
 }
 

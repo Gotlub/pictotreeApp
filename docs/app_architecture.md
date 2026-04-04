@@ -39,6 +39,7 @@ Elle est développée "Offline-First" (priorité au mode hors-ligne) et pensée 
 ### View 4 : Parcours d'Arbre (Core UX)
 * **Objectif :** Visualisation, interaction et construction de la liste chaînée.
 * **Spécificités :** Interface entièrement responsive. Gère dynamiquement les contraintes d'espace (ex: tiroirs coulissants ou split-screen sur tablette, vue condensée sur mobile).
+* **Règle Stricte (Offline-First) :** **Les images doivent TOUJOURS être cherchées en local sur cette vue**. La View 4 est de-corrélée des requêtes HTTP. Au moment du parsing du Payload JSON de la base SQLite, toute URI pointant sur le backend est systématiquement réécrite en URI locale (`file:///.../files/pictograms/...`). Ces fichiers doivent donc avoir été impérativement synchronisés et stockés physiquement en amont lors de l'import des arbres (géré depuis la View 3 / Édition Profil).
 
 ---
 

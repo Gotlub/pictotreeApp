@@ -15,4 +15,6 @@ class ProfileRepository(private val profileDao: ProfileDao) {
     suspend fun deleteProfile(profile: Profile) {
         profileDao.deleteProfile(profile)
     }
+
+    suspend fun getTreesForProfileOrdered(profileId: Int) = profileDao.getTreesForProfileOrdered(profileId)
 }

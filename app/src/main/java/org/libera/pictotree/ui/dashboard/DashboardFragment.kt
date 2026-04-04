@@ -67,13 +67,7 @@ class DashboardFragment : Fragment() {
         adapter =
                 ProfileAdapter(
                         onProfileClick = { profile ->
-                            Toast.makeText(
-                                            context,
-                                            "Opening View 4 for ${profile.name}",
-                                            Toast.LENGTH_SHORT
-                                    )
-                                    .show()
-                            // TODO: Naviguer vers le fragment View 4 (Parcours)
+                            viewModel.playProfile(profile.id)
                         },
                         onEditClick = { profile ->
                             val bundle = Bundle().apply { putLong("profileId", profile.id.toLong()) }
@@ -91,6 +85,13 @@ class DashboardFragment : Fragment() {
                     viewModel.navigateToProfileEvent.collect { profileId ->
                         val bundle = Bundle().apply { putLong("profileId", profileId) }
                         findNavController().navigate(R.id.action_dashboardFragment_to_editProfileFragment, bundle)
+                    }
+                }
+
+                launch {
+                    viewModel.playProfileEvent.collect { treeId ->
+                        val bundle = Bundle().apply { putInt("treeId", treeId) }
+                        findNavController().navigate(R.id.action_dashboardFragment_to_treeExplorerFragment, bundle)
                     }
                 }
 

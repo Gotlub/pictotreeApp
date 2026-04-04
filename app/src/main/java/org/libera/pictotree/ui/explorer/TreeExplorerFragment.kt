@@ -1,0 +1,282 @@
+package org.libera.pictotree.ui.explorer
+
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
+import android.os.Bundle
+import android.view.*
+import android.widget.ImageView
+import android.widget.LinearLayout
+import android.widget.TextView
+import androidx.fragment.app.Fragment
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import coil.load
+import kotlinx.coroutines.launch
+import org.libera.pictotree.R
+import org.libera.pictotree.data.database.AppDatabase
+import kotlin.math.abs
+
+import org.libera.pictotree.utils.TTSManager
+
+class TreeExplorerFragment : Fragment() {
+
+    private lateinit var viewModel: TreeExplorerViewModel
+    private lateinit var gestureDetector: GestureDetector
+    private lateinit var ttsManager: TTSManager
+
+    // Layout References
+    private lateinit var ivCenter: ImageView
+    private lateinit var ivTop: ImageView
+    private lateinit var ivBottom: ImageView
+    private lateinit var ivLeft: ImageView
+    private lateinit var ivRight: ImageView
+    private lateinit var tvCenterLabel: TextView
+    
+    // HUD Arrows
+    private lateinit var arrowTop: ImageView
+    private lateinit var arrowBottom: ImageView
+    private lateinit var arrowLeft: ImageView
+    private lateinit var arrowRight: ImageView
+
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
+        val root = inflater.inflate(R.layout.fragment_tree_explorer, container, false)
+        
+        ivCenter = root.findViewById(R.id.iv_center)
+        ivTop = root.findViewById(R.id.iv_top)
+        ivBottom = root.findViewById(R.id.iv_bottom)
+        ivLeft = root.findViewById(R.id.iv_left)
+        ivRight = root.findViewById(R.id.iv_right)
+        tvCenterLabel = root.findViewById(R.id.tv_center_label)
+        
+        arrowTop = root.findViewById(R.id.arrow_top)
+        arrowBottom = root.findViewById(R.id.arrow_bottom)
+        arrowLeft = root.findViewById(R.id.arrow_left)
+        arrowRight = root.findViewById(R.id.arrow_right)
+        
+        val fabEye = root.findViewById<View>(R.id.fab_eye)
+        val fabSpeak = root.findViewById<View>(R.id.fab_speak)
+        val rvPhrase = root.findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.rv_phrase)
+
+        // Configuration PhraseAdapter
+        val phraseAdapter = PhraseAdapter()
+        rvPhrase.adapter = phraseAdapter
+        val layoutManager = androidx.recyclerview.widget.LinearLayoutManager(requireContext(), androidx.recyclerview.widget.LinearLayoutManager.HORIZONTAL, false)
+        rvPhrase.layoutManager = layoutManager
+
+        // Configuration TTS
+        ttsManager = TTSManager(requireContext())
+
+        // Configuration ViewModel avec Factory pour passer les dépendances requises
+        val username = org.libera.pictotree.data.SessionManager(requireContext()).getUsername() ?: "dummy"
+        val dao = AppDatabase.getDatabase(requireContext(), username).treeDao()
+        val factory = object : ViewModelProvider.Factory {
+            override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
+                @Suppress("UNCHECKED_CAST")
+                return TreeExplorerViewModel(requireActivity().application, dao, "http://10.0.2.2:5000", username) as T
+            }
+        }
+        viewModel = ViewModelProvider(this, factory)[TreeExplorerViewModel::class.java]
+        
+        val targetTreeId = arguments?.getInt("treeId", -1) ?: -1
+        if (targetTreeId != -1) {
+            viewModel.loadTree(targetTreeId)
+        }
+        
+        // Moteur Tactile Geste OnFling
+        setupGestureDetection(root)
+        
+        // Observation des États UI (Moteur & Recycler)
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                launch {
+                    viewModel.uiState.collect { state ->
+                        updateUI(state)
+                    }
+                }
+                launch {
+                    viewModel.phraseList.collect { phrase ->
+                        phraseAdapter.submitList(phrase)
+                        if (phrase.isNotEmpty()) {
+                            rvPhrase.smoothScrollToPosition(phrase.size - 1)
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Binding de la Vue Globale
+        fabEye.setOnClickListener {
+            val dialog = TreeGlobalMapDialog.newInstance(treeId = targetTreeId, username = username)
+            dialog.onNodeSelectedListener = { nodeId ->
+                viewModel.jumpToNodeId(nodeId)
+            }
+            dialog.show(parentFragmentManager, "TreeGlobalMapDialog")
+        }
+        
+        // Binding TTS
+        fabSpeak.setOnClickListener {
+            // Lecture simple MVP, une future itération illuminera le RecyclerView au rythme de la voix
+            val phraseBuilder = StringBuilder()
+            viewModel.phraseList.value.forEach { node ->
+                phraseBuilder.append(node.label).append(". ") // Point pour marquer une courte pause respiratoire
+            }
+            ttsManager.speak(phraseBuilder.toString().trim())
+        }
+        
+        return root
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        if (::ttsManager.isInitialized) {
+            ttsManager.shutdown()
+        }
+    }
+
+    private fun setupGestureDetection(root: View) {
+        val spatialEngine = root.findViewById<View>(R.id.layout_spatial_engine)
+        
+        gestureDetector = GestureDetector(requireContext(), object : GestureDetector.SimpleOnGestureListener() {
+            override fun onFling(e1: MotionEvent?, e2: MotionEvent, velocityX: Float, velocityY: Float): Boolean {
+                if (e1 == null) return false
+                val diffY = e2.y - e1.y
+                val diffX = e2.x - e1.x
+                
+                if (abs(diffX) > abs(diffY)) {
+                    if (abs(diffX) > 100 && abs(velocityX) > 100) {
+                        if (diffX > 0) {
+                            // Swipe Right -> Aller vers le noeud Sibling Gauche (La grille glisse vers la droite)
+                            triggerNavigation(Direction.LEFT)
+                        } else {
+                            // Swipe Left -> Aller vers le Sibling Droite
+                            triggerNavigation(Direction.RIGHT)
+                        }
+                        return true
+                    }
+                } else {
+                    if (abs(diffY) > 100 && abs(velocityY) > 100) {
+                        if (diffY > 0) {
+                            // Swipe Bas -> Envoi dans le panier sans bouger 
+                            // (Suivant specs UX_UI modifier: "Tap/Swipe Bas depuis le centre = Basket")
+                            viewModel.addToPhrase()
+                        } else {
+                            // Swipe Haut -> Grille monte -> On Va au Child (Bottom)
+                            triggerNavigation(Direction.BOTTOM)
+                        }
+                        return true
+                    }
+                }
+                return false
+            }
+
+            override fun onSingleTapConfirmed(e: MotionEvent): Boolean {
+                // Determine which View was tapped roughly
+                // For a robust implementation, tap detection checking View Bounds in the Touch Event is needed.
+                return super.onSingleTapConfirmed(e)
+            }
+        })
+        
+        spatialEngine.setOnTouchListener { _, event ->
+            gestureDetector.onTouchEvent(event)
+            true
+        }
+    }
+
+    enum class Direction { TOP, BOTTOM, LEFT, RIGHT }
+
+    private fun triggerNavigation(direction: Direction) {
+        val state = viewModel.uiState.value
+        val targetNode = when (direction) {
+            Direction.TOP -> state.top
+            Direction.BOTTOM -> state.bottom
+            Direction.LEFT -> state.left
+            Direction.RIGHT -> state.right
+        }
+
+        if (targetNode == null) {
+            // Pas de noeud cible, animation refusée
+            return
+        }
+
+        // On lance la fameuse animation visuelle V3
+        val distance = 400f // pixels
+        val animX = when(direction) {
+            Direction.LEFT -> distance
+            Direction.RIGHT -> -distance
+            else -> 0f
+        }
+        val animY = when(direction) {
+            Direction.TOP -> distance
+            Direction.BOTTOM -> -distance
+            else -> 0f
+        }
+
+        listOf(ivCenter, ivTop, ivBottom, ivLeft, ivRight, tvCenterLabel).forEach { view ->
+            view.animate()
+                .translationXBy(animX)
+                .translationYBy(animY)
+                .setDuration(250)
+                .setListener(object : AnimatorListenerAdapter() {
+                    override fun onAnimationEnd(animation: Animator) {
+                        super.onAnimationEnd(animation)
+                        // Une fois l'écran décalé de façon fluide, on téléporte le Focus silencieusement
+                        if (view == ivCenter) {
+                            viewModel.focusOnNode(targetNode)
+                            resetTranslations() // On efface la magie visuelle pour recharger
+                        }
+                    }
+                })
+        }
+    }
+
+    private fun resetTranslations() {
+        listOf(ivCenter, ivTop, ivBottom, ivLeft, ivRight, tvCenterLabel).forEach {
+            it.translationX = 0f
+            it.translationY = 0f
+        }
+    }
+    
+    private fun updateUI(state: SpatialUiState) {
+        if (state.isLoading) return
+
+        if (state.error != null) {
+            tvCenterLabel.text = state.error
+            ivCenter.setImageResource(android.R.drawable.ic_dialog_alert)
+            ivTop.visibility = View.INVISIBLE
+            ivBottom.visibility = View.INVISIBLE
+            ivLeft.visibility = View.INVISIBLE
+            ivRight.visibility = View.INVISIBLE
+            arrowTop.visibility = View.INVISIBLE
+            arrowBottom.visibility = View.INVISIBLE
+            arrowLeft.visibility = View.INVISIBLE
+            arrowRight.visibility = View.INVISIBLE
+            return
+        }
+
+        // Center
+        tvCenterLabel.text = state.center?.label ?: ""
+        state.center?.imageUrl?.takeIf { it.isNotEmpty() }?.let { ivCenter.load(it) } ?: ivCenter.setImageResource(R.drawable.ic_launcher_foreground)
+
+        // Top
+        ivTop.visibility = if (state.top != null) View.VISIBLE else View.INVISIBLE
+        arrowTop.visibility = if (state.top != null) View.VISIBLE else View.INVISIBLE
+        state.top?.imageUrl?.takeIf { it.isNotEmpty() }?.let { ivTop.load(it) } ?: ivTop.setImageResource(R.drawable.ic_launcher_foreground)
+
+        // Bottom
+        ivBottom.visibility = if (state.bottom != null) View.VISIBLE else View.INVISIBLE
+        arrowBottom.visibility = if (state.bottom != null) View.VISIBLE else View.INVISIBLE
+        state.bottom?.imageUrl?.takeIf { it.isNotEmpty() }?.let { ivBottom.load(it) } ?: ivBottom.setImageResource(R.drawable.ic_launcher_foreground)
+
+        // Left
+        ivLeft.visibility = if (state.left != null) View.VISIBLE else View.INVISIBLE
+        arrowLeft.visibility = if (state.left != null) View.VISIBLE else View.INVISIBLE
+        state.left?.imageUrl?.takeIf { it.isNotEmpty() }?.let { ivLeft.load(it) } ?: ivLeft.setImageResource(R.drawable.ic_launcher_foreground)
+
+        // Right
+        ivRight.visibility = if (state.right != null) View.VISIBLE else View.INVISIBLE
+        arrowRight.visibility = if (state.right != null) View.VISIBLE else View.INVISIBLE
+        state.right?.imageUrl?.takeIf { it.isNotEmpty() }?.let { ivRight.load(it) } ?: ivRight.setImageResource(R.drawable.ic_launcher_foreground)
+    }
+}

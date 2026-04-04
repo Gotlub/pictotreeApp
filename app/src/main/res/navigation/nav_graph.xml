@@ -27,6 +27,9 @@
         <action
             android:id="@+id/action_dashboardFragment_to_editProfileFragment"
             app:destination="@id/editProfileFragment" />
+        <action
+            android:id="@+id/action_dashboardFragment_to_treeExplorerFragment"
+            app:destination="@id/treeExplorerFragment" />
     </fragment>
 
     <fragment
@@ -38,5 +41,14 @@
             android:name="profileId"
             app:argType="long" />
     </fragment>
-        
+    <fragment
+        android:id="@+id/treeExplorerFragment"
+        android:name="org.libera.pictotree.ui.explorer.TreeExplorerFragment"
+        android:label="Tree Explorer"
+        tools:layout="@layout/fragment_tree_explorer">
+        <argument
+            android:name="treeId"
+            app:argType="integer" />
+    </fragment>
+
 </navigation>

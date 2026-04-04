@@ -1,0 +1,276 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/cl_tree_explorer_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/white"
+    tools:context=".ui.explorer.TreeExplorerFragment">
+
+    <!-- COUCHE NAVIGATION FIXE : Le moteur physique 2D (ConstraintLayout) -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/layout_spatial_engine"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:paddingBottom="100dp"> <!-- Espace pour le Bandeau Rétractable -->
+
+        <!-- 1. ITEM CENTRAL (Focus Actif) -->
+        <ImageView
+            android:id="@+id/iv_center"
+            android:layout_width="160dp"
+            android:layout_height="160dp"
+            android:scaleType="centerInside"
+            android:contentDescription="Centre"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            tools:src="@drawable/ic_launcher_background" />
+
+        <TextView
+            android:id="@+id/tv_center_label"
+            android:layout_width="160dp"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:maxLines="2"
+            app:layout_constraintTop_toBottomOf="@id/iv_center"
+            app:layout_constraintStart_toStartOf="@id/iv_center"
+            app:layout_constraintEnd_toEndOf="@id/iv_center"
+            tools:text="Pomme" />
+
+        <!-- 2. ITEMS ADJACENTS (Transparents, plus petits) -->
+        <!-- Parent (Haut) -->
+        <ImageView
+            android:id="@+id/iv_top"
+            android:layout_width="100dp"
+            android:layout_height="100dp"
+            android:layout_marginBottom="16dp"
+            android:alpha="0.4"
+            app:layout_constraintBottom_toTopOf="@id/iv_center"
+            app:layout_constraintStart_toStartOf="@id/iv_center"
+            app:layout_constraintEnd_toEndOf="@id/iv_center"
+            tools:src="@drawable/ic_launcher_background" />
+
+        <!-- Child (Bas) -->
+        <ImageView
+            android:id="@+id/iv_bottom"
+            android:layout_width="100dp"
+            android:layout_height="100dp"
+            android:layout_marginTop="32dp"
+            android:alpha="0.4"
+            app:layout_constraintTop_toBottomOf="@id/tv_center_label"
+            app:layout_constraintStart_toStartOf="@id/iv_center"
+            app:layout_constraintEnd_toEndOf="@id/iv_center"
+            tools:src="@drawable/ic_launcher_background" />
+
+        <!-- Sibling Gauche -->
+        <ImageView
+            android:id="@+id/iv_left"
+            android:layout_width="100dp"
+            android:layout_height="100dp"
+            android:layout_marginEnd="16dp"
+            android:alpha="0.4"
+            app:layout_constraintEnd_toStartOf="@id/iv_center"
+            app:layout_constraintTop_toTopOf="@id/iv_center"
+            app:layout_constraintBottom_toBottomOf="@id/iv_center"
+            tools:src="@drawable/ic_launcher_background" />
+
+        <!-- Sibling Droite -->
+        <ImageView
+            android:id="@+id/iv_right"
+            android:layout_width="100dp"
+            android:layout_height="100dp"
+            android:layout_marginStart="16dp"
+            android:alpha="0.4"
+            app:layout_constraintStart_toEndOf="@id/iv_center"
+            app:layout_constraintTop_toTopOf="@id/iv_center"
+            app:layout_constraintBottom_toBottomOf="@id/iv_center"
+            tools:src="@drawable/ic_launcher_background" />
+
+        <!-- 3. MICRO-MINIATURES (Lookahead) -->
+        <!-- Lookahead Haut -->
+        <LinearLayout
+            android:id="@+id/ll_micro_top"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:layout_marginBottom="8dp"
+            app:layout_constraintBottom_toTopOf="@id/iv_top"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent">
+            
+            <ImageView
+                android:id="@+id/iv_micro_top_img"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:alpha="0.6"
+                tools:src="@drawable/ic_launcher_background" />
+            <TextView
+                android:id="@+id/tv_micro_top_count"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="10sp"
+                android:paddingStart="4dp"
+                tools:text="+3" />
+        </LinearLayout>
+
+        <!-- Lookahead Gauche -->
+        <LinearLayout
+            android:id="@+id/ll_micro_left"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:layout_marginEnd="8dp"
+            app:layout_constraintEnd_toStartOf="@id/iv_left"
+            app:layout_constraintTop_toTopOf="@id/iv_left"
+            app:layout_constraintBottom_toBottomOf="@id/iv_left">
+            
+            <ImageView
+                android:id="@+id/iv_micro_left_img"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:alpha="0.6"
+                tools:src="@drawable/ic_launcher_background" />
+            <TextView
+                android:id="@+id/tv_micro_left_count"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="10sp"
+                tools:text="+5" />
+        </LinearLayout>
+
+        <!-- Lookahead Droite -->
+        <LinearLayout
+            android:id="@+id/ll_micro_right"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:layout_marginStart="8dp"
+            app:layout_constraintStart_toEndOf="@id/iv_right"
+            app:layout_constraintTop_toTopOf="@id/iv_right"
+            app:layout_constraintBottom_toBottomOf="@id/iv_right">
+            
+            <ImageView
+                android:id="@+id/iv_micro_right_img"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:alpha="0.6"
+                tools:src="@drawable/ic_launcher_background" />
+            <TextView
+                android:id="@+id/tv_micro_right_count"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="10sp"
+                tools:text="+1" />
+        </LinearLayout>
+
+        <!-- HUD: Flèches directionnelles -->
+        <ImageView
+            android:id="@+id/arrow_top"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_marginBottom="4dp"
+            android:src="@android:drawable/arrow_up_float"
+            app:layout_constraintBottom_toTopOf="@id/iv_center"
+            app:layout_constraintStart_toStartOf="@id/iv_center"
+            app:layout_constraintEnd_toEndOf="@id/iv_center"
+            app:tint="@color/black" />
+
+        <ImageView
+            android:id="@+id/arrow_bottom"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_marginTop="4dp"
+            android:src="@android:drawable/arrow_down_float"
+            app:layout_constraintTop_toBottomOf="@id/tv_center_label"
+            app:layout_constraintStart_toStartOf="@id/iv_center"
+            app:layout_constraintEnd_toEndOf="@id/iv_center"
+            app:tint="@color/black" />
+
+        <ImageView
+            android:id="@+id/arrow_left"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_marginEnd="4dp"
+            android:src="@android:drawable/ic_media_previous"
+            app:layout_constraintEnd_toStartOf="@id/iv_center"
+            app:layout_constraintTop_toTopOf="@id/iv_center"
+            app:layout_constraintBottom_toBottomOf="@id/iv_center"
+            app:tint="@color/black" />
+
+        <ImageView
+            android:id="@+id/arrow_right"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_marginStart="4dp"
+            android:src="@android:drawable/ic_media_next"
+            app:layout_constraintStart_toEndOf="@id/iv_center"
+            app:layout_constraintTop_toTopOf="@id/iv_center"
+            app:layout_constraintBottom_toBottomOf="@id/iv_center"
+            app:tint="@color/black" />
+            
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <!-- COUCHE HUD FLOTTANTE: Boutons supérieurs hors-zone physique, insensibles aux déplacements -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fab_eye"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="16dp"
+        android:src="@android:drawable/ic_menu_view"
+        app:layout_anchor="@id/layout_spatial_engine"
+        app:layout_anchorGravity="top|start"
+        android:contentDescription="Ouvrir Vue Globale Arbre" />
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fab_search"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="16dp"
+        android:src="@android:drawable/ic_menu_search"
+        app:layout_anchor="@id/layout_spatial_engine"
+        app:layout_anchorGravity="top|end"
+        android:contentDescription="Chercher Picto" />
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fab_speak"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="16dp"
+        android:src="@android:drawable/ic_btn_speak_now"
+        app:layout_anchor="@id/panel_phrase"
+        app:layout_anchorGravity="top|end"
+        android:contentDescription="Lire la phrase" />
+
+    <!-- BANDEAU DE PHRASE FIXE (Panier) -->
+    <LinearLayout
+        android:id="@+id/panel_phrase"
+        android:layout_width="match_parent"
+        android:layout_height="140dp"
+        android:layout_gravity="bottom"
+        android:orientation="vertical"
+        android:background="@drawable/rounded_bottom_sheet"
+        android:elevation="16dp"
+        android:gravity="center_vertical">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rv_phrase"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="8dp"
+            android:clipToPadding="false"
+            android:paddingHorizontal="16dp"
+            android:orientation="horizontal"
+            tools:itemCount="5"
+            tools:listitem="@layout/item_phrase_picto" />
+    </LinearLayout>
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

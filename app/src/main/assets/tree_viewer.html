@@ -64,6 +64,17 @@
                 };
                 
                 new Treant(chart_config);
+                
+                // Active le pont Javascript-Kotlin pour la navigation
+                document.addEventListener('click', function(e) {
+                    let target = e.target.closest('.nodeExample1');
+                    if (target && target.id && target.id.startsWith('node-')) {
+                        let nodeId = target.id.replace('node-', '');
+                        if (window.AndroidBridge && typeof window.AndroidBridge.jumpToNode === 'function') {
+                            window.AndroidBridge.jumpToNode(nodeId);
+                        }
+                    }
+                });
             } catch (e) {
                 console.error("Erreur de parsing de l'arbre", e);
                 document.getElementById('tree-container').innerHTML = "<h2>Erreur de Chargement JSON</h2><p>" + e + "</p>";
@@ -75,7 +86,8 @@
             
             let treantNode = {
                 HTMLclass: 'nodeExample1',
-                text: { name: node.label || '---' }
+                HTMLid: node.id ? 'node-' + node.id : null,
+                text: { name: node.label || node.text || node.name || '---' }
             };
             
             if (node.image_url) {
