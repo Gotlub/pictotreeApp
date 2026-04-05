@@ -32,7 +32,9 @@ data class SpatialUiState(
     val microRight: TreeNode? = null,
     val microRightCount: Int = 0,
     val isLoading: Boolean = true,
-    val error: String? = null
+    val error: String? = null,
+    val prevTreeId: Int? = null,
+    val nextTreeId: Int? = null
 )
 
 class TreeExplorerViewModel(
@@ -49,10 +51,17 @@ class TreeExplorerViewModel(
     val phraseList: StateFlow<List<TreeNode>> = _phraseList.asStateFlow()
 
     private var rootNode: TreeNode? = null
+    private var currentTreeId: Int = -1
+    private var profileTreeIds: List<Int> = emptyList()
+
+    fun setProfileTreeContext(treeIds: List<Int>) {
+        this.profileTreeIds = treeIds
+    }
 
     fun loadTree(treeId: Int) {
         viewModelScope.launch {
-            _uiState.value = SpatialUiState(isLoading = true)
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            currentTreeId = treeId
             try {
                 val entity = treeDao.getTreeById(treeId)
                 if (entity == null) {
@@ -141,10 +150,24 @@ class TreeExplorerViewModel(
         val parent = node.parent
         val myIndex = parent?.children?.indexOf(node) ?: 0
         
-        val leftSibling = if (parent != null && myIndex > 0) parent.children[myIndex - 1] else null
-        val rightSibling = if (parent != null && myIndex < parent.children.size - 1) parent.children[myIndex + 1] else null
+        var leftSibling = if (parent != null && myIndex > 0) parent.children[myIndex - 1] else null
+        var rightSibling = if (parent != null && myIndex < parent.children.size - 1) parent.children[myIndex + 1] else null
         val topNode = parent
         val bottomNode = node.children.firstOrNull() // Default descent behavior
+
+        var prevTreeId: Int? = null
+        var nextTreeId: Int? = null
+
+        // NAVIGATION INTER-ARBRES : Si on est à la racine, on regarde les arbres voisins du profil
+        if (parent == null && profileTreeIds.isNotEmpty()) {
+            val currentIdx = profileTreeIds.indexOf(currentTreeId)
+            if (currentIdx > 0) {
+                prevTreeId = profileTreeIds[currentIdx - 1]
+            }
+            if (currentIdx != -1 && currentIdx < profileTreeIds.size - 1) {
+                nextTreeId = profileTreeIds[currentIdx + 1]
+            }
+        }
 
         // Lookahead computations
         val microLeftCount = if (parent != null) Math.max(0, myIndex - 1) else 0
@@ -161,20 +184,41 @@ class TreeExplorerViewModel(
             currentAncestry = currentAncestry.parent
         }
 
-        _uiState.value = SpatialUiState(
-            isLoading = false,
-            center = node,
-            top = topNode,
-            bottom = bottomNode,
-            left = leftSibling,
-            right = rightSibling,
-            microTop = grandParentNode,
-            microTopCount = depthCount,
-            microLeft = microLeft,
-            microLeftCount = microLeftCount,
-            microRight = microRight,
-            microRightCount = microRightCount
-        )
+        // Si on a des arbres voisins, on charge les racines en asynchrone pour l'affichage
+        viewModelScope.launch {
+            val finalLeft = leftSibling ?: prevTreeId?.let { id ->
+                treeDao.getTreeById(id)?.let { entity ->
+                    val json = JSONObject(entity.jsonPayload)
+                    val rootObj = if (json.has("root_node")) json.getJSONObject("root_node") else null
+                    rootObj?.let { parseAndSortNode(it, null) }
+                }
+            }
+            
+            val finalRight = rightSibling ?: nextTreeId?.let { id ->
+                treeDao.getTreeById(id)?.let { entity ->
+                    val json = JSONObject(entity.jsonPayload)
+                    val rootObj = if (json.has("root_node")) json.getJSONObject("root_node") else null
+                    rootObj?.let { parseAndSortNode(it, null) }
+                }
+            }
+
+            _uiState.value = SpatialUiState(
+                isLoading = false,
+                center = node,
+                top = topNode,
+                bottom = bottomNode,
+                left = finalLeft,
+                right = finalRight,
+                microTop = grandParentNode,
+                microTopCount = depthCount,
+                microLeft = microLeft,
+                microLeftCount = microLeftCount,
+                microRight = microRight,
+                microRightCount = microRightCount,
+                prevTreeId = if (leftSibling == null) prevTreeId else null,
+                nextTreeId = if (rightSibling == null) nextTreeId else null
+            )
+        }
     }
 
     /**

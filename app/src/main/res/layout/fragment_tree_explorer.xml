@@ -16,13 +16,13 @@
         android:layout_height="match_parent"
         android:paddingBottom="100dp"> <!-- Espace pour le Bandeau Rétractable -->
 
-        <!-- Guidelines pour la Grille Spatiale (3x3) -->
+        <!-- Guidelines pour la Grille Spatiale (Élargissement de la zone centrale) -->
         <androidx.constraintlayout.widget.Guideline
             android:id="@+id/guide_v_left"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            app:layout_constraintGuide_percent="0.25" />
+            app:layout_constraintGuide_percent="0.28" />
 
         <androidx.constraintlayout.widget.Guideline
             android:id="@+id/guide_v_center"
@@ -36,14 +36,14 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            app:layout_constraintGuide_percent="0.75" />
+            app:layout_constraintGuide_percent="0.72" />
 
         <androidx.constraintlayout.widget.Guideline
             android:id="@+id/guide_h_top"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            app:layout_constraintGuide_percent="0.25" />
+            app:layout_constraintGuide_percent="0.28" />
 
         <androidx.constraintlayout.widget.Guideline
             android:id="@+id/guide_h_center"
@@ -57,42 +57,50 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            app:layout_constraintGuide_percent="0.75" />
+            app:layout_constraintGuide_percent="0.72" />
 
-        <!-- 1. ITEM CENTRAL (Focus Actif) -->
-        <ImageView
-            android:id="@+id/iv_center"
+        <!-- 1. ITEM CENTRAL (Focus Actif - Conteneur Vertical pour la proximité Picto/Label) -->
+        <LinearLayout
+            android:id="@+id/container_center"
             android:layout_width="0dp"
             android:layout_height="0dp"
-            android:layout_margin="16dp"
-            android:scaleType="centerInside"
-            android:contentDescription="Centre"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?attr/selectableItemBackgroundBorderless"
             app:layout_constraintTop_toTopOf="@id/guide_h_top"
             app:layout_constraintBottom_toBottomOf="@id/guide_h_bottom"
             app:layout_constraintStart_toStartOf="@id/guide_v_left"
-            app:layout_constraintEnd_toEndOf="@id/guide_v_right"
-            tools:src="@drawable/ic_launcher_background" />
+            app:layout_constraintEnd_toEndOf="@id/guide_v_right">
 
-        <TextView
-            android:id="@+id/tv_center_label"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:gravity="center"
-            android:textSize="20sp"
-            android:textStyle="bold"
-            android:maxLines="2"
-            app:layout_constraintTop_toBottomOf="@id/iv_center"
-            app:layout_constraintStart_toStartOf="@id/guide_v_left"
-            app:layout_constraintEnd_toEndOf="@id/guide_v_right"
-            tools:text="Pomme" />
+            <ImageView
+                android:id="@+id/iv_center"
+                android:layout_width="180dp"
+                android:layout_height="180dp"
+                android:scaleType="centerInside"
+                android:contentDescription="Centre"
+                android:elevation="4dp"
+                tools:src="@drawable/ic_launcher_background" />
 
-        <!-- 2. ITEMS ADJACENTS (Transparents, Cliquables) -->
+            <TextView
+                android:id="@+id/tv_center_label"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:gravity="center"
+                android:textSize="24sp"
+                android:textStyle="bold"
+                android:maxLines="2"
+                tools:text="Pomme" />
+        </LinearLayout>
+
+        <!-- 2. ITEMS ADJACENTS (Plus petits) -->
         <!-- Parent (Haut) -->
         <ImageView
             android:id="@+id/iv_top"
-            android:layout_width="0dp"
-            android:layout_height="0dp"
-            android:layout_margin="24dp"
+            android:layout_width="80dp"
+            android:layout_height="80dp"
             android:alpha="0.4"
             android:foreground="?attr/selectableItemBackgroundBorderless"
             android:clickable="true"
@@ -106,9 +114,8 @@
         <!-- Child (Bas) -->
         <ImageView
             android:id="@+id/iv_bottom"
-            android:layout_width="0dp"
-            android:layout_height="0dp"
-            android:layout_margin="24dp"
+            android:layout_width="80dp"
+            android:layout_height="80dp"
             android:alpha="0.4"
             android:foreground="?attr/selectableItemBackgroundBorderless"
             android:clickable="true"
@@ -119,12 +126,11 @@
             app:layout_constraintEnd_toEndOf="@id/guide_v_right"
             tools:src="@drawable/ic_launcher_background" />
 
-        <!-- Sibling Gauche -->
+        <!-- Sibling Gauche (OU Arbre Précédent) -->
         <ImageView
             android:id="@+id/iv_left"
-            android:layout_width="0dp"
-            android:layout_height="0dp"
-            android:layout_margin="24dp"
+            android:layout_width="80dp"
+            android:layout_height="80dp"
             android:alpha="0.4"
             android:foreground="?attr/selectableItemBackgroundBorderless"
             android:clickable="true"
@@ -135,12 +141,11 @@
             app:layout_constraintBottom_toBottomOf="@id/guide_h_bottom"
             tools:src="@drawable/ic_launcher_background" />
 
-        <!-- Sibling Droite -->
+        <!-- Sibling Droite (OU Arbre Suivant) -->
         <ImageView
             android:id="@+id/iv_right"
-            android:layout_width="0dp"
-            android:layout_height="0dp"
-            android:layout_margin="24dp"
+            android:layout_width="80dp"
+            android:layout_height="80dp"
             android:alpha="0.4"
             android:foreground="?attr/selectableItemBackgroundBorderless"
             android:clickable="true"
@@ -151,7 +156,7 @@
             app:layout_constraintBottom_toBottomOf="@id/guide_h_bottom"
             tools:src="@drawable/ic_launcher_background" />
 
-        <!-- 3. MICRO-MINIATURES (Lookahead) -->
+        <!-- 3. MICRO-MINIATURES (Non cliquables) -->
         <!-- Lookahead Haut -->
         <LinearLayout
             android:id="@+id/ll_micro_top"
@@ -231,7 +236,7 @@
                 tools:text="+1" />
         </LinearLayout>
 
-        <!-- HUD: Flèches directionnelles -->
+        <!-- HUD: Flèches directionnelles (UNIFIÉES EN TRIANGLES) -->
         <ImageView
             android:id="@+id/arrow_top"
             android:layout_width="24dp"
@@ -256,7 +261,8 @@
             android:id="@+id/arrow_left"
             android:layout_width="24dp"
             android:layout_height="24dp"
-            android:src="@android:drawable/ic_media_previous"
+            android:rotation="-90"
+            android:src="@android:drawable/arrow_up_float"
             app:layout_constraintEnd_toStartOf="@id/iv_left"
             app:layout_constraintTop_toTopOf="@id/guide_h_center"
             app:layout_constraintBottom_toBottomOf="@id/guide_h_center"
@@ -266,7 +272,8 @@
             android:id="@+id/arrow_right"
             android:layout_width="24dp"
             android:layout_height="24dp"
-            android:src="@android:drawable/ic_media_next"
+            android:rotation="90"
+            android:src="@android:drawable/arrow_up_float"
             app:layout_constraintStart_toEndOf="@id/iv_right"
             app:layout_constraintTop_toTopOf="@id/guide_h_center"
             app:layout_constraintBottom_toBottomOf="@id/guide_h_center"
@@ -274,7 +281,7 @@
             
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-    <!-- COUCHE HUD FLOTTANTE: Boutons supérieurs hors-zone physique, insensibles aux déplacements -->
+    <!-- COUCHE HUD FLOTTANTE: Boutons supérieurs -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fab_eye"
         android:layout_width="wrap_content"

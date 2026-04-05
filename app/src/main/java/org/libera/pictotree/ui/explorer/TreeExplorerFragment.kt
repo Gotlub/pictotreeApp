@@ -27,6 +27,7 @@ class TreeExplorerFragment : Fragment() {
     private lateinit var ttsManager: TTSManager
 
     // Layout References
+    private lateinit var containerCenter: View
     private lateinit var ivCenter: ImageView
     private lateinit var ivTop: ImageView
     private lateinit var ivBottom: ImageView
@@ -43,6 +44,7 @@ class TreeExplorerFragment : Fragment() {
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         val root = inflater.inflate(R.layout.fragment_tree_explorer, container, false)
         
+        containerCenter = root.findViewById(R.id.container_center)
         ivCenter = root.findViewById(R.id.iv_center)
         ivTop = root.findViewById(R.id.iv_top)
         ivBottom = root.findViewById(R.id.iv_bottom)
@@ -70,16 +72,28 @@ class TreeExplorerFragment : Fragment() {
 
         // Configuration ViewModel avec Factory pour passer les dépendances requises
         val username = org.libera.pictotree.data.SessionManager(requireContext()).getUsername() ?: "dummy"
-        val dao = AppDatabase.getDatabase(requireContext(), username).treeDao()
+        val database = AppDatabase.getDatabase(requireContext(), username)
+        val treeDao = database.treeDao()
+        val profileDao = database.profileDao()
+
         val factory = object : ViewModelProvider.Factory {
             override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
                 @Suppress("UNCHECKED_CAST")
-                return TreeExplorerViewModel(requireActivity().application, dao, "http://10.0.2.2:5000", username) as T
+                return TreeExplorerViewModel(requireActivity().application, treeDao, "http://10.0.2.2:5000", username) as T
             }
         }
         viewModel = ViewModelProvider(this, factory)[TreeExplorerViewModel::class.java]
         
         val targetTreeId = arguments?.getInt("treeId", -1) ?: -1
+        val profileId = arguments?.getInt("profileId", -1) ?: -1
+
+        if (profileId != -1) {
+            viewLifecycleOwner.lifecycleScope.launch {
+                val trees = profileDao.getTreesForProfileOrdered(profileId)
+                viewModel.setProfileTreeContext(trees.map { it.id })
+            }
+        }
+
         if (targetTreeId != -1) {
             viewModel.loadTree(targetTreeId)
         }
@@ -149,9 +163,6 @@ class TreeExplorerFragment : Fragment() {
             phrase.forEachIndexed { index, node ->
                 ttsManager.speak(node.label, index.toString())
             }
-            
-            // On réinitialise l'illumination à la fin de la lecture totale (post-queue)
-            // Note: onDone du dernier item est plus propre
         }
 
         fabSpeak.setOnLongClickListener {
@@ -172,6 +183,7 @@ class TreeExplorerFragment : Fragment() {
     }
 
     private fun setupTapToNavigate() {
+        containerCenter.setOnClickListener { viewModel.addToPhrase() }
         ivTop.setOnClickListener { triggerNavigation(Direction.TOP) }
         ivBottom.setOnClickListener { triggerNavigation(Direction.BOTTOM) }
         ivLeft.setOnClickListener { triggerNavigation(Direction.LEFT) }
@@ -227,6 +239,17 @@ class TreeExplorerFragment : Fragment() {
 
     private fun triggerNavigation(direction: Direction) {
         val state = viewModel.uiState.value
+        
+        // Navigation inter-arbres ?
+        if (direction == Direction.LEFT && state.prevTreeId != null) {
+            viewModel.loadTree(state.prevTreeId)
+            return
+        }
+        if (direction == Direction.RIGHT && state.nextTreeId != null) {
+            viewModel.loadTree(state.nextTreeId)
+            return
+        }
+
         val targetNode = when (direction) {
             Direction.TOP -> state.top
             Direction.BOTTOM -> state.bottom
