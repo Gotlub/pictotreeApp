@@ -27,10 +27,7 @@ class ImageSyncEngine(
     }
 
     private suspend fun downloadAndHashImage(remoteUrl: String, treeId: Int) = withContext(Dispatchers.IO) {
-        val hash = hashUrlSha256(remoteUrl)
-        val ext = remoteUrl.substringAfterLast('.', "png")
-        // Génération d'un anti-doublon universel : a5b3f...c12.png
-        val fileName = "$hash.$ext" 
+        val fileName = org.libera.pictotree.utils.FileUtils.getLocalFileNameFromUrl(remoteUrl)
         
         // Si l'application possède DÉJÀ cette empreinte, on la lie directement
         val existing = imageDao.getImageByRemotePath(remoteUrl)
@@ -81,10 +78,5 @@ class ImageSyncEngine(
             name = fileName
         ))
         imageDao.insertTreeImageCrossRef(org.libera.pictotree.data.database.entity.TreeImageCrossRef(treeId, newImageId.toInt()))
-    }
-
-    private fun hashUrlSha256(url: String): String {
-        val bytes = MessageDigest.getInstance("SHA-256").digest(url.toByteArray())
-        return bytes.joinToString("") { "%02x".format(it) }
     }
 }

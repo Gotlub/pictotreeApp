@@ -16,79 +16,139 @@
         android:layout_height="match_parent"
         android:paddingBottom="100dp"> <!-- Espace pour le Bandeau Rétractable -->
 
+        <!-- Guidelines pour la Grille Spatiale (3x3) -->
+        <androidx.constraintlayout.widget.Guideline
+            android:id="@+id/guide_v_left"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            app:layout_constraintGuide_percent="0.25" />
+
+        <androidx.constraintlayout.widget.Guideline
+            android:id="@+id/guide_v_center"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            app:layout_constraintGuide_percent="0.5" />
+
+        <androidx.constraintlayout.widget.Guideline
+            android:id="@+id/guide_v_right"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            app:layout_constraintGuide_percent="0.75" />
+
+        <androidx.constraintlayout.widget.Guideline
+            android:id="@+id/guide_h_top"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            app:layout_constraintGuide_percent="0.25" />
+
+        <androidx.constraintlayout.widget.Guideline
+            android:id="@+id/guide_h_center"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            app:layout_constraintGuide_percent="0.5" />
+
+        <androidx.constraintlayout.widget.Guideline
+            android:id="@+id/guide_h_bottom"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            app:layout_constraintGuide_percent="0.75" />
+
         <!-- 1. ITEM CENTRAL (Focus Actif) -->
         <ImageView
             android:id="@+id/iv_center"
-            android:layout_width="160dp"
-            android:layout_height="160dp"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_margin="16dp"
             android:scaleType="centerInside"
             android:contentDescription="Centre"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="@id/guide_h_top"
+            app:layout_constraintBottom_toBottomOf="@id/guide_h_bottom"
+            app:layout_constraintStart_toStartOf="@id/guide_v_left"
+            app:layout_constraintEnd_toEndOf="@id/guide_v_right"
             tools:src="@drawable/ic_launcher_background" />
 
         <TextView
             android:id="@+id/tv_center_label"
-            android:layout_width="160dp"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:gravity="center"
-            android:textSize="18sp"
+            android:textSize="20sp"
             android:textStyle="bold"
             android:maxLines="2"
             app:layout_constraintTop_toBottomOf="@id/iv_center"
-            app:layout_constraintStart_toStartOf="@id/iv_center"
-            app:layout_constraintEnd_toEndOf="@id/iv_center"
+            app:layout_constraintStart_toStartOf="@id/guide_v_left"
+            app:layout_constraintEnd_toEndOf="@id/guide_v_right"
             tools:text="Pomme" />
 
-        <!-- 2. ITEMS ADJACENTS (Transparents, plus petits) -->
+        <!-- 2. ITEMS ADJACENTS (Transparents, Cliquables) -->
         <!-- Parent (Haut) -->
         <ImageView
             android:id="@+id/iv_top"
-            android:layout_width="100dp"
-            android:layout_height="100dp"
-            android:layout_marginBottom="16dp"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_margin="24dp"
             android:alpha="0.4"
-            app:layout_constraintBottom_toTopOf="@id/iv_center"
-            app:layout_constraintStart_toStartOf="@id/iv_center"
-            app:layout_constraintEnd_toEndOf="@id/iv_center"
+            android:foreground="?attr/selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:focusable="true"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toTopOf="@id/guide_h_top"
+            app:layout_constraintStart_toStartOf="@id/guide_v_left"
+            app:layout_constraintEnd_toEndOf="@id/guide_v_right"
             tools:src="@drawable/ic_launcher_background" />
 
         <!-- Child (Bas) -->
         <ImageView
             android:id="@+id/iv_bottom"
-            android:layout_width="100dp"
-            android:layout_height="100dp"
-            android:layout_marginTop="32dp"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_margin="24dp"
             android:alpha="0.4"
-            app:layout_constraintTop_toBottomOf="@id/tv_center_label"
-            app:layout_constraintStart_toStartOf="@id/iv_center"
-            app:layout_constraintEnd_toEndOf="@id/iv_center"
+            android:foreground="?attr/selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:focusable="true"
+            app:layout_constraintTop_toBottomOf="@id/guide_h_bottom"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="@id/guide_v_left"
+            app:layout_constraintEnd_toEndOf="@id/guide_v_right"
             tools:src="@drawable/ic_launcher_background" />
 
         <!-- Sibling Gauche -->
         <ImageView
             android:id="@+id/iv_left"
-            android:layout_width="100dp"
-            android:layout_height="100dp"
-            android:layout_marginEnd="16dp"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_margin="24dp"
             android:alpha="0.4"
-            app:layout_constraintEnd_toStartOf="@id/iv_center"
-            app:layout_constraintTop_toTopOf="@id/iv_center"
-            app:layout_constraintBottom_toBottomOf="@id/iv_center"
+            android:foreground="?attr/selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:focusable="true"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/guide_v_left"
+            app:layout_constraintTop_toTopOf="@id/guide_h_top"
+            app:layout_constraintBottom_toBottomOf="@id/guide_h_bottom"
             tools:src="@drawable/ic_launcher_background" />
 
         <!-- Sibling Droite -->
         <ImageView
             android:id="@+id/iv_right"
-            android:layout_width="100dp"
-            android:layout_height="100dp"
-            android:layout_marginStart="16dp"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_margin="24dp"
             android:alpha="0.4"
-            app:layout_constraintStart_toEndOf="@id/iv_center"
-            app:layout_constraintTop_toTopOf="@id/iv_center"
-            app:layout_constraintBottom_toBottomOf="@id/iv_center"
+            android:foreground="?attr/selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:focusable="true"
+            app:layout_constraintStart_toEndOf="@id/guide_v_right"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="@id/guide_h_top"
+            app:layout_constraintBottom_toBottomOf="@id/guide_h_bottom"
             tools:src="@drawable/ic_launcher_background" />
 
         <!-- 3. MICRO-MINIATURES (Lookahead) -->
@@ -101,8 +161,8 @@
             android:gravity="center"
             android:layout_marginBottom="8dp"
             app:layout_constraintBottom_toTopOf="@id/iv_top"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent">
+            app:layout_constraintStart_toStartOf="@id/guide_v_center"
+            app:layout_constraintEnd_toEndOf="@id/guide_v_center">
             
             <ImageView
                 android:id="@+id/iv_micro_top_img"
@@ -128,8 +188,8 @@
             android:gravity="center"
             android:layout_marginEnd="8dp"
             app:layout_constraintEnd_toStartOf="@id/iv_left"
-            app:layout_constraintTop_toTopOf="@id/iv_left"
-            app:layout_constraintBottom_toBottomOf="@id/iv_left">
+            app:layout_constraintTop_toTopOf="@id/guide_h_center"
+            app:layout_constraintBottom_toBottomOf="@id/guide_h_center">
             
             <ImageView
                 android:id="@+id/iv_micro_left_img"
@@ -154,8 +214,8 @@
             android:gravity="center"
             android:layout_marginStart="8dp"
             app:layout_constraintStart_toEndOf="@id/iv_right"
-            app:layout_constraintTop_toTopOf="@id/iv_right"
-            app:layout_constraintBottom_toBottomOf="@id/iv_right">
+            app:layout_constraintTop_toTopOf="@id/guide_h_center"
+            app:layout_constraintBottom_toBottomOf="@id/guide_h_center">
             
             <ImageView
                 android:id="@+id/iv_micro_right_img"
@@ -176,44 +236,40 @@
             android:id="@+id/arrow_top"
             android:layout_width="24dp"
             android:layout_height="24dp"
-            android:layout_marginBottom="4dp"
             android:src="@android:drawable/arrow_up_float"
-            app:layout_constraintBottom_toTopOf="@id/iv_center"
-            app:layout_constraintStart_toStartOf="@id/iv_center"
-            app:layout_constraintEnd_toEndOf="@id/iv_center"
+            app:layout_constraintBottom_toTopOf="@id/iv_top"
+            app:layout_constraintStart_toStartOf="@id/guide_v_center"
+            app:layout_constraintEnd_toEndOf="@id/guide_v_center"
             app:tint="@color/black" />
 
         <ImageView
             android:id="@+id/arrow_bottom"
             android:layout_width="24dp"
             android:layout_height="24dp"
-            android:layout_marginTop="4dp"
             android:src="@android:drawable/arrow_down_float"
-            app:layout_constraintTop_toBottomOf="@id/tv_center_label"
-            app:layout_constraintStart_toStartOf="@id/iv_center"
-            app:layout_constraintEnd_toEndOf="@id/iv_center"
+            app:layout_constraintTop_toBottomOf="@id/iv_bottom"
+            app:layout_constraintStart_toStartOf="@id/guide_v_center"
+            app:layout_constraintEnd_toEndOf="@id/guide_v_center"
             app:tint="@color/black" />
 
         <ImageView
             android:id="@+id/arrow_left"
             android:layout_width="24dp"
             android:layout_height="24dp"
-            android:layout_marginEnd="4dp"
             android:src="@android:drawable/ic_media_previous"
-            app:layout_constraintEnd_toStartOf="@id/iv_center"
-            app:layout_constraintTop_toTopOf="@id/iv_center"
-            app:layout_constraintBottom_toBottomOf="@id/iv_center"
+            app:layout_constraintEnd_toStartOf="@id/iv_left"
+            app:layout_constraintTop_toTopOf="@id/guide_h_center"
+            app:layout_constraintBottom_toBottomOf="@id/guide_h_center"
             app:tint="@color/black" />
 
         <ImageView
             android:id="@+id/arrow_right"
             android:layout_width="24dp"
             android:layout_height="24dp"
-            android:layout_marginStart="4dp"
             android:src="@android:drawable/ic_media_next"
-            app:layout_constraintStart_toEndOf="@id/iv_center"
-            app:layout_constraintTop_toTopOf="@id/iv_center"
-            app:layout_constraintBottom_toBottomOf="@id/iv_center"
+            app:layout_constraintStart_toEndOf="@id/iv_right"
+            app:layout_constraintTop_toTopOf="@id/guide_h_center"
+            app:layout_constraintBottom_toBottomOf="@id/guide_h_center"
             app:tint="@color/black" />
             
     </androidx.constraintlayout.widget.ConstraintLayout>

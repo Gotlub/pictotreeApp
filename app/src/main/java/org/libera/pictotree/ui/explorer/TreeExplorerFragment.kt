@@ -84,8 +84,9 @@ class TreeExplorerFragment : Fragment() {
             viewModel.loadTree(targetTreeId)
         }
         
-        // Moteur Tactile Geste OnFling
+        // Moteur Tactile Hybride (Gestes & Clics)
         setupGestureDetection(root)
+        setupTapToNavigate()
         
         // Observation des États UI (Moteur & Recycler)
         viewLifecycleOwner.lifecycleScope.launch {
@@ -116,13 +117,48 @@ class TreeExplorerFragment : Fragment() {
         }
         
         // Binding TTS
-        fabSpeak.setOnClickListener {
-            // Lecture simple MVP, une future itération illuminera le RecyclerView au rythme de la voix
-            val phraseBuilder = StringBuilder()
-            viewModel.phraseList.value.forEach { node ->
-                phraseBuilder.append(node.label).append(". ") // Point pour marquer une courte pause respiratoire
+        ttsManager.setListeners(
+            onStart = { utteranceId ->
+                // L'ID correspond à l'index dans la liste de phrase
+                val index = utteranceId.toIntOrNull() ?: -1
+                requireActivity().runOnUiThread {
+                    if (index != -1) {
+                        phraseAdapter.highlightPosition(index)
+                        rvPhrase.smoothScrollToPosition(index)
+                    }
+                }
+            },
+            onDone = { utteranceId ->
+                // Si c'est le dernier élément, on éteint l'illumination
+                val index = utteranceId.toIntOrNull() ?: -1
+                val totalItems = phraseAdapter.itemCount
+                if (index == totalItems - 1) {
+                    requireActivity().runOnUiThread {
+                        phraseAdapter.highlightPosition(-1)
+                    }
+                }
             }
-            ttsManager.speak(phraseBuilder.toString().trim())
+        )
+
+        fabSpeak.setOnClickListener {
+            val phrase = viewModel.phraseList.value
+            if (phrase.isEmpty()) return@setOnClickListener
+
+            // On vide la file et on lance la lecture séquentielle
+            ttsManager.stop()
+            phrase.forEachIndexed { index, node ->
+                ttsManager.speak(node.label, index.toString())
+            }
+            
+            // On réinitialise l'illumination à la fin de la lecture totale (post-queue)
+            // Note: onDone du dernier item est plus propre
+        }
+
+        fabSpeak.setOnLongClickListener {
+            viewModel.clearPhrase()
+            ttsManager.stop()
+            phraseAdapter.highlightPosition(-1)
+            true
         }
         
         return root
@@ -133,6 +169,13 @@ class TreeExplorerFragment : Fragment() {
         if (::ttsManager.isInitialized) {
             ttsManager.shutdown()
         }
+    }
+
+    private fun setupTapToNavigate() {
+        ivTop.setOnClickListener { triggerNavigation(Direction.TOP) }
+        ivBottom.setOnClickListener { triggerNavigation(Direction.BOTTOM) }
+        ivLeft.setOnClickListener { triggerNavigation(Direction.LEFT) }
+        ivRight.setOnClickListener { triggerNavigation(Direction.RIGHT) }
     }
 
     private fun setupGestureDetection(root: View) {
@@ -170,17 +213,13 @@ class TreeExplorerFragment : Fragment() {
                 }
                 return false
             }
-
-            override fun onSingleTapConfirmed(e: MotionEvent): Boolean {
-                // Determine which View was tapped roughly
-                // For a robust implementation, tap detection checking View Bounds in the Touch Event is needed.
-                return super.onSingleTapConfirmed(e)
-            }
         })
         
+        // On n'intercepte que si le touch n'est pas consommé par une vue enfant (ex: nos boutons de clic)
         spatialEngine.setOnTouchListener { _, event ->
             gestureDetector.onTouchEvent(event)
-            true
+            // Ne pas retourner 'true' aveuglément pour laisser les clics enfants passer
+            false
         }
     }
 
@@ -196,47 +235,17 @@ class TreeExplorerFragment : Fragment() {
         }
 
         if (targetNode == null) {
-            // Pas de noeud cible, animation refusée
             return
         }
 
-        // On lance la fameuse animation visuelle V3
-        val distance = 400f // pixels
-        val animX = when(direction) {
-            Direction.LEFT -> distance
-            Direction.RIGHT -> -distance
-            else -> 0f
-        }
-        val animY = when(direction) {
-            Direction.TOP -> distance
-            Direction.BOTTOM -> -distance
-            else -> 0f
-        }
-
-        listOf(ivCenter, ivTop, ivBottom, ivLeft, ivRight, tvCenterLabel).forEach { view ->
-            view.animate()
-                .translationXBy(animX)
-                .translationYBy(animY)
-                .setDuration(250)
-                .setListener(object : AnimatorListenerAdapter() {
-                    override fun onAnimationEnd(animation: Animator) {
-                        super.onAnimationEnd(animation)
-                        // Une fois l'écran décalé de façon fluide, on téléporte le Focus silencieusement
-                        if (view == ivCenter) {
-                            viewModel.focusOnNode(targetNode)
-                            resetTranslations() // On efface la magie visuelle pour recharger
-                        }
-                    }
-                })
-        }
+        // Animation fluide native Android pour remplacer le décalage 400px hasardeux
+        val rootView = requireView().findViewById<ViewGroup>(R.id.layout_spatial_engine)
+        androidx.transition.TransitionManager.beginDelayedTransition(rootView, androidx.transition.ChangeBounds().setDuration(200))
+        
+        // Le ViewModel gère la mise à jour des états qui sera répercutée dans updateUI() avec animation
+        viewModel.focusOnNode(targetNode)
     }
 
-    private fun resetTranslations() {
-        listOf(ivCenter, ivTop, ivBottom, ivLeft, ivRight, tvCenterLabel).forEach {
-            it.translationX = 0f
-            it.translationY = 0f
-        }
-    }
     
     private fun updateUI(state: SpatialUiState) {
         if (state.isLoading) return

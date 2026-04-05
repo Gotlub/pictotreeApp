@@ -100,11 +100,7 @@ class TreeExplorerViewModel(
         // RÈGLE ARCHITECTURE : Les images doivent TOUJOURS être cherchées en local sur la View 4 (Offline First)
         // Le stockage Android (via ImageSyncEngine) utilise un hachage SHA-256 strict de l'URL distante.
         if (rawUrl.isNotEmpty()) {
-            val bytes = java.security.MessageDigest.getInstance("SHA-256").digest(rawUrl.toByteArray())
-            val hash = bytes.joinToString("") { "%02x".format(it) }
-            val ext = rawUrl.substringAfterLast('.', "png")
-            val fileName = "$hash.$ext"
-            
+            val fileName = org.libera.pictotree.utils.FileUtils.getLocalFileNameFromUrl(rawUrl)
             val localFile = java.io.File(getApplication<Application>().filesDir, "$username/images/$fileName")
             rawUrl = "file://${localFile.absolutePath}"
         }

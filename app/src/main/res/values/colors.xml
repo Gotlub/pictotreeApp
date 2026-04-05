@@ -2,4 +2,11 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    
+    <!-- PictoTree Branding & UI Colors -->
+    <color name="primary_color">#2196F3</color>
+    <color name="primary_light">#BBDEFB</color>
+    <color name="accent_color">#FF4081</color>
+    <color name="highlight_bg">#E3F2FD</color>
+    <color name="highlight_stroke">#1E88E5</color>
 </resources>
