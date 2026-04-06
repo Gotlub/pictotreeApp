@@ -19,7 +19,7 @@ class ImageSyncEngine(
 ) {
     suspend fun syncImagesFromNode(node: TreeNodeDTO, treeId: Int) {
         if (node.imageUrl.isNotBlank()) {
-            downloadAndHashImage(node.imageUrl, treeId, node.label)
+            downloadAndHashImage(node.imageUrl, treeId, node.description ?: node.label)
         }
         for (child in node.children) {
             syncImagesFromNode(child, treeId)

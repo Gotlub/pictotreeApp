@@ -11,6 +11,7 @@ data class TreeFullDTO(
 data class TreeNodeDTO(
     @SerializedName("node_id") val nodeId: String,
     @SerializedName("label") val label: String,
+    @SerializedName("description") val description: String?,
     @SerializedName("image_url") val imageUrl: String,
     @SerializedName("children") val children: List<TreeNodeDTO>
 )
