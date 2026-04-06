@@ -86,7 +86,7 @@ class SearchResultAdapter(private val onClick: (PictoSearchResultDTO) -> Unit) :
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-        val view = LayoutInflater.from(parent.context).inflate(R.layout.item_phrase_picto, parent, false)
+        val view = LayoutInflater.from(parent.context).inflate(R.layout.item_search_picto, parent, false)
         return ViewHolder(view)
     }
 

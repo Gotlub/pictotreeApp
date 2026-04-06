@@ -31,6 +31,7 @@ class PictoSearchDialog : DialogFragment() {
         val sessionManager = SessionManager(requireContext())
         val username = sessionManager.getUsername() ?: "default"
         val database = AppDatabase.getDatabase(requireContext(), username)
+        val userConfigRepository = org.libera.pictotree.data.repository.UserConfigRepository(database.userConfigDao())
         
         val factory = object : ViewModelProvider.Factory {
             override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
@@ -39,9 +40,10 @@ class PictoSearchDialog : DialogFragment() {
                     database.imageDao(),
                     RetrofitClient.treeApiService,
                     ArasaacRepository(),
+                    userConfigRepository,
                     sessionManager.getToken(),
                     username,
-                    "http://10.0.2.2:5000"
+                    RetrofitClient.SERVER_URL
                 ) as T
             }
         }

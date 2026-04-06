@@ -19,7 +19,7 @@ class ImageSyncEngine(
 ) {
     suspend fun syncImagesFromNode(node: TreeNodeDTO, treeId: Int) {
         if (node.imageUrl.isNotBlank()) {
-            downloadAndHashImage(node.imageUrl, treeId)
+            downloadAndHashImage(node.imageUrl, treeId, node.label)
         }
         for (child in node.children) {
             syncImagesFromNode(child, treeId)
@@ -30,7 +30,7 @@ class ImageSyncEngine(
      * Télécharge une image isolée (ex: avatar de profil) sans la lier à un arbre.
      * Retourne l'URL locale finale (file://...)
      */
-    suspend fun downloadSingleImage(remoteUrl: String): String? = withContext(Dispatchers.IO) {
+    suspend fun downloadSingleImage(remoteUrl: String, name: String? = null): String? = withContext(Dispatchers.IO) {
         if (remoteUrl.isBlank()) return@withContext null
         if (remoteUrl.startsWith("file://") || remoteUrl.startsWith("color:")) return@withContext remoteUrl
 
@@ -62,7 +62,7 @@ class ImageSyncEngine(
                 imageDao.insertImage(ImageEntity(
                     remotePath = remoteUrl,
                     localPath = "images/$fileName",
-                    name = fileName
+                    name = name ?: fileName
                 ))
                 return@withContext localUrl
             }
@@ -72,7 +72,7 @@ class ImageSyncEngine(
         return@withContext null
     }
 
-    private suspend fun downloadAndHashImage(remoteUrl: String, treeId: Int) = withContext(Dispatchers.IO) {
+    private suspend fun downloadAndHashImage(remoteUrl: String, treeId: Int, name: String? = null) = withContext(Dispatchers.IO) {
         val fileName = org.libera.pictotree.utils.FileUtils.getLocalFileNameFromUrl(remoteUrl)
         
         // Si l'application possède DÉJÀ cette empreinte, on la lie directement
@@ -121,7 +121,7 @@ class ImageSyncEngine(
         val newImageId = imageDao.insertImage(ImageEntity(
             remotePath = remoteUrl,
             localPath = localPath,
-            name = fileName
+            name = name ?: fileName
         ))
         imageDao.insertTreeImageCrossRef(org.libera.pictotree.data.database.entity.TreeImageCrossRef(treeId, newImageId.toInt()))
     }

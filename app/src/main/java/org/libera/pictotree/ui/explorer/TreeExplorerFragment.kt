@@ -80,7 +80,7 @@ class TreeExplorerFragment : Fragment() {
         val factory = object : ViewModelProvider.Factory {
             override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
                 @Suppress("UNCHECKED_CAST")
-                return TreeExplorerViewModel(requireActivity().application, treeDao, "http://10.0.2.2:5000", username) as T
+                return TreeExplorerViewModel(requireActivity().application, treeDao, org.libera.pictotree.network.RetrofitClient.SERVER_URL, username) as T
             }
         }
         viewModel = ViewModelProvider(this, factory)[TreeExplorerViewModel::class.java]

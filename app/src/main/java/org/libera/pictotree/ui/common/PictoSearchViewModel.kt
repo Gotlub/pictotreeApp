@@ -9,8 +9,10 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import org.libera.pictotree.data.database.dao.ImageDao
 import org.libera.pictotree.data.repository.ArasaacRepository
+import org.libera.pictotree.data.repository.UserConfigRepository
 import org.libera.pictotree.network.TreeApiService
 import org.libera.pictotree.network.dto.PictoSearchResultDTO
+import kotlinx.coroutines.flow.firstOrNull
 
 sealed class SearchUiState {
     data object Idle : SearchUiState()
@@ -24,6 +26,7 @@ class PictoSearchViewModel(
     private val imageDao: ImageDao,
     private val treeApiService: TreeApiService,
     private val arasaacRepository: ArasaacRepository,
+    private val userConfigRepository: UserConfigRepository,
     private val authToken: String?,
     private val username: String,
     private val hostUrl: String
@@ -38,12 +41,16 @@ class PictoSearchViewModel(
     private val _arasaacResults = MutableStateFlow<SearchUiState>(SearchUiState.Idle)
     val arasaacResults: StateFlow<SearchUiState> = _arasaacResults.asStateFlow()
 
-    fun search(query: String, locale: String = "fr") {
+    fun search(query: String, locale: String? = null) {
         if (query.isBlank()) return
 
         searchLocal(query)
         searchBase(query)
-        searchArasaac(query, locale)
+        
+        viewModelScope.launch {
+            val finalLocale = locale ?: userConfigRepository.userConfig.firstOrNull()?.locale ?: "fr"
+            searchArasaac(query, finalLocale)
+        }
     }
 
     private fun searchLocal(query: String) {

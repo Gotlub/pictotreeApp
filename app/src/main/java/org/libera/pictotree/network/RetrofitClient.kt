@@ -8,7 +8,8 @@ import org.libera.pictotree.BuildConfig
 
 object RetrofitClient {
     // Emulator loopback IP to access host machine localhost
-    private const val BASE_URL = "http://10.0.2.2:5000/api/v1/mobile/"
+    const val SERVER_URL = "http://10.0.2.2:5000"
+    private const val BASE_URL = "$SERVER_URL/api/v1/mobile/"
 
     private val loggingInterceptor = HttpLoggingInterceptor().apply {
         level = if (BuildConfig.DEBUG) HttpLoggingInterceptor.Level.BODY else HttpLoggingInterceptor.Level.NONE
