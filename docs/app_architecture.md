@@ -48,11 +48,13 @@ Elle est développée "Offline-First" (priorité au mode hors-ligne) et pensée 
 ### A. Base de Données (SQLite / Room)
 La base de données locale (implémentée via Android Room) est stockée dans le dossier isolé de l'utilisateur. Elle gère la relation dynamique : 1 Utilisateur -> N Profils -> N Arbres.
 
-* **Table `Profile` :** Représente le patient/enfant (id, name, avatarUrl).
-* **Table `Tree` :** Contient les métadonnées globales des arbres et l'arborescence (id, name, json_payload).
-* **Table de jointure `ProfileTreeCrossRef` :** Associe un arbre à un profil, avec une gestion de l'ordre d'affichage (profileId, treeId, displayOrder).
-* **Table `images` :** Gère le cache local (hachage des URL) pour le mode hors-ligne.
-(Note : Les identités locales des utilisateurs parents/aidants sont gérées globalement par les EncryptedSharedPreferences).
+### A. Registre Global (App Level / User Level)
+* **Configuration Utilisateur :**
+  * `locale` : Langue globale de l'interface et du TTS.
+  * `offline_settings_pin` : Code à 4 chiffres pour protéger l'accès aux réglages (Profils/Langue) en mode hors-ligne.
+* **Sécurité & Accès :**
+  * **En ligne :** Authentification `pictotree.eu` requise. Donne accès complet (Imports, Recherche online, Paramètres).
+  * **Hors-ligne :** Accès direct aux arbres. Le code PIN est requis uniquement pour modifier la langue ou les options de profil. Les fonctions d'importation réseau sont désactivées.
 
 ### B. Système de Fichiers (File System)
 Pour éviter les conflits en collectivité et faciliter la gestion des données :
@@ -61,7 +63,11 @@ Pour éviter les conflits en collectivité et faciliter la gestion des données 
 
 ---
 
-## 4. Internationalisation (i18n)
+## 4. Internationalisation (i18n) & TTS
 * **Conception "English First" :** Tous les textes de l'interface utilisent l'anglais comme langue de base dans `res/values/strings.xml`.
-* **Traduction :** Le support du français (et autres langues) se fera via des fichiers de ressources dédiés (ex: `res/values-fr/strings.xml`).
+* **Support Multilingue :** Aligné sur le backend Flask (FR, EN, ES, DE, IT, NL, PL).
+* **Stratégie "Smart TTS" (Rush 14/15) :**
+  * Lors du changement de langue, l'application interroge le moteur Android (`tts.isLanguageAvailable`).
+  * **Si `LANG_MISSING_DATA` :** L'application affiche une alerte proposant d'ouvrir les paramètres système Android pour télécharger le pack de voix correspondant.
+  * **Si `LANG_NOT_SUPPORTED` :** Un message informe l'utilisateur que seule l'interface sera traduite, la voix restant sur la langue par défaut.
 * **Règle de code :** Aucun texte n'est "en dur" (hardcoded) dans les vues ; tous les labels passent par les ID de ressources système.

@@ -25,11 +25,23 @@ import kotlinx.coroutines.launch
 import org.libera.pictotree.R
 import org.libera.pictotree.data.database.AppDatabase
 import org.libera.pictotree.data.repository.ProfileRepository
+import org.libera.pictotree.data.repository.UserConfigRepository
+import org.libera.pictotree.data.SessionManager
 
 class DashboardFragment : Fragment() {
 
     private lateinit var viewModel: DashboardViewModel
     private lateinit var adapter: ProfileAdapter
+    
+    private lateinit var rvProfiles: RecyclerView
+    private lateinit var progressBar: ProgressBar
+    private lateinit var tvEmptyState: TextView
+    private lateinit var fabAddProfile: ExtendedFloatingActionButton
+    private lateinit var ivAdminStatus: ImageView
+    private lateinit var ivLogout: ImageView
+    private lateinit var cardUserSettings: View
+    private lateinit var tvCurrentLanguage: TextView
+    private lateinit var btnSetPin: View
 
     override fun onCreateView(
             inflater: LayoutInflater,
@@ -42,27 +54,33 @@ class DashboardFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        // Setup UI References
+        rvProfiles = view.findViewById(R.id.rvProfiles)
+        progressBar = view.findViewById(R.id.progressBar)
+        tvEmptyState = view.findViewById(R.id.tvEmptyState)
+        fabAddProfile = view.findViewById(R.id.fabAddProfile)
+        ivAdminStatus = view.findViewById(R.id.ivAdminStatus)
+        ivLogout = view.findViewById(R.id.ivLogout)
+        cardUserSettings = view.findViewById(R.id.cardUserSettings)
+        tvCurrentLanguage = view.findViewById(R.id.tvCurrentLanguage)
+        btnSetPin = view.findViewById(R.id.btnSetPin)
+
         // Setup Logic
-        val sessionManager = org.libera.pictotree.data.SessionManager(requireContext())
+        val sessionManager = SessionManager(requireContext())
+        val isOnline = sessionManager.isOnline()
         val username = sessionManager.getUsername() ?: "default"
         val database = AppDatabase.getDatabase(requireContext(), username)
         
-        val repository = ProfileRepository(database.profileDao())
-        val factory = DashboardViewModelFactory(repository)
+        val profileRepository = ProfileRepository(database.profileDao())
+        val userConfigRepository = UserConfigRepository(database.userConfigDao())
+        
+        val factory = DashboardViewModelFactory(profileRepository, userConfigRepository)
         viewModel = ViewModelProvider(this, factory)[DashboardViewModel::class.java]
         
-        // Initialiser le Mode Admin depuis l'authentification réseau
-        val isAdminInitial = arguments?.getBoolean("isAdmin", false) ?: false
-        if (isAdminInitial) {
+        // Sécurité : Si on est en ligne, on est ADMIN par défaut (non verrouillable)
+        if (isOnline) {
             viewModel.setAdminMode(true)
         }
-
-        // Setup UI
-        val rvProfiles = view.findViewById<RecyclerView>(R.id.rvProfiles)
-        val progressBar = view.findViewById<ProgressBar>(R.id.progressBar)
-        val tvEmptyState = view.findViewById<TextView>(R.id.tvEmptyState)
-        val fabAddProfile = view.findViewById<ExtendedFloatingActionButton>(R.id.fabAddProfile)
-        val ivAdminStatus = view.findViewById<ImageView>(R.id.ivAdminStatus)
 
         adapter =
                 ProfileAdapter(
@@ -127,15 +145,24 @@ class DashboardFragment : Fragment() {
                     viewModel.isAdminMode.collect { isAdmin ->
                         adapter.isAdminMode = isAdmin
 
-                        // Toggle UI Elements
+                        // Restriction : Le bouton "New Profile" n'est accessible qu'en ONLINE + ADMIN
+                        fabAddProfile.visibility = if (isAdmin && isOnline) View.VISIBLE else View.GONE
+
                         if (isAdmin) {
-                            fabAddProfile.visibility = View.VISIBLE
-                            ivAdminStatus.setImageResource(
-                                    android.R.drawable.ic_partial_secure
-                            ) // unlocked
+                            cardUserSettings.visibility = View.VISIBLE
+                            ivAdminStatus.setImageResource(android.R.drawable.ic_partial_secure)
                         } else {
-                            fabAddProfile.visibility = View.GONE
-                            ivAdminStatus.setImageResource(android.R.drawable.ic_secure) // locked
+                            cardUserSettings.visibility = View.GONE
+                            ivAdminStatus.setImageResource(android.R.drawable.ic_secure)
+                        }
+                    }
+                }
+
+                // Observer for User Config (Language)
+                launch {
+                    viewModel.userConfig.collect { config ->
+                        config?.let {
+                            tvCurrentLanguage.text = it.locale.uppercase()
                         }
                     }
                 }
@@ -144,15 +171,90 @@ class DashboardFragment : Fragment() {
 
         // Setup Listeners
         fabAddProfile.setOnClickListener { showCreateProfileDialog() }
+        tvCurrentLanguage.setOnClickListener { showLanguageDialog() }
+        btnSetPin.setOnClickListener { showSetPinDialog() }
+        
+        ivLogout.setOnClickListener {
+            sessionManager.clearSession()
+            findNavController().navigate(R.id.action_dashboardFragment_to_loginFragment)
+        }
 
         // Listener sur le cadenas pour le Mode Admin
         ivAdminStatus.setOnClickListener { 
-            if (isAdminInitial) {
-                viewModel.setAdminMode(!viewModel.isAdminMode.value) 
+            if (isOnline) {
+                Toast.makeText(requireContext(), getString(R.string.dashboard_admin_online_toast), Toast.LENGTH_SHORT).show()
             } else {
-                Toast.makeText(requireContext(), "Mode édition impossible en hors-ligne. Veuillez vous connecter au réseau.", Toast.LENGTH_SHORT).show()
+                if (viewModel.isAdminMode.value) {
+                    viewModel.setAdminMode(false)
+                } else if (viewModel.userConfig.value?.offlineSettingsPin != null) {
+                    showUnlockPinDialog()
+                } else {
+                    Toast.makeText(requireContext(), getString(R.string.dashboard_offline_pin_security_toast), Toast.LENGTH_LONG).show()
+                }
             }
         }
+    }
+
+    private fun showUnlockPinDialog() {
+        val input = TextInputEditText(requireContext())
+        input.inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_VARIATION_PASSWORD
+        val container = TextInputLayout(requireContext())
+        container.setPadding(40, 0, 40, 0)
+        container.addView(input)
+        container.hint = getString(R.string.dashboard_pin_btn)
+
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.dialog_unlock_title)
+            .setMessage(R.string.dialog_unlock_message)
+            .setView(container)
+            .setPositiveButton(R.string.dialog_unlock_validate) { _, _ ->
+                val pin = input.text?.toString()
+                if (viewModel.verifyPin(pin ?: "")) {
+                    viewModel.setAdminMode(true)
+                    Toast.makeText(requireContext(), getString(R.string.dashboard_unlocked_toast), Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(requireContext(), getString(R.string.dashboard_wrong_pin_toast), Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton(R.string.dialog_create_profile_btn_cancel, null)
+            .show()
+    }
+
+    private fun showLanguageDialog() {
+        val languages = arrayOf("Français", "English", "Español", "Deutsch", "Italiano", "Nederlands", "Polski")
+        val codes = arrayOf("fr", "en", "es", "de", "it", "nl", "pl")
+        
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.dialog_lang_title)
+            .setItems(languages) { _, which ->
+                viewModel.setLanguage(codes[which])
+            }
+            .show()
+    }
+
+    private fun showSetPinDialog() {
+        val input = TextInputEditText(requireContext())
+        input.inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_VARIATION_PASSWORD
+        val container = TextInputLayout(requireContext())
+        container.setPadding(40, 0, 40, 0)
+        container.addView(input)
+        container.hint = getString(R.string.dialog_pin_hint)
+
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.dialog_pin_title)
+            .setMessage(R.string.dialog_pin_message)
+            .setView(container)
+            .setPositiveButton(R.string.dialog_pin_save) { _, _ ->
+                val pin = input.text?.toString()
+                if (pin?.length == 4) {
+                    viewModel.setPin(pin)
+                    Toast.makeText(requireContext(), getString(R.string.dialog_pin_saved_toast), Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(requireContext(), getString(R.string.dialog_pin_error_length), Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton(R.string.dialog_create_profile_btn_cancel, null)
+            .show()
     }
 
     private fun showCreateProfileDialog() {
@@ -160,6 +262,27 @@ class DashboardFragment : Fragment() {
                 LayoutInflater.from(requireContext()).inflate(R.layout.dialog_create_profile, null)
         val tilProfileName = dialogView.findViewById<TextInputLayout>(R.id.tilProfileName)
         val etProfileName = dialogView.findViewById<TextInputEditText>(R.id.etProfileName)
+        
+        var selectedAvatarUrl: String? = null
+        val avatars = listOf(
+            dialogView.findViewById<ImageView>(R.id.avatar_blue) to "#2196F3",
+            dialogView.findViewById<ImageView>(R.id.avatar_pink) to "#E91E63",
+            dialogView.findViewById<ImageView>(R.id.avatar_green) to "#4CAF50",
+            dialogView.findViewById<ImageView>(R.id.avatar_orange) to "#FF9800"
+        )
+
+        avatars.forEach { (view, color) ->
+            view.setOnClickListener {
+                avatars.forEach { 
+                    it.first.alpha = 0.4f
+                    it.first.setBackgroundResource(0)
+                }
+                view.alpha = 1.0f
+                view.setBackgroundResource(android.R.drawable.editbox_dropdown_light_frame)
+                selectedAvatarUrl = "color:$color"
+            }
+            view.alpha = 0.4f
+        }
 
         val dialog =
                 MaterialAlertDialogBuilder(requireContext())
@@ -179,7 +302,7 @@ class DashboardFragment : Fragment() {
                     tilProfileName.error = getString(R.string.dialog_create_profile_name_error)
                 } else {
                     tilProfileName.error = null
-                    viewModel.addProfile(name)
+                    viewModel.addProfile(name, selectedAvatarUrl)
                     dialog.dismiss()
                 }
             }

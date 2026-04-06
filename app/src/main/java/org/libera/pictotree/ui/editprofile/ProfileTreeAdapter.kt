@@ -21,6 +21,12 @@ class ProfileTreeAdapter(
 ) : RecyclerView.Adapter<ProfileTreeAdapter.TreeViewHolder>() {
 
     private val trees = mutableListOf<ProfileTreeUiModel>()
+    
+    var isOnlineMode: Boolean = true
+        set(value) {
+            field = value
+            notifyDataSetChanged()
+        }
 
     fun submitList(newTrees: List<ProfileTreeUiModel>) {
         trees.clear()
@@ -28,7 +34,6 @@ class ProfileTreeAdapter(
         notifyDataSetChanged()
     }
 
-    // Handles the live View position shifting
     fun moveItem(fromPosition: Int, toPosition: Int) {
         if (fromPosition < toPosition) {
             for (i in fromPosition until toPosition) {
@@ -42,10 +47,9 @@ class ProfileTreeAdapter(
         notifyItemMoved(fromPosition, toPosition)
     }
 
-    // Once Drag finishes, persist ordering
     fun dispatchUpdates() {
         onOrderChanged(trees.map { it.tree })
-        notifyDataSetChanged() // Re-draw numbers safely according to final position
+        notifyDataSetChanged() 
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TreeViewHolder {
@@ -88,6 +92,10 @@ class ProfileTreeAdapter(
                 textOrderNumber.text = "#${position + 1}"
             }
             treeName.text = model.tree.name
+            
+            // Sécurité : masquer la suppression si hors-ligne
+            deleteButton.visibility = if (isOnlineMode) View.VISIBLE else View.GONE
+            
             deleteButton.setOnClickListener {
                 onTreeDelete(model.tree)
             }

@@ -238,6 +238,36 @@ class EditProfileViewModel(
             }
         }
     }
+
+    fun updateProfile(profileId: Int, newName: String, avatarUrl: String?) {
+        viewModelScope.launch {
+            try {
+                val sessionManager = SessionManager(getApplication())
+                val username = sessionManager.getUsername() ?: "default"
+                val token = sessionManager.getToken() ?: ""
+                
+                var finalAvatarUrl = avatarUrl
+                
+                // Si c'est une image distante (Base ou Arasaac), on la télécharge en local
+                if (avatarUrl != null && (avatarUrl.startsWith("http") || avatarUrl.contains("/api/v1/mobile/"))) {
+                    val engine = ImageSyncEngine(getApplication(), imageDao, username, token)
+                    val localUrl = engine.downloadSingleImage(avatarUrl)
+                    if (localUrl != null) {
+                        finalAvatarUrl = localUrl
+                    }
+                }
+
+                val currentProfile = profileDao.getProfileById(profileId)
+                if (currentProfile != null) {
+                    val updated = currentProfile.copy(name = newName, avatarUrl = finalAvatarUrl)
+                    profileDao.insertProfile(updated)
+                    loadProfile(profileId)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
 }
 
 class EditProfileViewModelFactory(

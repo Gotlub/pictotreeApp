@@ -58,6 +58,7 @@ class TreeExplorerFragment : Fragment() {
         arrowRight = root.findViewById(R.id.arrow_right)
         
         val fabEye = root.findViewById<View>(R.id.fab_eye)
+        val fabSearch = root.findViewById<View>(R.id.fab_search)
         val fabSpeak = root.findViewById<View>(R.id.fab_speak)
         val rvPhrase = root.findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.rv_phrase)
 

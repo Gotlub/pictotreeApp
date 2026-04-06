@@ -13,9 +13,12 @@ import org.libera.pictotree.data.database.dao.TreeDao
 import org.libera.pictotree.data.database.entity.ImageEntity
 import org.libera.pictotree.data.database.entity.TreeImageCrossRef
 
+import org.libera.pictotree.data.database.dao.UserConfigDao
+import org.libera.pictotree.data.database.entity.UserConfig
+
 @Database(
-    entities = [Profile::class, TreeEntity::class, ProfileTreeCrossRef::class, ImageEntity::class, TreeImageCrossRef::class],
-    version = 4,
+    entities = [Profile::class, TreeEntity::class, ProfileTreeCrossRef::class, ImageEntity::class, TreeImageCrossRef::class, UserConfig::class],
+    version = 5,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -23,6 +26,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun profileDao(): ProfileDao
     abstract fun treeDao(): TreeDao
     abstract fun imageDao(): ImageDao
+    abstract fun userConfigDao(): UserConfigDao
 
     companion object {
         @Volatile

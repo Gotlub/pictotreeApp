@@ -43,6 +43,7 @@ class LoginFragment : Fragment() {
         val switchOnlineMode: SwitchCompat = view.findViewById(R.id.switch_online_mode)
         val tilPassword: TextInputLayout = view.findViewById(R.id.til_password)
         val btnLogin: Button = view.findViewById(R.id.btn_login)
+        val btnQuit: View = view.findViewById(R.id.btn_quit)
 
         // Setup AutoCompleteTextView Adapter with an empty list initially
         val adapter =
@@ -54,8 +55,6 @@ class LoginFragment : Fragment() {
         actvUsers.setAdapter(adapter)
 
         // View Interactions
-
-        // Listen to typed text and selection
         actvUsers.doAfterTextChanged { editable ->
             val username = editable?.toString() ?: ""
             viewModel.onUsernameChanged(username)
@@ -68,6 +67,10 @@ class LoginFragment : Fragment() {
         btnLogin.setOnClickListener {
             val password = tilPassword.editText?.text?.toString() ?: ""
             viewModel.login(password)
+        }
+
+        btnQuit.setOnClickListener {
+            requireActivity().finish()
         }
 
         // Observing ViewModel State
@@ -84,10 +87,7 @@ class LoginFragment : Fragment() {
                     // Select correct item securely avoiding infinite loop
                     state.selectedUser?.let { selected ->
                         if (actvUsers.text.toString() != selected) {
-                            actvUsers.setText(
-                                    selected,
-                                    false
-                            ) // false avoids triggering dropdown/filtering
+                            actvUsers.setText(selected, false)
                         }
                     }
 
@@ -97,16 +97,15 @@ class LoginFragment : Fragment() {
                     }
 
                     // 3. Update Password Visibility
-                    tilPassword.visibility =
-                            if (state.isPasswordVisible) View.VISIBLE else View.GONE
+                    tilPassword.visibility = if (state.isPasswordVisible) View.VISIBLE else View.GONE
 
                     // 4. Update Loading State on Button
                     if (state.isLoading) {
                         btnLogin.isEnabled = false
-                        btnLogin.text = "Connexion..."
+                        btnLogin.text = getString(R.string.login_button) + "..."
                     } else {
                         btnLogin.isEnabled = true
-                        btnLogin.text = "Login"
+                        btnLogin.text = getString(R.string.login_button)
                     }
 
                     // 5. Handle Error
@@ -117,8 +116,6 @@ class LoginFragment : Fragment() {
                     // 6. Handle Success
                     if (state.isLoginSuccessful && state.username != null) {
                         SessionManager(requireContext()).saveSession(state.username, state.token)
-                        val message = if (state.isOnlineMode) "Connexion réussie !" else "Mode Hors-ligne activé"
-                        Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show()
                         
                         val bundle = android.os.Bundle().apply {
                             putBoolean("isAdmin", state.isOnlineMode)

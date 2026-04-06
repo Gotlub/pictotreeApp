@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.Toast
 import androidx.fragment.app.Fragment
@@ -39,10 +40,14 @@ class EditProfileFragment : Fragment() {
         val recyclerView = view.findViewById<RecyclerView>(R.id.recyclerViewProfileTrees)
         val fabAddTree = view.findViewById<FloatingActionButton>(R.id.fabAddTree)
         val progressBar = view.findViewById<ProgressBar>(R.id.progressBarSync)
+        val btnSaveProfile = view.findViewById<android.widget.Button>(R.id.btnSaveProfile)
+        val btnSearchAvatar = view.findViewById<android.view.View>(R.id.btnSearchAvatar)
 
-        val sessionManagerLocal = SessionManager(requireContext())
-        val username = sessionManagerLocal.getUsername() ?: "default"
+        val sessionManager = SessionManager(requireContext())
+        val isOnline = sessionManager.isOnline()
+        val username = sessionManager.getUsername() ?: "default"
         val database = AppDatabase.getDatabase(requireContext(), username)
+        
         val factory = EditProfileViewModelFactory(
             requireActivity().application,
             database.profileDao(),
@@ -52,13 +57,54 @@ class EditProfileFragment : Fragment() {
         )
         viewModel = androidx.lifecycle.ViewModelProvider(this, factory)[EditProfileViewModel::class.java]
 
-        val sessionManager = SessionManager(requireContext())
         val profileId = arguments?.getLong("profileId")?.toInt() ?: -1
 
         if (profileId != -1) {
             viewModel.loadProfile(profileId)
         }
 
+        // ================= AVATAR SELECTOR =================
+        var currentSelectedAvatarUrl: String? = null
+        val avatars = listOf(
+            view.findViewById<ImageView>(R.id.edit_avatar_blue) to "#2196F3",
+            view.findViewById<ImageView>(R.id.edit_avatar_pink) to "#E91E63",
+            view.findViewById<ImageView>(R.id.edit_avatar_green) to "#4CAF50",
+            view.findViewById<ImageView>(R.id.edit_avatar_orange) to "#FF9800"
+        )
+
+        fun updateAvatarSelectionUI(selectedUrl: String?) {
+            avatars.forEach { (iv, color) ->
+                val isSelected = selectedUrl == "color:$color"
+                iv.alpha = if (isSelected) 1.0f else 0.4f
+                iv.setBackgroundResource(if (isSelected) android.R.drawable.editbox_dropdown_light_frame else 0)
+            }
+        }
+
+        avatars.forEach { (iv, color) ->
+            iv.setOnClickListener {
+                currentSelectedAvatarUrl = "color:$color"
+                updateAvatarSelectionUI(currentSelectedAvatarUrl)
+            }
+        }
+
+        btnSearchAvatar.setOnClickListener {
+            val dialog = org.libera.pictotree.ui.common.PictoSearchDialog()
+            dialog.onPictoSelected = { searchResult ->
+                currentSelectedAvatarUrl = searchResult.imageUrl
+                updateAvatarSelectionUI(currentSelectedAvatarUrl)
+            }
+            dialog.show(parentFragmentManager, "AvatarSearch")
+        }
+
+        btnSaveProfile.setOnClickListener {
+            val newName = editProfileName.text?.toString()?.trim() ?: ""
+            if (newName.isNotEmpty() && profileId != -1) {
+                viewModel.updateProfile(profileId, newName, currentSelectedAvatarUrl)
+                Toast.makeText(requireContext(), "Profile updated", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        // ================= ADAPTER SETUP =================
         var itemTouchHelper: ItemTouchHelper? = null
 
         val adapter = ProfileTreeAdapter(
@@ -80,6 +126,7 @@ class EditProfileFragment : Fragment() {
             }
         )
         
+        adapter.isOnlineMode = isOnline
         recyclerView.layoutManager = LinearLayoutManager(requireContext())
         recyclerView.adapter = adapter
 
@@ -104,20 +151,17 @@ class EditProfileFragment : Fragment() {
             
             override fun clearView(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder) {
                 super.clearView(recyclerView, viewHolder)
-                // Le drag est fini (le doigt est laché), on sauvegarde la structure visuelle en base de données.
                 adapter.dispatchUpdates()
             }
         })
         itemTouchHelper.attachToRecyclerView(recyclerView)
 
         // ================= FAB DIALOG LAUNCHER =================
+        fabAddTree.visibility = if (isOnline) View.VISIBLE else View.GONE
         fabAddTree.setOnClickListener {
             val token = sessionManager.getToken()
             if (token != null) {
-                Toast.makeText(requireContext(), "Ouverture catalogue distant...", Toast.LENGTH_SHORT).show()
                 viewModel.openTreeSelection(token)
-            } else {
-                Toast.makeText(requireContext(), "Erreur: Non authentifié", Toast.LENGTH_SHORT).show()
             }
         }
 
@@ -165,6 +209,8 @@ class EditProfileFragment : Fragment() {
                             is EditProfileUiState.Success -> {
                                 progressBar.visibility = View.GONE
                                 editProfileName.setText(state.profile.name)
+                                currentSelectedAvatarUrl = state.profile.avatarUrl
+                                updateAvatarSelectionUI(currentSelectedAvatarUrl)
                                 adapter.submitList(state.trees)
                             }
                             is EditProfileUiState.Error -> {

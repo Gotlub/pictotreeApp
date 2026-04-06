@@ -147,85 +147,52 @@ class TreeExplorerViewModel(
      * Recalcule instantanément la géométrie de la Croix relative au noeud focus
      */
     fun focusOnNode(node: TreeNode) {
-        val parent = node.parent
-        val myIndex = parent?.children?.indexOf(node) ?: 0
-        
-        var leftSibling = if (parent != null && myIndex > 0) parent.children[myIndex - 1] else null
-        var rightSibling = if (parent != null && myIndex < parent.children.size - 1) parent.children[myIndex + 1] else null
-        val topNode = parent
-        val bottomNode = node.children.firstOrNull() // Default descent behavior
+        val navState = TreeNavigator.computeSpatialState(node, profileTreeIds, currentTreeId)
 
-        var prevTreeId: Int? = null
-        var nextTreeId: Int? = null
-
-        // NAVIGATION INTER-ARBRES : Si on est à la racine, on regarde les arbres voisins du profil
-        if (parent == null && profileTreeIds.isNotEmpty()) {
-            val currentIdx = profileTreeIds.indexOf(currentTreeId)
-            if (currentIdx > 0) {
-                prevTreeId = profileTreeIds[currentIdx - 1]
-            }
-            if (currentIdx != -1 && currentIdx < profileTreeIds.size - 1) {
-                nextTreeId = profileTreeIds[currentIdx + 1]
-            }
-        }
-
-        // Lookahead computations
-        val microLeftCount = if (parent != null) Math.max(0, myIndex - 1) else 0
-        val microLeft = if (microLeftCount > 0) parent!!.children[myIndex - 2] else null
-        
-        val microRightCount = if (parent != null) Math.max(0, parent.children.size - 1 - myIndex - 1) else 0
-        val microRight = if (microRightCount > 0) parent!!.children[myIndex + 2] else null
-        
-        var depthCount = 0
-        var currentAncestry = parent?.parent
-        var grandParentNode: TreeNode? = currentAncestry
-        while (currentAncestry != null) {
-            depthCount++
-            currentAncestry = currentAncestry.parent
-        }
-
-        // Si on a des arbres voisins, on charge les racines en asynchrone pour l'affichage
+        // Si on a des arbres voisins, on charge les racines en asynchrone pour l'affichage (Pre-fetch images)
         viewModelScope.launch {
-            val finalLeft = leftSibling ?: prevTreeId?.let { id ->
-                treeDao.getTreeById(id)?.let { entity ->
-                    val json = JSONObject(entity.jsonPayload)
-                    val rootObj = if (json.has("root_node")) json.getJSONObject("root_node") else null
-                    rootObj?.let { parseAndSortNode(it, null) }
-                }
+            val finalLeft = navState.left ?: navState.prevTreeId?.let { id ->
+                fetchRootNodePreview(id)
             }
             
-            val finalRight = rightSibling ?: nextTreeId?.let { id ->
-                treeDao.getTreeById(id)?.let { entity ->
-                    val json = JSONObject(entity.jsonPayload)
-                    val rootObj = if (json.has("root_node")) json.getJSONObject("root_node") else null
-                    rootObj?.let { parseAndSortNode(it, null) }
-                }
+            val finalRight = navState.right ?: navState.nextTreeId?.let { id ->
+                fetchRootNodePreview(id)
             }
 
             _uiState.value = SpatialUiState(
                 isLoading = false,
-                center = node,
-                top = topNode,
-                bottom = bottomNode,
+                center = navState.center,
+                top = navState.top,
+                bottom = navState.bottom,
                 left = finalLeft,
                 right = finalRight,
-                microTop = grandParentNode,
-                microTopCount = depthCount,
-                microLeft = microLeft,
-                microLeftCount = microLeftCount,
-                microRight = microRight,
-                microRightCount = microRightCount,
-                prevTreeId = if (leftSibling == null) prevTreeId else null,
-                nextTreeId = if (rightSibling == null) nextTreeId else null
+                microTop = navState.microTop,
+                microTopCount = navState.microTopCount,
+                microLeft = navState.microLeft,
+                microLeftCount = navState.microLeftCount,
+                microRight = navState.microRight,
+                microRightCount = navState.microRightCount,
+                prevTreeId = navState.prevTreeId,
+                nextTreeId = navState.nextTreeId
             )
         }
     }
 
+    private suspend fun fetchRootNodePreview(treeId: Int): TreeNode? {
+        return treeDao.getTreeById(treeId)?.let { entity ->
+            val json = JSONObject(entity.jsonPayload)
+            val rootObj = if (json.has("root_node")) json.getJSONObject("root_node") 
+                          else if (json.has("roots") && json.getJSONArray("roots").length() > 0) json.getJSONArray("roots").getJSONObject(0)
+                          else null
+            rootObj?.let { parseAndSortNode(it, null) }
+        }
+    }
+
     /**
-     * Action de Panier : Ajoute le picto central sans décaler la navigation de la croix 
+     * Action de Panier : Ajoute un picto au panier de phrase.
      */
-    fun addToPhrase() {
-        val nodeToAdd = _uiState.value.center ?: return
+    fun addToPhrase(externalNode: TreeNode? = null) {
+        val nodeToAdd = externalNode ?: _uiState.value.center ?: return
         val currentList = _phraseList.value.toMutableList()
         currentList.add(nodeToAdd)
         _phraseList.value = currentList

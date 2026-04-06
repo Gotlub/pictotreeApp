@@ -29,4 +29,7 @@ interface ImageDao {
 
     @Query("SELECT images.* FROM images INNER JOIN tree_image_cross_ref ON images.id = tree_image_cross_ref.imageId WHERE tree_image_cross_ref.treeId = :treeId")
     suspend fun getImagesForTree(treeId: Int): List<ImageEntity>
+
+    @Query("SELECT * FROM images WHERE name LIKE '%' || :query || '%' LIMIT 100")
+    suspend fun searchImages(query: String): List<ImageEntity>
 }

@@ -10,6 +10,9 @@ class SessionManager(context: Context) {
         val editor = prefs.edit()
         if (token != null) {
             editor.putString("USER_TOKEN", token)
+            editor.putBoolean("IS_ONLINE", true)
+        } else {
+            editor.putBoolean("IS_ONLINE", false)
         }
         editor.putString("USERNAME", username)
         
@@ -19,6 +22,10 @@ class SessionManager(context: Context) {
         editor.putStringSet("KNOWN_USERS", knownUsers)
         
         editor.apply()
+    }
+
+    fun isOnline(): Boolean {
+        return prefs.getBoolean("IS_ONLINE", false)
     }
 
     fun getToken(): String? {
@@ -37,7 +44,7 @@ class SessionManager(context: Context) {
         prefs.edit()
             .remove("USER_TOKEN")
             .remove("USERNAME")
-            // On conserve KNOWN_USERS pour l'historique AutoCompleteTextView
+            .remove("IS_ONLINE")
             .apply()
     }
 }

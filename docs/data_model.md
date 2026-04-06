@@ -18,11 +18,18 @@ Ce dossier contient :
 
 ---
 
-## 2. Structure de la Base de Données Utilisateur (`user_data.db`)
+### Table : `profiles` (Anciennement décrit comme global, désormais intégré à user_data.db pour la flexibilité)
 
-Puisque cette base est strictement personnelle, les tables sont allégées (aucun `user_id` nécessaire).
+| Colonne | Type | Description |
+| :--- | :--- | :--- |
+| `id` | INTEGER | Clé primaire locale. |
+| `name` | VARCHAR | Nom de l'enfant/patient. |
+| `avatarUrl` | VARCHAR | URL locale de l'image de profil. |
+| `locale` | VARCHAR | Code langue (ex: "fr", "en"). |
+| `settings_json`| TEXT | JSON des préférences (taille, voix, etc.). |
 
 ### Table : `trees`
+
 Stocke les métadonnées et le contenu de l'arbre. Le parcours visuel n'est pas stocké sous forme de table relationnelle, mais directement conservé dans son format d'origine via le champ `json_data`.
 
 | Colonne | Type | Description |

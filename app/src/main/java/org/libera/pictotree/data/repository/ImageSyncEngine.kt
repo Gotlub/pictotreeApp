@@ -26,6 +26,52 @@ class ImageSyncEngine(
         }
     }
 
+    /**
+     * Télécharge une image isolée (ex: avatar de profil) sans la lier à un arbre.
+     * Retourne l'URL locale finale (file://...)
+     */
+    suspend fun downloadSingleImage(remoteUrl: String): String? = withContext(Dispatchers.IO) {
+        if (remoteUrl.isBlank()) return@withContext null
+        if (remoteUrl.startsWith("file://") || remoteUrl.startsWith("color:")) return@withContext remoteUrl
+
+        val fileName = org.libera.pictotree.utils.FileUtils.getLocalFileNameFromUrl(remoteUrl)
+        val userImagesDir = File(context.filesDir, "$username/images")
+        if (!userImagesDir.exists()) userImagesDir.mkdirs()
+        val file = File(userImagesDir, fileName)
+        val localUrl = "file://${file.absolutePath}"
+
+        val existing = imageDao.getImageByRemotePath(remoteUrl)
+        if (existing != null && file.exists()) {
+            return@withContext localUrl
+        }
+
+        try {
+            val connection = URL(remoteUrl).openConnection() as java.net.HttpURLConnection
+            connection.setRequestProperty("User-Agent", "Mozilla/5.0")
+            if (remoteUrl.contains("/api/v1/mobile/")) {
+                connection.setRequestProperty("Authorization", "Bearer $authToken")
+            }
+            connection.connect()
+            
+            if (connection.responseCode in 200..299) {
+                connection.inputStream.use { input ->
+                    FileOutputStream(file).use { output -> input.copyTo(output) }
+                }
+                
+                // Enregistrer en BDD pour ne plus re-télécharger
+                imageDao.insertImage(ImageEntity(
+                    remotePath = remoteUrl,
+                    localPath = "images/$fileName",
+                    name = fileName
+                ))
+                return@withContext localUrl
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        return@withContext null
+    }
+
     private suspend fun downloadAndHashImage(remoteUrl: String, treeId: Int) = withContext(Dispatchers.IO) {
         val fileName = org.libera.pictotree.utils.FileUtils.getLocalFileNameFromUrl(remoteUrl)
         

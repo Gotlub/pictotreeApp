@@ -4,10 +4,13 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageButton
+import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
+import coil.load
+import coil.transform.CircleCropTransformation
 import org.libera.pictotree.R
 import org.libera.pictotree.data.database.entity.Profile
 
@@ -34,9 +37,36 @@ class ProfileAdapter(
     inner class ProfileViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val tvName: TextView = itemView.findViewById(R.id.tvProfileName)
         private val btnEdit: ImageButton = itemView.findViewById(R.id.btnEditProfile)
+        private val ivAvatar: ImageView = itemView.findViewById(R.id.ivAvatar)
 
         fun bind(profile: Profile) {
             tvName.text = profile.name
+
+            // Chargement de l'avatar avec Coil ou Couleur
+            val avatar = profile.avatarUrl
+            if (!avatar.isNullOrEmpty()) {
+                if (avatar.startsWith("color:")) {
+                    val colorStr = avatar.substringAfter("color:")
+                    try {
+                        ivAvatar.setImageResource(android.R.drawable.presence_online)
+                        ivAvatar.setColorFilter(android.graphics.Color.parseColor(colorStr))
+                    } catch (e: Exception) {
+                        ivAvatar.setImageResource(android.R.drawable.ic_menu_myplaces)
+                        ivAvatar.clearColorFilter()
+                    }
+                } else {
+                    ivAvatar.clearColorFilter()
+                    ivAvatar.load(avatar) {
+                        crossfade(true)
+                        placeholder(android.R.drawable.ic_menu_myplaces)
+                        error(android.R.drawable.ic_menu_myplaces)
+                        transformations(CircleCropTransformation())
+                    }
+                }
+            } else {
+                ivAvatar.setImageResource(android.R.drawable.ic_menu_myplaces)
+                ivAvatar.clearColorFilter()
+            }
 
             // Activer ou désactiver le bouton d'édition selon le mode
             btnEdit.visibility = if (isAdminMode) View.VISIBLE else View.GONE

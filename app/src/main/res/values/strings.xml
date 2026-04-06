@@ -6,16 +6,39 @@
     <string name="login_online_mode">Online mode</string>
     <string name="login_password_hint">Password</string>
     <string name="login_button">Login</string>
+    <string name="login_quit_button">Quit Application</string>
     <!-- Dashboard View Strings -->
     <string name="dashboard_title">Who are you?</string>
     <string name="dashboard_admin_status_desc">Admin status</string>
     <string name="dashboard_add_profile_btn">New</string>
     <string name="dashboard_empty_state">No profiles found, tap + to start</string>
+    <string name="dashboard_logout_desc">Logout</string>
+    <string name="dashboard_lang_prefix">Lang: </string>
+    <string name="dashboard_pin_btn">PIN</string>
+    <string name="dashboard_admin_online_toast">Admin Access Active (Online Mode)</string>
+    <string name="dashboard_offline_pin_security_toast">Security: Please connect online once to set your PIN.</string>
+    <string name="dashboard_unlocked_toast">Settings unlocked</string>
+    <string name="dashboard_wrong_pin_toast">Incorrect PIN</string>
 
-    <!-- Create Profile Dialog -->
+    <!-- Settings Dialogs -->
+    <string name="dialog_lang_title">Choose language</string>
+    <string name="dialog_pin_title">Set PIN Code</string>
+    <string name="dialog_pin_message">This code will be required to access settings in offline mode.</string>
+    <string name="dialog_pin_hint">New PIN (4 digits)</string>
+    <string name="dialog_pin_save">Save</string>
+    <string name="dialog_pin_saved_toast">PIN Code saved</string>
+    <string name="dialog_pin_error_length">PIN must be 4 digits</string>
+    <string name="dialog_unlock_title">Unlock Settings</string>
+    <string name="dialog_unlock_message">Enter your 4-digit PIN code.</string>
+    <string name="dialog_unlock_validate">Validate</string>
+
+    <!-- Create/Edit Profile -->
     <string name="dialog_create_profile_title">Create new profile</string>
     <string name="dialog_create_profile_name_hint">Name</string>
     <string name="dialog_create_profile_name_error">Name cannot be empty</string>
     <string name="dialog_create_profile_btn_cancel">Cancel</string>
     <string name="dialog_create_profile_btn_add">Add</string>
+    <string name="profile_choose_avatar">Choose an avatar:</string>
+    <string name="edit_profile_title">Edit Profile</string>
+    <string name="edit_profile_save_btn">Save Changes</string>
 </resources>

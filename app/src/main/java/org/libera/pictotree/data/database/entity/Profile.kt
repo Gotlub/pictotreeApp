@@ -8,5 +8,6 @@ data class Profile(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
     val name: String,
-    val avatarUrl: String? = null
+    val avatarUrl: String? = null,
+    val settingsJson: String? = null // Stockage flexible des préférences (taille, navigation, etc.)
 )

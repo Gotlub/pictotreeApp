@@ -22,4 +22,10 @@ interface TreeApiService {
         @Header("Authorization") authHeader: String,
         @Path("id") treeId: Int
     ): Response<TreeFullDTO>
+
+    @GET("pictograms/search")
+    suspend fun searchPictograms(
+        @Header("Authorization") authHeader: String,
+        @retrofit2.http.Query("q") query: String
+    ): Response<List<org.libera.pictotree.network.dto.PictoSearchResultDTO>>
 }
