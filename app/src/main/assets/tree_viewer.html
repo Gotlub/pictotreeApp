@@ -15,7 +15,12 @@
             border: 2px solid #6200EE;
             text-align: center;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            min-width: 80px;
+            width: 100px; /* Force width */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-sizing: border-box; /* Includes padding in the width calculation to be safe */
         }
         .nodeExample1 img {
             width: 48px;
@@ -23,6 +28,7 @@
             object-fit: cover;
             border-radius: 4px;
             margin-bottom: 4px;
+            float: none !important; /* Override Treant.css float */
         }
         .nodeExample1 p {
             font-family: sans-serif;
@@ -30,6 +36,10 @@
             font-weight: bold;
             margin: 0;
             color: #333;
+            width: 100%;
+            word-wrap: break-word;
+            overflow-wrap: break-word; /* Ensure large unbroken text wraps */
+            white-space: normal;
         }
     </style>
 </head>
