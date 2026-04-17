@@ -99,7 +99,8 @@ class TreeExplorerViewModel(
                     return@launch
                 }
                 
-                rootNode = parseAndSortNode(rootJsonObject, null, treeId)
+                // On commence le chemin à "r" (root)
+                rootNode = parseAndSortNode(rootJsonObject, null, treeId, "r")
                 Log.d(TAG, "TREE_LOAD: Parsed successfully. Root: ${rootNode?.id}")
                 rootNode?.let { focusOnNode(it) }
 
@@ -116,9 +117,10 @@ class TreeExplorerViewModel(
         else null
     }
 
-    private fun parseAndSortNode(json: JSONObject, parentRef: TreeNode?, treeId: Int): TreeNode {
+    private fun parseAndSortNode(json: JSONObject, parentRef: TreeNode?, treeId: Int, path: String): TreeNode {
         val rawId = json.optString("node_id", json.optString("id", "unsaved"))
-        val id = "${treeId}_$rawId"
+        // UNIQUE ID : treeId + nodeImgId + path (position structurelle)
+        val id = "${treeId}_${rawId}_$path"
         val label = json.optString("label", json.optString("text", json.optString("name", "Sans Titre")))
         var rawUrl = json.optString("image_url", json.optString("image", json.optString("url", "")))
 
@@ -140,7 +142,10 @@ class TreeExplorerViewModel(
         if (childrenArray != null) {
             for (i in 0 until childrenArray.length()) {
                 val childJson = childrenArray.optJSONObject(i)
-                if (childJson != null) childrenList.add(parseAndSortNode(childJson, null, treeId))
+                if (childJson != null) {
+                    // On descend en ajoutant l'index au chemin : r_0, r_1, r_0_0...
+                    childrenList.add(parseAndSortNode(childJson, null, treeId, "${path}_$i"))
+                }
             }
         }
 
@@ -173,7 +178,7 @@ class TreeExplorerViewModel(
     private suspend fun fetchRootNodePreview(treeId: Int): TreeNode? {
         return treeDao.getTreeById(treeId)?.let { entity ->
             val json = JSONObject(entity.jsonPayload)
-            getRootObject(json)?.let { parseAndSortNode(it, null, treeId) }
+            getRootObject(json)?.let { parseAndSortNode(it, null, treeId, "r") }
         }
     }
 
@@ -204,8 +209,8 @@ class TreeExplorerViewModel(
             return true
         }
 
-        val parts = prefixedId.split("_", limit = 2)
-        if (parts.size == 2) {
+        val parts = prefixedId.split("_")
+        if (parts.isNotEmpty()) {
             val treeId = parts[0].toIntOrNull()
             if (treeId != null && profileTreeIds.contains(treeId)) {
                 Log.d(TAG, "NAV_JUMP: Found in Tree $treeId. Loading tree.")
@@ -228,7 +233,7 @@ class TreeExplorerViewModel(
                 if (entity != null) {
                     val rawJson = JSONObject(entity.jsonPayload)
                     val rootJsonObject = getRootObject(rawJson)
-                    if (rootJsonObject != null) rootNode = parseAndSortNode(rootJsonObject, null, treeId)
+                    if (rootJsonObject != null) rootNode = parseAndSortNode(rootJsonObject, null, treeId, "r")
                 }
             }
             

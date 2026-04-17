@@ -70,7 +70,7 @@
             return false;
         };
 
-        // Variable globale pour éviter de rajouter le listener au re-render
+        // Variables globales
         let isListenerAttached = false;
         let globalSelectedNodeId = null;
         let isReadOnlyMode = false;
@@ -102,7 +102,7 @@
                             }
                         }
                     },
-                    nodeStructure: buildTreantNode(rootData.root_node || (rootData.roots ? rootData.roots[0] : rootData))
+                    nodeStructure: buildTreantNode(rootData.root_node || (rootData.roots ? rootData.roots[0] : rootData), "r")
                 };
                 
                 document.getElementById("tree-container").innerHTML = ""; // Clean before re-render
@@ -126,8 +126,8 @@
                         if (isReadOnlyMode) return;
                         let target = e.target.closest('.nodeExample1');
                         if (target && target.id && target.id.startsWith('node-')) {
-                            let nodeId = target.id.replace('node-', '');
-                            globalSelectedNodeId = nodeId;
+                            let uniqueId = target.id.replace('node-', '');
+                            globalSelectedNodeId = uniqueId;
 
                             // Nettoyer l'ancienne sélection locale
                             document.querySelectorAll('.node-selected').forEach(el => {
@@ -136,12 +136,9 @@
                             // Appliquer la nouvelle sélection locale
                             target.classList.add('node-selected');
 
-                            // Appeler Kotlin (selon l'interface disponible)
+                            // Appeler Kotlin
                             if (window.AndroidBridge && typeof window.AndroidBridge.onNodeSelected === 'function') {
-                                window.AndroidBridge.onNodeSelected(nodeId);
-                            } else if (window.AndroidBridge && typeof window.AndroidBridge.jumpToNode === 'function') {
-                                // Fallback for backwards compatibility if needed elsewhere
-                                window.AndroidBridge.jumpToNode(nodeId);
+                                window.AndroidBridge.onNodeSelected(uniqueId);
                             }
                         }
                     });
@@ -149,19 +146,22 @@
                 }
             } catch (e) {
                 console.error("Erreur de parsing de l'arbre", e);
-                document.getElementById('tree-container').innerHTML = "<h2>Erreur de Chargement JSON</h2><p>" + e + "</p>";
+                document.getElementById('tree-container').innerHTML = "<h2>Erreur de Chargement</h2><p>" + e + "</p>";
             }
         }
         
-        function buildTreantNode(node) {
+        function buildTreantNode(node, path) {
             if (!node) return null;
             
+            // Chemin par défaut pour la racine
+            let currentPath = path || "r";
+            
             let rawId = node.node_id || node.id || 'unsaved';
-            let prefixedId = currentTreeId + "_" + rawId;
+            let uniqueId = currentTreeId + "_" + rawId + "_" + currentPath;
             
             let treantNode = {
                 HTMLclass: 'nodeExample1',
-                HTMLid: 'node-' + prefixedId,
+                HTMLid: 'node-' + uniqueId,
                 text: { name: node.label || node.text || node.name || '---' }
             };
             
@@ -170,7 +170,7 @@
             }
             
             if (node.children && node.children.length > 0) {
-                treantNode.children = node.children.map(child => buildTreantNode(child)).filter(c => c != null);
+                treantNode.children = node.children.map((child, i) => buildTreantNode(child, currentPath + "_" + i)).filter(c => c != null);
             }
             
             return treantNode;

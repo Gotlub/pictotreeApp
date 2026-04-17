@@ -86,8 +86,8 @@ class TreeGlobalMapDialog : DialogFragment() {
             @JavascriptInterface
             fun onNodeSelected(prefixedNodeId: String) {
                 Log.d(TAG, "TREANT_SELECT: Node clicked in JS: $prefixedNodeId")
-                val parts = prefixedNodeId.split("_", limit = 2)
-                if (parts.size == 2) {
+                val parts = prefixedNodeId.split("_")
+                if (parts.isNotEmpty()) {
                     val treeId = parts[0].toIntOrNull()
                     if (treeId != null) {
                         selectedNodesPerTree[treeId] = prefixedNodeId
@@ -215,7 +215,8 @@ class TreeGlobalMapDialog : DialogFragment() {
                             } else if (json.has("roots") && json.getJSONArray("roots").length() > 0) {
                                 json.getJSONArray("roots").getJSONObject(0).optString("node_id", json.getJSONArray("roots").getJSONObject(0).optString("id"))
                             } else ""
-                            val fallbackId = "${currentTreeId}_$rawId"
+                            // FALLBACK : On vise le chemin "r" (racine)
+                            val fallbackId = "${currentTreeId}_${rawId}_r"
                             Log.d(TAG, "VIEW_CHANGE: No explicit selection, using fallback root: $fallbackId")
                             withContext(Dispatchers.Main) {
                                 onNodeSelectedListener?.invoke(currentTreeId, fallbackId)
