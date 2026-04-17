@@ -12,6 +12,9 @@ import org.json.JSONObject
 import org.libera.pictotree.data.database.dao.TreeDao
 import java.io.File
 
+/**
+ * Représente un noeud de l'arbre avec un ID unique au monde (treeId_nodeId_path).
+ */
 class TreeNode(
     val id: String,
     val label: String,
@@ -25,23 +28,21 @@ class TreeNode(
         return id == other.id
     }
 
-    override fun hashCode(): Int {
-        return id.hashCode()
-    }
-
-    override fun toString(): String {
-        return "TreeNode(id='$id', label='$label')"
-    }
+    override fun hashCode(): Int = id.hashCode()
+    override fun toString(): String = "TreeNode(id='$id', label='$label')"
 
     fun copy(
-        id: String = this.id,
-        label: String = this.label,
-        imageUrl: String = this.imageUrl,
-        children: List<TreeNode> = this.children,
-        parent: TreeNode? = this.parent
-    ): TreeNode {
-        val newNode = TreeNode(id, label, imageUrl, children, parent)
-        return newNode
+        id: String = this.id, label: String = this.label, imageUrl: String = this.imageUrl,
+        children: List<TreeNode> = this.children, parent: TreeNode? = this.parent
+    ): TreeNode = TreeNode(id, label, imageUrl, children, parent)
+
+    /**
+     * Extrait les composants de l'ID unique (treeId_nodeId_path)
+     */
+    companion object {
+        fun parseTreeId(uniqueId: String): Int? = uniqueId.split("_").firstOrNull()?.toIntOrNull()
+        fun parseNodeId(uniqueId: String): String? = uniqueId.split("_").getOrNull(1)
+        fun parsePath(uniqueId: String): String? = uniqueId.split("_").drop(2).joinToString("_").takeIf { it.isNotEmpty() }
     }
 }
 
@@ -86,37 +87,21 @@ class TreeExplorerViewModel(
 
     fun getProfileTreeIds(): IntArray = profileTreeIds.toIntArray()
     fun getCurrentTreeId(): Int = currentTreeId
-
-    fun setProfileTreeContext(treeIds: List<Int>) {
-        this.profileTreeIds = treeIds
-    }
+    fun setProfileTreeContext(treeIds: List<Int>) { this.profileTreeIds = treeIds }
 
     fun loadTree(treeId: Int) {
         viewModelScope.launch {
-            Log.d(TAG, "TREE_LOAD: Loading tree $treeId")
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             currentTreeId = treeId
             try {
-                val entity = treeDao.getTreeById(treeId)
-                if (entity == null) {
-                    _uiState.value = SpatialUiState(isLoading = false, error = "Arbre introuvable.")
-                    return@launch
-                }
-                
-                val rawJson = JSONObject(entity.jsonPayload)
-                val rootJsonObject = getRootObject(rawJson)
-                if (rootJsonObject == null) {
-                    _uiState.value = SpatialUiState(isLoading = false, error = "Format invalide.")
-                    return@launch
-                }
-                
-                // On commence le chemin à "r" (root)
-                rootNode = parseAndSortNode(rootJsonObject, null, treeId, "r")
-                Log.d(TAG, "TREE_LOAD: Parsed successfully. Root: ${rootNode?.id}")
-                rootNode?.let { focusOnNode(it) }
-
+                treeDao.getTreeById(treeId)?.let { entity ->
+                    val rawJson = JSONObject(entity.jsonPayload)
+                    getRootObject(rawJson)?.let { rootObj ->
+                        rootNode = parseAndSortNode(rootObj, null, treeId, "r")
+                        rootNode?.let { focusOnNode(it) }
+                    } ?: run { _uiState.value = SpatialUiState(isLoading = false, error = "Format invalide.") }
+                } ?: run { _uiState.value = SpatialUiState(isLoading = false, error = "Arbre introuvable.") }
             } catch (e: Exception) {
-                Log.e(TAG, "TREE_LOAD: Error", e)
                 _uiState.value = SpatialUiState(isLoading = false, error = e.localizedMessage)
             }
         }
@@ -130,7 +115,6 @@ class TreeExplorerViewModel(
 
     private fun parseAndSortNode(json: JSONObject, parentRef: TreeNode?, treeId: Int, path: String): TreeNode {
         val rawId = json.optString("node_id", json.optString("id", "unsaved"))
-        // UNIQUE ID : treeId + nodeImgId + path (position structurelle)
         val id = "${treeId}_${rawId}_$path"
         val label = json.optString("label", json.optString("text", json.optString("name", "Sans Titre")))
         var rawUrl = json.optString("image_url", json.optString("image", json.optString("url", "")))
@@ -148,33 +132,21 @@ class TreeExplorerViewModel(
             if (localFile.exists()) rawUrl = "file://${localFile.absolutePath}"
         }
 
-        val childrenList = mutableListOf<TreeNode>()
-        val childrenArray = json.optJSONArray("children")
-        if (childrenArray != null) {
-            for (i in 0 until childrenArray.length()) {
-                val childJson = childrenArray.optJSONObject(i)
-                if (childJson != null) {
-                    // On descend en ajoutant l'index au chemin : r_0, r_1, r_0_0...
-                    childrenList.add(parseAndSortNode(childJson, null, treeId, "${path}_$i"))
-                }
-            }
+        val childrenList = (0 until (json.optJSONArray("children")?.length() ?: 0)).mapNotNull { i ->
+            json.optJSONArray("children")?.optJSONObject(i)?.let { parseAndSortNode(it, null, treeId, "${path}_$i") }
         }
 
-        val node = TreeNode(id = id, label = label, imageUrl = rawUrl, children = childrenList, parent = parentRef)
+        val node = TreeNode(id, label, rawUrl, childrenList, parentRef)
         childrenList.forEach { it.parent = node }
         return node
     }
 
     fun focusOnNode(node: TreeNode) {
-        Log.d(TAG, "NAV_MOVE: Focused on ${node.id} (${node.label}). Tree: $currentTreeId")
+        Log.d(TAG, "NAV_MOVE: ${node.id} (${node.label})")
         val navState = TreeNavigator.computeSpatialState(node, profileTreeIds, currentTreeId)
-        
-        Log.d(TAG, "NAV_MAP: T:${navState.top?.id} | B:${navState.bottom?.id} | L:${navState.left?.id} | R:${navState.right?.id}")
-
         viewModelScope.launch {
-            val finalLeft = navState.left ?: navState.prevTreeId?.let { id -> fetchRootNodePreview(id) }
-            val finalRight = navState.right ?: navState.nextTreeId?.let { id -> fetchRootNodePreview(id) }
-
+            val finalLeft = navState.left ?: navState.prevTreeId?.let { fetchRootNodePreview(it) }
+            val finalRight = navState.right ?: navState.nextTreeId?.let { fetchRootNodePreview(it) }
             _uiState.value = SpatialUiState(
                 isLoading = false, center = navState.center, top = navState.top, bottom = navState.bottom,
                 left = finalLeft, right = finalRight, microTop = navState.microTop,
@@ -188,87 +160,48 @@ class TreeExplorerViewModel(
 
     private suspend fun fetchRootNodePreview(treeId: Int): TreeNode? {
         return treeDao.getTreeById(treeId)?.let { entity ->
-            val json = JSONObject(entity.jsonPayload)
-            getRootObject(json)?.let { parseAndSortNode(it, null, treeId, "r") }
+            getRootObject(JSONObject(entity.jsonPayload))?.let { parseAndSortNode(it, null, treeId, "r") }
         }
     }
 
     fun addToPhrase(externalNode: TreeNode? = null) {
         val nodeToAdd = externalNode ?: _uiState.value.center ?: return
-        Log.d(TAG, "ACTION: Basket Add -> ${nodeToAdd.id}")
-        val currentList = _phraseList.value.toMutableList()
-        currentList.add(nodeToAdd)
-        _phraseList.value = currentList
+        _phraseList.value = _phraseList.value + nodeToAdd
     }
 
-    fun addToPhraseById(prefixedId: String): Boolean {
-        Log.d(TAG, "ACTION: Basket Add By ID -> $prefixedId")
-        val target = findNodeRecursively(rootNode, prefixedId)
-        if (target != null) {
-            addToPhrase(target)
-            return true
+    fun addToPhraseById(uniqueId: String): Boolean {
+        return findNodeRecursively(rootNode, uniqueId)?.let { addToPhrase(it); true } ?: false
+    }
+
+    fun jumpToNodeId(uniqueId: String): Boolean {
+        findNodeRecursively(rootNode, uniqueId)?.let { focusOnNode(it); return true }
+        TreeNode.parseTreeId(uniqueId)?.let { treeId ->
+            if (profileTreeIds.contains(treeId)) { jumpToTreeAndNode(treeId, uniqueId); return true }
         }
         return false
     }
 
-    fun jumpToNodeId(prefixedId: String): Boolean {
-        Log.d(TAG, "NAV_JUMP: Target ID $prefixedId")
-        val target = findNodeRecursively(rootNode, prefixedId)
-        if (target != null) {
-            Log.d(TAG, "NAV_JUMP: Found in current tree. Focusing.")
-            focusOnNode(target)
-            return true
-        }
-
-        val parts = prefixedId.split("_")
-        if (parts.isNotEmpty()) {
-            val treeId = parts[0].toIntOrNull()
-            if (treeId != null && profileTreeIds.contains(treeId)) {
-                Log.d(TAG, "NAV_JUMP: Found in Tree $treeId. Loading tree.")
-                jumpToTreeAndNode(treeId, prefixedId)
-                return true
-            }
-        }
-        Log.w(TAG, "NAV_JUMP: FAILED to find $prefixedId")
-        return false
-    }
-
-    fun jumpToTreeAndNode(treeId: Int, prefixedId: String, addToBasket: Boolean = false) {
-        Log.d(TAG, "NAV_SYNC: Tree=$treeId Node=$prefixedId Basket=$addToBasket")
+    fun jumpToTreeAndNode(treeId: Int, uniqueId: String, addToBasket: Boolean = false) {
         viewModelScope.launch {
             if (currentTreeId != treeId) {
-                Log.d(TAG, "NAV_SYNC: Switching tree $currentTreeId -> $treeId")
-                _uiState.value = _uiState.value.copy(isLoading = true, error = null)
                 currentTreeId = treeId
-                val entity = treeDao.getTreeById(treeId)
-                if (entity != null) {
-                    val rawJson = JSONObject(entity.jsonPayload)
-                    val rootJsonObject = getRootObject(rawJson)
-                    if (rootJsonObject != null) rootNode = parseAndSortNode(rootJsonObject, null, treeId, "r")
+                _uiState.value = _uiState.value.copy(isLoading = true)
+                treeDao.getTreeById(treeId)?.let { entity ->
+                    getRootObject(JSONObject(entity.jsonPayload))?.let { rootNode = parseAndSortNode(it, null, treeId, "r") }
                 }
             }
-            
-            val targetNode = findNodeRecursively(rootNode, prefixedId) ?: rootNode
-            Log.d(TAG, "NAV_SYNC: Result node ${targetNode?.id}")
-            targetNode?.let {
-                focusOnNode(it)
-                if (addToBasket) addToPhrase(it)
-            }
+            val target = findNodeRecursively(rootNode, uniqueId) ?: rootNode
+            target?.let { focusOnNode(it); if (addToBasket) addToPhrase(it) }
         }
     }
 
     private fun findNodeRecursively(current: TreeNode?, targetId: String): TreeNode? {
-        if (current == null) return null
-        if (current.id == targetId) return current
+        if (current == null || current.id == targetId) return current
         for (child in current.children) {
-            val found = findNodeRecursively(child, targetId)
-            if (found != null) return found
+            findNodeRecursively(child, targetId)?.let { return it }
         }
         return null
     }
 
-    fun clearPhrase() {
-        Log.d(TAG, "ACTION: Phrase cleared")
-        _phraseList.value = emptyList()
-    }
+    fun clearPhrase() { _phraseList.value = emptyList() }
 }

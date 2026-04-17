@@ -108,17 +108,19 @@
                 document.getElementById("tree-container").innerHTML = ""; // Clean before re-render
                 new Treant(chart_config);
                 
-                // Mettre en surbrillance automatique l'élément initiallement sélectionné
-                if (globalSelectedNodeId) {
-                    setTimeout(() => {
+                // Nettoyage systématique des anciennes sélections visuelles au chargement
+                setTimeout(() => {
+                    $('.node-selected').removeClass('node-selected');
+                    
+                    if (globalSelectedNodeId) {
                         let nodeToSelect = document.getElementById('node-' + globalSelectedNodeId);
                         if (nodeToSelect) {
-                            nodeToSelect.classList.add('node-selected');
+                            $(nodeToSelect).addClass('node-selected');
                             // Centrer la vue sur le noeud
                             nodeToSelect.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
                         }
-                    }, 300); // Petit délai pour laisser Treant placer les divs
-                }
+                    }
+                }, 300); // Petit délai pour laisser Treant placer les divs
 
                 if (!isListenerAttached) {
                     // Active le pont Javascript-Kotlin pour la navigation
@@ -129,12 +131,12 @@
                             let uniqueId = target.id.replace('node-', '');
                             globalSelectedNodeId = uniqueId;
 
-                            // Nettoyer l'ancienne sélection locale
-                            document.querySelectorAll('.node-selected').forEach(el => {
-                                el.classList.remove('node-selected');
-                            });
+                            // Nettoyer TOUTES les sélections précédentes (y compris les fantômes potentiels)
+                            $('.node-selected').removeClass('node-selected');
+                            
                             // Appliquer la nouvelle sélection locale
-                            target.classList.add('node-selected');
+                            $(target).addClass('node-selected');
+                            console.log("Treant: Selection updated to " + uniqueId);
 
                             // Appeler Kotlin
                             if (window.AndroidBridge && typeof window.AndroidBridge.onNodeSelected === 'function') {

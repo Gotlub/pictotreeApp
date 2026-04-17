@@ -162,6 +162,23 @@ class TreeExplorerFragment : Fragment() {
             dialog.show(parentFragmentManager, "TreeGlobalMapDialog")
         }
         
+        // Binding de la Recherche
+        fabSearch.setOnClickListener {
+            val dialog = org.libera.pictotree.ui.common.PictoSearchDialog()
+            dialog.onPictoSelected = { result ->
+                // Création d'un TreeNode virtuel pour le panier
+                // Format ID: search_resultID_recherche (pour respecter treeId_nodeId_path)
+                val searchNode = TreeNode(
+                    id = "search_${result.id}_recherche",
+                    label = result.name,
+                    imageUrl = result.imageUrl,
+                    children = emptyList()
+                )
+                viewModel.addToPhrase(searchNode)
+            }
+            dialog.show(parentFragmentManager, "PictoSearch")
+        }
+        
         // Binding TTS
         ttsManager.setListeners(
             onStart = { utteranceId ->

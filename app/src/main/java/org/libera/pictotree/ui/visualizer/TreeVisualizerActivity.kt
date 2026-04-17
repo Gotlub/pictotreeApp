@@ -10,12 +10,10 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import org.libera.pictotree.data.SessionManager
 import org.libera.pictotree.data.database.AppDatabase
-import java.io.File
-import java.io.FileInputStream
+import org.libera.pictotree.utils.WebViewImageInterceptor
 
 class TreeVisualizerActivity : AppCompatActivity() {
 
@@ -26,12 +24,7 @@ class TreeVisualizerActivity : AppCompatActivity() {
         val webView = WebView(this)
         setContentView(webView)
 
-        val username = SessionManager(this).getUsername()
-        if (username == null) {
-            finish()
-            return
-        }
-
+        val username = SessionManager(this).getUsername() ?: return finish()
         val database = AppDatabase.getDatabase(this, username)
         val treeDao = database.treeDao()
         val imageDao = database.imageDao()
@@ -49,17 +42,11 @@ class TreeVisualizerActivity : AppCompatActivity() {
 
         webView.webViewClient = object : WebViewClient() {
             override fun onPageFinished(view: WebView?, url: String?) {
-                super.onPageFinished(view, url)
-                // Quand Treant.js est chargé, on injecte l'arbre JSON
                 if (treeId != -1) {
                     lifecycleScope.launch(Dispatchers.IO) {
-                        val treeEntity = treeDao.getTreeById(treeId)
-                        if (treeEntity != null) {
+                        treeDao.getTreeById(treeId)?.let { treeEntity ->
                             withContext(Dispatchers.Main) {
-                                // Envoi robuste via Base64 pour éviter de casser la syntaxe JS avec les quotes du JSON
                                 val safeJson = android.util.Base64.encodeToString(treeEntity.jsonPayload.toByteArray(), android.util.Base64.NO_WRAP)
-                                // Paramètre 3: readOnly = true pour l'édition de profil
-                                // Paramètre 4: treeId pour le préfixage des IDs
                                 webView.evaluateJavascript("javascript:renderTreeBase64('$safeJson', null, true, $treeId);", null)
                             }
                         }
@@ -67,38 +54,8 @@ class TreeVisualizerActivity : AppCompatActivity() {
                 }
             }
 
-            override fun shouldInterceptRequest(
-                view: WebView?,
-                request: WebResourceRequest?
-            ): WebResourceResponse? {
-                val urlString = request?.url?.toString() ?: return null
-                if (urlString.startsWith("http://") || urlString.startsWith("https://")) {
-                    var response: WebResourceResponse? = null
-                    
-                    // FIX: Nettoyage des cache-busters (ex: .jpg123456 -> .jpg)
-                    val cleanUrl = urlString.substringBefore("?")
-                        .replace(Regex("(\\.(jpg|jpeg|png|gif))\\d+$", RegexOption.IGNORE_CASE), "$1")
-                    
-                    android.util.Log.d("PictoTreeNav", "Visualizer: shouldInterceptRequest $cleanUrl")
-                    
-                    runBlocking {
-                        val entity = imageDao.getImageByRemotePath(cleanUrl)
-                        if (entity != null) {
-                            val localFile = File(filesDir, "$username/${entity.localPath}")
-                            if (localFile.exists()) {
-                                try {
-                                    val stream = FileInputStream(localFile)
-                                    val mimeType = if (localFile.name.endsWith(".png", true)) "image/png" else "image/jpeg"
-                                    response = WebResourceResponse(mimeType, "UTF-8", stream)
-                                } catch (e: Exception) {
-                                    e.printStackTrace()
-                                }
-                            }
-                        }
-                    }
-                    if (response != null) return response
-                }
-                return super.shouldInterceptRequest(view, request)
+            override fun shouldInterceptRequest(view: WebView?, request: WebResourceRequest?): WebResourceResponse? {
+                return WebViewImageInterceptor.intercept(this@TreeVisualizerActivity, username, imageDao, request?.url)
             }
         }
 
