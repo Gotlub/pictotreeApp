@@ -32,6 +32,17 @@ class TreeNode(
     override fun toString(): String {
         return "TreeNode(id='$id', label='$label')"
     }
+
+    fun copy(
+        id: String = this.id,
+        label: String = this.label,
+        imageUrl: String = this.imageUrl,
+        children: List<TreeNode> = this.children,
+        parent: TreeNode? = this.parent
+    ): TreeNode {
+        val newNode = TreeNode(id, label, imageUrl, children, parent)
+        return newNode
+    }
 }
 
 data class SpatialUiState(

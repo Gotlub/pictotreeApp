@@ -58,6 +58,7 @@ class SyncEngineTest {
             label = "Test Valid Node",
             imageUrl = remoteUrl,
             nodeId = "123",
+            description = null,
             children = emptyList()
         )
 
