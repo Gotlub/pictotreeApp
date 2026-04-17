@@ -1,7 +1,9 @@
 package org.libera.pictotree.ui.explorer
 
 import android.annotation.SuppressLint
+import android.content.DialogInterface
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -30,16 +32,16 @@ class TreeGlobalMapDialog : DialogFragment() {
     private var username: String = ""
     private var initialSelectedNodeId: String = ""
 
-    // Mémorise le noeud sélectionné (préfixé) pour chaque arbre pour éviter de "viser à côté"
     private val selectedNodesPerTree = mutableMapOf<Int, String>()
 
-    // Callbacks. Passes treeId and nodeId (prefixed).
     var onNodeSelectedListener: ((Int, String) -> Unit)? = null
     var onAddToBasketListener: ((Int, String) -> Unit)? = null
 
     private lateinit var webView: WebView
 
     companion object {
+        private const val TAG = "PictoTreeNav"
+
         fun newInstance(treeIds: IntArray, currentTreeId: Int, username: String, selectedNodeId: String): TreeGlobalMapDialog {
             val dialog = TreeGlobalMapDialog()
             dialog.treeIds = treeIds
@@ -50,10 +52,10 @@ class TreeGlobalMapDialog : DialogFragment() {
             dialog.username = username
             dialog.initialSelectedNodeId = selectedNodeId
             
-            // Initialiser la sélection pour l'arbre actuel (Format préfixé attendu)
             if (currentTreeId != -1) {
                 dialog.selectedNodesPerTree[currentTreeId] = selectedNodeId
             }
+            Log.d(TAG, "VIEW_CHANGE: Treant Dialog Created for Tree $currentTreeId, Node $selectedNodeId")
             return dialog
         }
     }
@@ -61,6 +63,11 @@ class TreeGlobalMapDialog : DialogFragment() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setStyle(STYLE_NORMAL, android.R.style.Theme_DeviceDefault_Light_NoActionBar_Fullscreen)
+    }
+
+    override fun onDismiss(dialog: DialogInterface) {
+        super.onDismiss(dialog)
+        Log.d(TAG, "VIEW_CHANGE: Treant Dialog Dismissed (Closing)")
     }
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -75,16 +82,16 @@ class TreeGlobalMapDialog : DialogFragment() {
         val treeDao = database.treeDao()
         val imageDao = database.imageDao()
 
-        // Javascript Bridge
         val bridge = object {
             @JavascriptInterface
             fun onNodeSelected(prefixedNodeId: String) {
-                // On extrait le treeId du préfixe pour être sûr de mémoriser au bon endroit
+                Log.d(TAG, "TREANT_SELECT: Node clicked in JS: $prefixedNodeId")
                 val parts = prefixedNodeId.split("_", limit = 2)
                 if (parts.size == 2) {
                     val treeId = parts[0].toIntOrNull()
                     if (treeId != null) {
                         selectedNodesPerTree[treeId] = prefixedNodeId
+                        Log.d(TAG, "TREANT_SELECT: Selection mémorisée pour l'arbre $treeId")
                     }
                 }
             }
@@ -101,7 +108,6 @@ class TreeGlobalMapDialog : DialogFragment() {
 
         webView.addJavascriptInterface(bridge, "AndroidBridge")
 
-        // Load specific tree function
         fun loadTree(index: Int) {
             if (treeIds.isEmpty() || index < 0 || index >= treeIds.size) return
             val treeId = treeIds[index]
@@ -110,11 +116,10 @@ class TreeGlobalMapDialog : DialogFragment() {
                 val treeEntity = treeDao.getTreeById(treeId)
                 if (treeEntity != null) {
                     withContext(Dispatchers.Main) {
-                        // On ne force plus la racine ici, mais on l'utilisera comme fallback au retour
                         val selectedNodeId = selectedNodesPerTree[treeId] ?: ""
+                        Log.d(TAG, "TREANT_LOAD: Rendering tree $treeId. Initial Selection: $selectedNodeId")
                         val jsonPayload = treeEntity.jsonPayload
                         val safeJson = android.util.Base64.encodeToString(jsonPayload.toByteArray(), android.util.Base64.NO_WRAP)
-                        // On passe désormais le treeId au JS pour qu'il préfixe les IDs
                         webView.evaluateJavascript("javascript:renderTreeBase64('$safeJson', '$selectedNodeId', false, $treeId);", null)
                     }
                 }
@@ -124,9 +129,7 @@ class TreeGlobalMapDialog : DialogFragment() {
         webView.webViewClient = object : WebViewClient() {
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
-                if (currentIndex != -1) {
-                    loadTree(currentIndex)
-                }
+                if (currentIndex != -1) loadTree(currentIndex)
             }
 
             override fun shouldInterceptRequest(
@@ -134,12 +137,19 @@ class TreeGlobalMapDialog : DialogFragment() {
                 request: WebResourceRequest?
             ): WebResourceResponse? {
                 val urlString = request?.url?.toString() ?: return null
-                if (urlString.startsWith("http://") || urlString.startsWith("https://")) {
+                if (urlString.contains("/api/v1/mobile/pictograms/") || urlString.startsWith("http")) {
                     var response: WebResourceResponse? = null
-                    val cleanUrl = urlString.substringBefore("?")
+                    var cleanUrl = urlString.substringBefore("?")
+                    cleanUrl = cleanUrl.replace(Regex("(\\.(jpg|jpeg|png|gif))\\d+$", RegexOption.IGNORE_CASE), "$1")
+                    val relativePart = cleanUrl.substringAfter("/api/v1/mobile/pictograms/", "").substringAfter("/pictograms/", "")
                     
                     runBlocking {
-                        val entity = imageDao.getImageByRemotePath(cleanUrl)
+                        var entity = imageDao.getImageByRemotePath(cleanUrl)
+                        if (entity == null && relativePart.isNotEmpty()) {
+                            entity = imageDao.getImageByRemotePath("/api/v1/mobile/pictograms/$relativePart")
+                                ?: imageDao.getImageByRemotePath(relativePart)
+                        }
+
                         if (entity != null) {
                             val localFile = File(requireContext().filesDir, "$username/${entity.localPath}")
                             if (localFile.exists()) {
@@ -147,9 +157,7 @@ class TreeGlobalMapDialog : DialogFragment() {
                                     val stream = FileInputStream(localFile)
                                     val mimeType = if (localFile.name.endsWith(".png", true)) "image/png" else "image/jpeg"
                                     response = WebResourceResponse(mimeType, "UTF-8", stream)
-                                } catch (e: Exception) {
-                                    e.printStackTrace()
-                                }
+                                } catch (e: Exception) { e.printStackTrace() }
                             }
                         }
                     }
@@ -161,13 +169,13 @@ class TreeGlobalMapDialog : DialogFragment() {
 
         webView.loadUrl("file:///android_asset/tree_viewer.html")
 
-        // Actions UI locales
         val btnPrevTree = root.findViewById<ImageButton>(R.id.btn_prev_tree)
         val btnNextTree = root.findViewById<ImageButton>(R.id.btn_next_tree)
         
         btnPrevTree.setOnClickListener {
             if (treeIds.isNotEmpty() && currentIndex > 0) {
                 currentIndex--
+                Log.d(TAG, "TREANT_NAV: Previous Tree (Index $currentIndex)")
                 loadTree(currentIndex)
             }
         }
@@ -175,6 +183,7 @@ class TreeGlobalMapDialog : DialogFragment() {
         btnNextTree.setOnClickListener {
             if (treeIds.isNotEmpty() && currentIndex < treeIds.size - 1) {
                 currentIndex++
+                Log.d(TAG, "TREANT_NAV: Next Tree (Index $currentIndex)")
                 loadTree(currentIndex)
             }
         }
@@ -183,6 +192,7 @@ class TreeGlobalMapDialog : DialogFragment() {
         btnAddToBasket.setOnClickListener {
             val currentTreeId = if (treeIds.isNotEmpty() && currentIndex >= 0) treeIds[currentIndex] else -1
             val selectedNodeId = selectedNodesPerTree[currentTreeId]
+            Log.d(TAG, "ACTION: Treant Basket Click -> $selectedNodeId")
             if (currentTreeId != -1 && !selectedNodeId.isNullOrEmpty()) {
                 onAddToBasketListener?.invoke(currentTreeId, selectedNodeId)
             }
@@ -192,8 +202,8 @@ class TreeGlobalMapDialog : DialogFragment() {
         btnBackToNav.setOnClickListener {
             val currentTreeId = if (treeIds.isNotEmpty() && currentIndex >= 0) treeIds[currentIndex] else -1
             var selectedNodeId = selectedNodesPerTree[currentTreeId]
+            Log.d(TAG, "VIEW_CHANGE: Returning to Nav Button Click. Tree: $currentTreeId, Last Selected: $selectedNodeId")
             
-            // Si l'utilisateur n'a rien sélectionné dans cet arbre, on vise la racine par défaut au retour
             if (selectedNodeId.isNullOrEmpty() && currentTreeId != -1) {
                 lifecycleScope.launch(Dispatchers.IO) {
                     val treeEntity = treeDao.getTreeById(currentTreeId)
@@ -205,24 +215,24 @@ class TreeGlobalMapDialog : DialogFragment() {
                             } else if (json.has("roots") && json.getJSONArray("roots").length() > 0) {
                                 json.getJSONArray("roots").getJSONObject(0).optString("node_id", json.getJSONArray("roots").getJSONObject(0).optString("id"))
                             } else ""
-                            
                             val fallbackId = "${currentTreeId}_$rawId"
-                            
+                            Log.d(TAG, "VIEW_CHANGE: No explicit selection, using fallback root: $fallbackId")
                             withContext(Dispatchers.Main) {
                                 onNodeSelectedListener?.invoke(currentTreeId, fallbackId)
                                 dismiss()
                             }
                         } catch (e: Exception) {
+                            Log.e(TAG, "VIEW_CHANGE: Fallback error", e)
                             withContext(Dispatchers.Main) { dismiss() }
                         }
-                    } else {
-                        withContext(Dispatchers.Main) { dismiss() }
-                    }
+                    } else { withContext(Dispatchers.Main) { dismiss() } }
                 }
             } else if (currentTreeId != -1 && !selectedNodeId.isNullOrEmpty()) {
+                Log.d(TAG, "VIEW_CHANGE: Invoking listener with $selectedNodeId")
                 onNodeSelectedListener?.invoke(currentTreeId, selectedNodeId!!)
                 dismiss()
             } else {
+                Log.w(TAG, "VIEW_CHANGE: Nothing selected, just dismissing.")
                 dismiss()
             }
         }

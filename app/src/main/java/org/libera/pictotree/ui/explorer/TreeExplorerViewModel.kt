@@ -1,6 +1,7 @@
 package org.libera.pictotree.ui.explorer
 
 import android.app.Application
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -58,6 +59,10 @@ class TreeExplorerViewModel(
     private val username: String
 ) : AndroidViewModel(application) {
 
+    companion object {
+        private const val TAG = "PictoTreeNav"
+    }
+
     private val _uiState = MutableStateFlow(SpatialUiState())
     val uiState: StateFlow<SpatialUiState> = _uiState.asStateFlow()
 
@@ -77,44 +82,42 @@ class TreeExplorerViewModel(
 
     fun loadTree(treeId: Int) {
         viewModelScope.launch {
+            Log.d(TAG, "TREE_LOAD: Loading tree $treeId")
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             currentTreeId = treeId
             try {
                 val entity = treeDao.getTreeById(treeId)
                 if (entity == null) {
-                    _uiState.value = SpatialUiState(isLoading = false, error = "Arbre introuvable en bdd.")
+                    _uiState.value = SpatialUiState(isLoading = false, error = "Arbre introuvable.")
                     return@launch
                 }
                 
                 val rawJson = JSONObject(entity.jsonPayload)
                 val rootJsonObject = getRootObject(rawJson)
                 if (rootJsonObject == null) {
-                    _uiState.value = SpatialUiState(isLoading = false, error = "Format d'arbre invalide.")
+                    _uiState.value = SpatialUiState(isLoading = false, error = "Format invalide.")
                     return@launch
                 }
                 
                 rootNode = parseAndSortNode(rootJsonObject, null, treeId)
+                Log.d(TAG, "TREE_LOAD: Parsed successfully. Root: ${rootNode?.id}")
                 rootNode?.let { focusOnNode(it) }
 
             } catch (e: Exception) {
+                Log.e(TAG, "TREE_LOAD: Error", e)
                 _uiState.value = SpatialUiState(isLoading = false, error = e.localizedMessage)
             }
         }
     }
 
     private fun getRootObject(rawJson: JSONObject): JSONObject? {
-        return if (rawJson.has("root_node")) {
-            rawJson.getJSONObject("root_node")
-        } else if (rawJson.has("roots") && rawJson.getJSONArray("roots").length() > 0) {
-            rawJson.getJSONArray("roots").getJSONObject(0)
-        } else {
-            null
-        }
+        return if (rawJson.has("root_node")) rawJson.getJSONObject("root_node")
+        else if (rawJson.has("roots") && rawJson.getJSONArray("roots").length() > 0) rawJson.getJSONArray("roots").getJSONObject(0)
+        else null
     }
 
     private fun parseAndSortNode(json: JSONObject, parentRef: TreeNode?, treeId: Int): TreeNode {
         val rawId = json.optString("node_id", json.optString("id", "unsaved"))
-        // UNIFORMISATION : On utilise toujours l'ID préfixé pour l'Arbre Unique Virtuel
         val id = "${treeId}_$rawId"
         val label = json.optString("label", json.optString("text", json.optString("name", "Sans Titre")))
         var rawUrl = json.optString("image_url", json.optString("image", json.optString("url", "")))
@@ -129,9 +132,7 @@ class TreeExplorerViewModel(
         if (rawUrl.isNotEmpty() && !rawUrl.startsWith("file")) {
             val fileName = org.libera.pictotree.utils.FileUtils.getLocalFileNameFromUrl(rawUrl)
             val localFile = File(getApplication<Application>().filesDir, "$username/images/$fileName")
-            if (localFile.exists()) {
-                rawUrl = "file://${localFile.absolutePath}"
-            }
+            if (localFile.exists()) rawUrl = "file://${localFile.absolutePath}"
         }
 
         val childrenList = mutableListOf<TreeNode>()
@@ -139,43 +140,31 @@ class TreeExplorerViewModel(
         if (childrenArray != null) {
             for (i in 0 until childrenArray.length()) {
                 val childJson = childrenArray.optJSONObject(i)
-                if (childJson != null) {
-                    childrenList.add(parseAndSortNode(childJson, null, treeId))
-                }
+                if (childJson != null) childrenList.add(parseAndSortNode(childJson, null, treeId))
             }
         }
 
-        val node = TreeNode(
-            id = id,
-            label = label,
-            imageUrl = rawUrl,
-            children = childrenList,
-            parent = parentRef
-        )
+        val node = TreeNode(id = id, label = label, imageUrl = rawUrl, children = childrenList, parent = parentRef)
         childrenList.forEach { it.parent = node }
         return node
     }
 
     fun focusOnNode(node: TreeNode) {
+        Log.d(TAG, "NAV_MOVE: Focused on ${node.id} (${node.label}). Tree: $currentTreeId")
         val navState = TreeNavigator.computeSpatialState(node, profileTreeIds, currentTreeId)
+        
+        Log.d(TAG, "NAV_MAP: T:${navState.top?.id} | B:${navState.bottom?.id} | L:${navState.left?.id} | R:${navState.right?.id}")
+
         viewModelScope.launch {
             val finalLeft = navState.left ?: navState.prevTreeId?.let { id -> fetchRootNodePreview(id) }
             val finalRight = navState.right ?: navState.nextTreeId?.let { id -> fetchRootNodePreview(id) }
 
             _uiState.value = SpatialUiState(
-                isLoading = false,
-                center = navState.center,
-                top = navState.top,
-                bottom = navState.bottom,
-                left = finalLeft,
-                right = finalRight,
-                microTop = navState.microTop,
-                microTopCount = navState.microTopCount,
-                microLeft = navState.microLeft,
-                microLeftCount = navState.microLeftCount,
-                microRight = navState.microRight,
-                microRightCount = navState.microRightCount,
-                prevTreeId = navState.prevTreeId,
+                isLoading = false, center = navState.center, top = navState.top, bottom = navState.bottom,
+                left = finalLeft, right = finalRight, microTop = navState.microTop,
+                microTopCount = navState.microTopCount, microLeft = navState.microLeft,
+                microLeftCount = navState.microLeftCount, microRight = navState.microRight,
+                microRightCount = navState.microRightCount, prevTreeId = navState.prevTreeId,
                 nextTreeId = navState.nextTreeId
             )
         }
@@ -190,12 +179,14 @@ class TreeExplorerViewModel(
 
     fun addToPhrase(externalNode: TreeNode? = null) {
         val nodeToAdd = externalNode ?: _uiState.value.center ?: return
+        Log.d(TAG, "ACTION: Basket Add -> ${nodeToAdd.id}")
         val currentList = _phraseList.value.toMutableList()
         currentList.add(nodeToAdd)
         _phraseList.value = currentList
     }
 
     fun addToPhraseById(prefixedId: String): Boolean {
+        Log.d(TAG, "ACTION: Basket Add By ID -> $prefixedId")
         val target = findNodeRecursively(rootNode, prefixedId)
         if (target != null) {
             addToPhrase(target)
@@ -205,41 +196,44 @@ class TreeExplorerViewModel(
     }
 
     fun jumpToNodeId(prefixedId: String): Boolean {
-        // 1. Chercher dans l'arbre actuel (Format préfixé)
+        Log.d(TAG, "NAV_JUMP: Target ID $prefixedId")
         val target = findNodeRecursively(rootNode, prefixedId)
         if (target != null) {
+            Log.d(TAG, "NAV_JUMP: Found in current tree. Focusing.")
             focusOnNode(target)
             return true
         }
 
-        // 2. Extraire le treeId du préfixe pour un saut direct
         val parts = prefixedId.split("_", limit = 2)
         if (parts.size == 2) {
             val treeId = parts[0].toIntOrNull()
             if (treeId != null && profileTreeIds.contains(treeId)) {
+                Log.d(TAG, "NAV_JUMP: Found in Tree $treeId. Loading tree.")
                 jumpToTreeAndNode(treeId, prefixedId)
                 return true
             }
         }
+        Log.w(TAG, "NAV_JUMP: FAILED to find $prefixedId")
         return false
     }
 
     fun jumpToTreeAndNode(treeId: Int, prefixedId: String, addToBasket: Boolean = false) {
+        Log.d(TAG, "NAV_SYNC: Tree=$treeId Node=$prefixedId Basket=$addToBasket")
         viewModelScope.launch {
             if (currentTreeId != treeId) {
+                Log.d(TAG, "NAV_SYNC: Switching tree $currentTreeId -> $treeId")
                 _uiState.value = _uiState.value.copy(isLoading = true, error = null)
                 currentTreeId = treeId
                 val entity = treeDao.getTreeById(treeId)
                 if (entity != null) {
                     val rawJson = JSONObject(entity.jsonPayload)
                     val rootJsonObject = getRootObject(rawJson)
-                    if (rootJsonObject != null) {
-                        rootNode = parseAndSortNode(rootJsonObject, null, treeId)
-                    }
+                    if (rootJsonObject != null) rootNode = parseAndSortNode(rootJsonObject, null, treeId)
                 }
             }
             
             val targetNode = findNodeRecursively(rootNode, prefixedId) ?: rootNode
+            Log.d(TAG, "NAV_SYNC: Result node ${targetNode?.id}")
             targetNode?.let {
                 focusOnNode(it)
                 if (addToBasket) addToPhrase(it)
@@ -258,6 +252,7 @@ class TreeExplorerViewModel(
     }
 
     fun clearPhrase() {
+        Log.d(TAG, "ACTION: Phrase cleared")
         _phraseList.value = emptyList()
     }
 }

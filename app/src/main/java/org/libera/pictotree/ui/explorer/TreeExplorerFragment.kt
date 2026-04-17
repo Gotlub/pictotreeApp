@@ -134,6 +134,8 @@ class TreeExplorerFragment : Fragment() {
             val profileTreeIds = viewModel.getProfileTreeIds()
             val currentTreeId = viewModel.getCurrentTreeId()
 
+            android.util.Log.d("PictoTreeNav", "VIEW_CHANGE: Opening Global Map. From Tree: $currentTreeId, Node: $centerNodeId")
+
             val dialog = TreeGlobalMapDialog.newInstance(
                 treeIds = profileTreeIds,
                 currentTreeId = currentTreeId,
@@ -141,6 +143,7 @@ class TreeExplorerFragment : Fragment() {
                 selectedNodeId = centerNodeId
             )
             dialog.onNodeSelectedListener = { treeId, nodeId ->
+                android.util.Log.d("PictoTreeNav", "VIEW_CHANGE: Returning to Spatial View. Target Tree: $treeId, Node: $nodeId")
                 if (treeId != -1) {
                     viewModel.jumpToTreeAndNode(treeId, nodeId)
                 } else {

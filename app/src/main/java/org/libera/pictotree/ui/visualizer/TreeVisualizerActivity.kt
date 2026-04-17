@@ -72,14 +72,14 @@ class TreeVisualizerActivity : AppCompatActivity() {
                 request: WebResourceRequest?
             ): WebResourceResponse? {
                 val urlString = request?.url?.toString() ?: return null
-                // Interception Magique: Dès que WebView demande une image distante (ex: arasaac),
-                // on lui donne le fichier local SQLite s'il a été téléchargé pendant l'import!
                 if (urlString.startsWith("http://") || urlString.startsWith("https://")) {
                     var response: WebResourceResponse? = null
                     
-                    // Treant rajoute parfois dynamiquement des timestamps (?177893...) pour bypass le cache
-                    // On les coupe pour que le chemin direct match à 100% avec notre SQLite !
+                    // FIX: Nettoyage des cache-busters (ex: .jpg123456 -> .jpg)
                     val cleanUrl = urlString.substringBefore("?")
+                        .replace(Regex("(\\.(jpg|jpeg|png|gif))\\d+$", RegexOption.IGNORE_CASE), "$1")
+                    
+                    android.util.Log.d("PictoTreeNav", "Visualizer: shouldInterceptRequest $cleanUrl")
                     
                     runBlocking {
                         val entity = imageDao.getImageByRemotePath(cleanUrl)
