@@ -58,7 +58,9 @@ class TreeVisualizerActivity : AppCompatActivity() {
                             withContext(Dispatchers.Main) {
                                 // Envoi robuste via Base64 pour éviter de casser la syntaxe JS avec les quotes du JSON
                                 val safeJson = android.util.Base64.encodeToString(treeEntity.jsonPayload.toByteArray(), android.util.Base64.NO_WRAP)
-                                webView.evaluateJavascript("javascript:renderTreeBase64('$safeJson');", null)
+                                // Paramètre 3: readOnly = true pour l'édition de profil
+                                // Paramètre 4: treeId pour le préfixage des IDs
+                                webView.evaluateJavascript("javascript:renderTreeBase64('$safeJson', null, true, $treeId);", null)
                             }
                         }
                     }

@@ -11,13 +11,27 @@ import org.json.JSONObject
 import org.libera.pictotree.data.database.dao.TreeDao
 import java.io.File
 
-data class TreeNode(
+class TreeNode(
     val id: String,
     val label: String,
     val imageUrl: String,
     val children: List<TreeNode>,
     var parent: TreeNode? = null
-)
+) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is TreeNode) return false
+        return id == other.id
+    }
+
+    override fun hashCode(): Int {
+        return id.hashCode()
+    }
+
+    override fun toString(): String {
+        return "TreeNode(id='$id', label='$label')"
+    }
+}
 
 data class SpatialUiState(
     val center: TreeNode? = null,
@@ -54,6 +68,9 @@ class TreeExplorerViewModel(
     private var currentTreeId: Int = -1
     private var profileTreeIds: List<Int> = emptyList()
 
+    fun getProfileTreeIds(): IntArray = profileTreeIds.toIntArray()
+    fun getCurrentTreeId(): Int = currentTreeId
+
     fun setProfileTreeContext(treeIds: List<Int>) {
         this.profileTreeIds = treeIds
     }
@@ -69,22 +86,14 @@ class TreeExplorerViewModel(
                     return@launch
                 }
                 
-                // Parse the JSON based on `json_structure.md` contract
                 val rawJson = JSONObject(entity.jsonPayload)
-                
-                // Fallback struct for backward compatibility if roots array exists
-                val rootJsonObject = if (rawJson.has("root_node")) {
-                    rawJson.getJSONObject("root_node")
-                } else if (rawJson.has("roots") && rawJson.getJSONArray("roots").length() > 0) {
-                    rawJson.getJSONArray("roots").getJSONObject(0)
-                } else {
-                    _uiState.value = SpatialUiState(isLoading = false, error = "Format d'arbre invalide (root_node introuvable).")
+                val rootJsonObject = getRootObject(rawJson)
+                if (rootJsonObject == null) {
+                    _uiState.value = SpatialUiState(isLoading = false, error = "Format d'arbre invalide.")
                     return@launch
                 }
                 
-                rootNode = parseAndSortNode(rootJsonObject, null)
-                
-                // Init spatial map on root
+                rootNode = parseAndSortNode(rootJsonObject, null, treeId)
                 rootNode?.let { focusOnNode(it) }
 
             } catch (e: Exception) {
@@ -93,25 +102,36 @@ class TreeExplorerViewModel(
         }
     }
 
-    private fun parseAndSortNode(json: JSONObject, parentRef: TreeNode?): TreeNode {
-        val id = json.optString("node_id", json.optString("id", "unsaved"))
+    private fun getRootObject(rawJson: JSONObject): JSONObject? {
+        return if (rawJson.has("root_node")) {
+            rawJson.getJSONObject("root_node")
+        } else if (rawJson.has("roots") && rawJson.getJSONArray("roots").length() > 0) {
+            rawJson.getJSONArray("roots").getJSONObject(0)
+        } else {
+            null
+        }
+    }
+
+    private fun parseAndSortNode(json: JSONObject, parentRef: TreeNode?, treeId: Int): TreeNode {
+        val rawId = json.optString("node_id", json.optString("id", "unsaved"))
+        // UNIFORMISATION : On utilise toujours l'ID préfixé pour l'Arbre Unique Virtuel
+        val id = "${treeId}_$rawId"
         val label = json.optString("label", json.optString("text", json.optString("name", "Sans Titre")))
         var rawUrl = json.optString("image_url", json.optString("image", json.optString("url", "")))
 
-        // Construct standard URL (Legacy Local vs Remote bypass if the JSON lacks http)
-        if (rawUrl.isNotEmpty() && !rawUrl.startsWith("http")) {
+        if (rawUrl.isNotEmpty() && !rawUrl.startsWith("http") && !rawUrl.startsWith("file")) {
             val normPath = rawUrl.replace("^/+".toRegex(), "").replace("^(pictograms/|images/)".toRegex(), "")
             if (normPath.startsWith("public/") || normPath.startsWith("$username/")) {
                 rawUrl = "$hostUrl/api/v1/mobile/pictograms/$normPath"
             }
         }
 
-        // RÈGLE ARCHITECTURE : Les images doivent TOUJOURS être cherchées en local sur la View 4 (Offline First)
-        // Le stockage Android (via ImageSyncEngine) utilise un hachage SHA-256 strict de l'URL distante.
-        if (rawUrl.isNotEmpty()) {
+        if (rawUrl.isNotEmpty() && !rawUrl.startsWith("file")) {
             val fileName = org.libera.pictotree.utils.FileUtils.getLocalFileNameFromUrl(rawUrl)
-            val localFile = java.io.File(getApplication<Application>().filesDir, "$username/images/$fileName")
-            rawUrl = "file://${localFile.absolutePath}"
+            val localFile = File(getApplication<Application>().filesDir, "$username/images/$fileName")
+            if (localFile.exists()) {
+                rawUrl = "file://${localFile.absolutePath}"
+            }
         }
 
         val childrenList = mutableListOf<TreeNode>()
@@ -120,13 +140,10 @@ class TreeExplorerViewModel(
             for (i in 0 until childrenArray.length()) {
                 val childJson = childrenArray.optJSONObject(i)
                 if (childJson != null) {
-                    // Temporarily add with null parent to avoid chicken/egg infinite loop mapping
-                    childrenList.add(parseAndSortNode(childJson, null))
+                    childrenList.add(parseAndSortNode(childJson, null, treeId))
                 }
             }
         }
-
-        // L'utilisateur gère l'ordre des fratries directement via le Builder Web, le tri manuel est supprimé.
 
         val node = TreeNode(
             id = id,
@@ -135,29 +152,15 @@ class TreeExplorerViewModel(
             children = childrenList,
             parent = parentRef
         )
-
-        // Assign backwards references after creation
         childrenList.forEach { it.parent = node }
-
         return node
     }
 
-    /**
-     * Moteur Physique Spatial
-     * Recalcule instantanément la géométrie de la Croix relative au noeud focus
-     */
     fun focusOnNode(node: TreeNode) {
         val navState = TreeNavigator.computeSpatialState(node, profileTreeIds, currentTreeId)
-
-        // Si on a des arbres voisins, on charge les racines en asynchrone pour l'affichage (Pre-fetch images)
         viewModelScope.launch {
-            val finalLeft = navState.left ?: navState.prevTreeId?.let { id ->
-                fetchRootNodePreview(id)
-            }
-            
-            val finalRight = navState.right ?: navState.nextTreeId?.let { id ->
-                fetchRootNodePreview(id)
-            }
+            val finalLeft = navState.left ?: navState.prevTreeId?.let { id -> fetchRootNodePreview(id) }
+            val finalRight = navState.right ?: navState.nextTreeId?.let { id -> fetchRootNodePreview(id) }
 
             _uiState.value = SpatialUiState(
                 isLoading = false,
@@ -181,16 +184,10 @@ class TreeExplorerViewModel(
     private suspend fun fetchRootNodePreview(treeId: Int): TreeNode? {
         return treeDao.getTreeById(treeId)?.let { entity ->
             val json = JSONObject(entity.jsonPayload)
-            val rootObj = if (json.has("root_node")) json.getJSONObject("root_node") 
-                          else if (json.has("roots") && json.getJSONArray("roots").length() > 0) json.getJSONArray("roots").getJSONObject(0)
-                          else null
-            rootObj?.let { parseAndSortNode(it, null) }
+            getRootObject(json)?.let { parseAndSortNode(it, null, treeId) }
         }
     }
 
-    /**
-     * Action de Panier : Ajoute un picto au panier de phrase.
-     */
     fun addToPhrase(externalNode: TreeNode? = null) {
         val nodeToAdd = externalNode ?: _uiState.value.center ?: return
         val currentList = _phraseList.value.toMutableList()
@@ -198,13 +195,56 @@ class TreeExplorerViewModel(
         _phraseList.value = currentList
     }
 
-    fun jumpToNodeId(searchId: String): Boolean {
-        val target = findNodeRecursively(rootNode, searchId)
+    fun addToPhraseById(prefixedId: String): Boolean {
+        val target = findNodeRecursively(rootNode, prefixedId)
+        if (target != null) {
+            addToPhrase(target)
+            return true
+        }
+        return false
+    }
+
+    fun jumpToNodeId(prefixedId: String): Boolean {
+        // 1. Chercher dans l'arbre actuel (Format préfixé)
+        val target = findNodeRecursively(rootNode, prefixedId)
         if (target != null) {
             focusOnNode(target)
             return true
         }
+
+        // 2. Extraire le treeId du préfixe pour un saut direct
+        val parts = prefixedId.split("_", limit = 2)
+        if (parts.size == 2) {
+            val treeId = parts[0].toIntOrNull()
+            if (treeId != null && profileTreeIds.contains(treeId)) {
+                jumpToTreeAndNode(treeId, prefixedId)
+                return true
+            }
+        }
         return false
+    }
+
+    fun jumpToTreeAndNode(treeId: Int, prefixedId: String, addToBasket: Boolean = false) {
+        viewModelScope.launch {
+            if (currentTreeId != treeId) {
+                _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+                currentTreeId = treeId
+                val entity = treeDao.getTreeById(treeId)
+                if (entity != null) {
+                    val rawJson = JSONObject(entity.jsonPayload)
+                    val rootJsonObject = getRootObject(rawJson)
+                    if (rootJsonObject != null) {
+                        rootNode = parseAndSortNode(rootJsonObject, null, treeId)
+                    }
+                }
+            }
+            
+            val targetNode = findNodeRecursively(rootNode, prefixedId) ?: rootNode
+            targetNode?.let {
+                focusOnNode(it)
+                if (addToBasket) addToPhrase(it)
+            }
+        }
     }
 
     private fun findNodeRecursively(current: TreeNode?, targetId: String): TreeNode? {

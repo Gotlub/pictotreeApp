@@ -21,6 +21,7 @@
             align-items: center;
             justify-content: center;
             box-sizing: border-box; /* Includes padding in the width calculation to be safe */
+            transition: all 0.2s ease-in-out;
         }
         .nodeExample1 img {
             width: 48px;
@@ -29,6 +30,7 @@
             border-radius: 4px;
             margin-bottom: 4px;
             float: none !important; /* Override Treant.css float */
+            transition: transform 0.2s ease-in-out;
         }
         .nodeExample1 p {
             font-family: sans-serif;
@@ -41,6 +43,18 @@
             overflow-wrap: break-word; /* Ensure large unbroken text wraps */
             white-space: normal;
         }
+        
+        /* Style pour le noeud sélectionné */
+        .nodeExample1.node-selected {
+            border: 4px solid #000000 !important;
+            background-color: #FFF3E0 !important;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+            transform: scale(1.05);
+            z-index: 10;
+        }
+        .nodeExample1.node-selected img {
+            transform: scale(1.15);
+        }
     </style>
 </head>
 <body>
@@ -49,9 +63,27 @@
     <script src="raphael.js"></script>
     <script src="Treant.js"></script>
     <script>
-        // Cette fonction sera appelée depuis Kotlin via WebView.evaluateJavascript
-        function renderTreeBase64(base64Payload) {
+        // Désactiver le menu contextuel natif pour les futurs appuis longs
+        window.oncontextmenu = function(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            return false;
+        };
+
+        // Variable globale pour éviter de rajouter le listener au re-render
+        let isListenerAttached = false;
+        let globalSelectedNodeId = null;
+        let isReadOnlyMode = false;
+        let currentTreeId = -1;
+
+        // Fonction appelée depuis Kotlin via WebView.evaluateJavascript
+        function renderTreeBase64(base64Payload, selectedNodeId, readOnly, treeId) {
             try {
+                isReadOnlyMode = !!readOnly;
+                currentTreeId = treeId || -1;
+                // On réinitialise systématiquement pour éviter de garder une sélection d'un arbre précédent
+                globalSelectedNodeId = selectedNodeId || null; 
+                
                 const jsonString = decodeURIComponent(escape(window.atob(base64Payload)));
                 const rootData = JSON.parse(jsonString);
                 
@@ -70,21 +102,51 @@
                             }
                         }
                     },
-                    nodeStructure: buildTreantNode(rootData.root_node)
+                    nodeStructure: buildTreantNode(rootData.root_node || (rootData.roots ? rootData.roots[0] : rootData))
                 };
                 
+                document.getElementById("tree-container").innerHTML = ""; // Clean before re-render
                 new Treant(chart_config);
                 
-                // Active le pont Javascript-Kotlin pour la navigation
-                document.addEventListener('click', function(e) {
-                    let target = e.target.closest('.nodeExample1');
-                    if (target && target.id && target.id.startsWith('node-')) {
-                        let nodeId = target.id.replace('node-', '');
-                        if (window.AndroidBridge && typeof window.AndroidBridge.jumpToNode === 'function') {
-                            window.AndroidBridge.jumpToNode(nodeId);
+                // Mettre en surbrillance automatique l'élément initiallement sélectionné
+                if (globalSelectedNodeId) {
+                    setTimeout(() => {
+                        let nodeToSelect = document.getElementById('node-' + globalSelectedNodeId);
+                        if (nodeToSelect) {
+                            nodeToSelect.classList.add('node-selected');
+                            // Centrer la vue sur le noeud
+                            nodeToSelect.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
                         }
-                    }
-                });
+                    }, 300); // Petit délai pour laisser Treant placer les divs
+                }
+
+                if (!isListenerAttached) {
+                    // Active le pont Javascript-Kotlin pour la navigation
+                    document.addEventListener('click', function(e) {
+                        if (isReadOnlyMode) return;
+                        let target = e.target.closest('.nodeExample1');
+                        if (target && target.id && target.id.startsWith('node-')) {
+                            let nodeId = target.id.replace('node-', '');
+                            globalSelectedNodeId = nodeId;
+
+                            // Nettoyer l'ancienne sélection locale
+                            document.querySelectorAll('.node-selected').forEach(el => {
+                                el.classList.remove('node-selected');
+                            });
+                            // Appliquer la nouvelle sélection locale
+                            target.classList.add('node-selected');
+
+                            // Appeler Kotlin (selon l'interface disponible)
+                            if (window.AndroidBridge && typeof window.AndroidBridge.onNodeSelected === 'function') {
+                                window.AndroidBridge.onNodeSelected(nodeId);
+                            } else if (window.AndroidBridge && typeof window.AndroidBridge.jumpToNode === 'function') {
+                                // Fallback for backwards compatibility if needed elsewhere
+                                window.AndroidBridge.jumpToNode(nodeId);
+                            }
+                        }
+                    });
+                    isListenerAttached = true;
+                }
             } catch (e) {
                 console.error("Erreur de parsing de l'arbre", e);
                 document.getElementById('tree-container').innerHTML = "<h2>Erreur de Chargement JSON</h2><p>" + e + "</p>";
@@ -94,15 +156,17 @@
         function buildTreantNode(node) {
             if (!node) return null;
             
+            let rawId = node.node_id || node.id || 'unsaved';
+            let prefixedId = currentTreeId + "_" + rawId;
+            
             let treantNode = {
                 HTMLclass: 'nodeExample1',
-                HTMLid: node.id ? 'node-' + node.id : null,
+                HTMLid: 'node-' + prefixedId,
                 text: { name: node.label || node.text || node.name || '---' }
             };
             
-            if (node.image_url) {
-                // By providing the image natively, Treant will render it securely without innerHTML.
-                treantNode.image = node.image_url;
+            if (node.image_url || node.image || node.url) {
+                treantNode.image = node.image_url || node.image || node.url;
             }
             
             if (node.children && node.children.length > 0) {

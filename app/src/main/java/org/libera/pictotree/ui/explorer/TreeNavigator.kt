@@ -15,7 +15,8 @@ object TreeNavigator {
         currentTreeId: Int = -1
     ): NeighborState {
         val parent = currentNode.parent
-        val myIndex = parent?.children?.indexOf(currentNode) ?: 0
+        // Utiliser l'égalité référentielle (===) pour distinguer les doublons de pictos
+        val myIndex = parent?.children?.indexOfFirst { it === currentNode } ?: 0
         
         val leftSibling = if (parent != null && myIndex > 0) parent.children[myIndex - 1] else null
         val rightSibling = if (parent != null && myIndex < parent.children.size - 1) parent.children[myIndex + 1] else null

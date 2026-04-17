@@ -92,11 +92,17 @@ class TreeExplorerFragment : Fragment() {
             viewLifecycleOwner.lifecycleScope.launch {
                 val trees = profileDao.getTreesForProfileOrdered(profileId)
                 viewModel.setProfileTreeContext(trees.map { it.id })
+                // Important : On charge l'arbre APRÈS avoir défini le contexte du profil
+                // pour que le calcul des "voisins" (prev/next tree) fonctionne dès l'ouverture.
+                if (targetTreeId != -1) {
+                    viewModel.loadTree(targetTreeId)
+                }
             }
-        }
-
-        if (targetTreeId != -1) {
-            viewModel.loadTree(targetTreeId)
+        } else {
+            // Si pas de profil, charger directement
+            if (targetTreeId != -1) {
+                viewModel.loadTree(targetTreeId)
+            }
         }
         
         // Moteur Tactile Hybride (Gestes & Clics)
@@ -124,9 +130,31 @@ class TreeExplorerFragment : Fragment() {
         
         // Binding de la Vue Globale
         fabEye.setOnClickListener {
-            val dialog = TreeGlobalMapDialog.newInstance(treeId = targetTreeId, username = username)
-            dialog.onNodeSelectedListener = { nodeId ->
-                viewModel.jumpToNodeId(nodeId)
+            val centerNodeId = viewModel.uiState.value.center?.id ?: ""
+            val profileTreeIds = viewModel.getProfileTreeIds()
+            val currentTreeId = viewModel.getCurrentTreeId()
+
+            val dialog = TreeGlobalMapDialog.newInstance(
+                treeIds = profileTreeIds,
+                currentTreeId = currentTreeId,
+                username = username,
+                selectedNodeId = centerNodeId
+            )
+            dialog.onNodeSelectedListener = { treeId, nodeId ->
+                if (treeId != -1) {
+                    viewModel.jumpToTreeAndNode(treeId, nodeId)
+                } else {
+                    viewModel.jumpToNodeId(nodeId)
+                }
+            }
+            dialog.onAddToBasketListener = { treeId, nodeId ->
+                if (treeId != -1 && treeId != viewModel.getCurrentTreeId()) {
+                    // Tree has changed, load the tree and add the node to basket
+                    viewModel.jumpToTreeAndNode(treeId, nodeId, addToBasket = true)
+                } else {
+                    // Tree hasn't changed or isn't specified, rely on existing tree state
+                    viewModel.addToPhraseById(nodeId)
+                }
             }
             dialog.show(parentFragmentManager, "TreeGlobalMapDialog")
         }
