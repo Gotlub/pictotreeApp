@@ -12,6 +12,7 @@ import java.util.Locale
 class TTSManager(context: Context) : TextToSpeech.OnInitListener {
     private var tts: TextToSpeech? = null
     private var isInitialized = false
+    private var pendingLanguage: String? = null
     
     // Callbacks pour l'illumination UI
     private var onStartListener: ((String) -> Unit)? = null
@@ -25,13 +26,19 @@ class TTSManager(context: Context) : TextToSpeech.OnInitListener {
     override fun onInit(status: Int) {
         if (status == TextToSpeech.SUCCESS) {
             setupProgressListener()
-            // Par défaut on essaye la langue du système
-            val result = tts?.setLanguage(Locale.getDefault())
+            isInitialized = true
+            
+            // Appliquer la langue en attente ou la langue par défaut
+            val langToSet = pendingLanguage ?: Locale.getDefault().language
+            val result = tts?.setLanguage(Locale(langToSet))
+            
+            android.util.Log.d("TTSManager", "TTS Initialized. Setting language to $langToSet. Result: $result")
+            
             if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
-                isInitialized = false
-            } else {
-                isInitialized = true
+                android.util.Log.e("TTSManager", "Language $langToSet is not supported or missing data.")
             }
+        } else {
+            android.util.Log.e("TTSManager", "TTS Initialization failed with status: $status")
         }
     }
 
@@ -57,9 +64,13 @@ class TTSManager(context: Context) : TextToSpeech.OnInitListener {
      * @param languageCode Code ISO (ex: "fr", "en")
      */
     fun setLanguage(languageCode: String) {
+        pendingLanguage = languageCode
         if (isInitialized) {
             val locale = Locale(languageCode)
-            tts?.setLanguage(locale)
+            val result = tts?.setLanguage(locale)
+            android.util.Log.d("TTSManager", "Language updated to $languageCode. Result: $result")
+        } else {
+            android.util.Log.d("TTSManager", "Language $languageCode stored as pending (TTS not ready)")
         }
     }
 

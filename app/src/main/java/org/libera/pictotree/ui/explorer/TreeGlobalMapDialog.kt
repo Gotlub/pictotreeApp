@@ -14,44 +14,68 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.ImageButton
 import androidx.fragment.app.DialogFragment
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.libera.pictotree.R
 import org.libera.pictotree.data.database.AppDatabase
 import org.libera.pictotree.utils.WebViewImageInterceptor
+import org.libera.pictotree.utils.TTSManager
 import org.json.JSONObject
 
 class TreeGlobalMapDialog : DialogFragment() {
 
-    private var treeIds: IntArray = intArrayOf()
-    private var currentIndex: Int = -1
-    private var username: String = ""
-    private var initialSelectedNodeId: String = ""
+    private var treeIds: IntArray 
+        get() = arguments?.getIntArray("treeIds") ?: intArrayOf()
+        set(value) { arguments?.putIntArray("treeIds", value) }
+
+    private var currentIndex: Int
+        get() = arguments?.getInt("currentIndex", -1) ?: -1
+        set(value) { arguments?.putInt("currentIndex", value) }
+
+    private var username: String
+        get() = arguments?.getString("username") ?: ""
+        set(value) { arguments?.putString("username", value) }
+
+    private var initialSelectedNodeId: String
+        get() = arguments?.getString("initialSelectedNodeId") ?: ""
+        set(value) { arguments?.putString("initialSelectedNodeId", value) }
+
+    private var globalSelectedTreeId: Int
+        get() = arguments?.getInt("globalSelectedTreeId", -1) ?: -1
+        set(value) { arguments?.putInt("globalSelectedTreeId", value) }
+
+    private var globalSelectedNodeId: String
+        get() = arguments?.getString("globalSelectedNodeId") ?: ""
+        set(value) { arguments?.putString("globalSelectedNodeId", value) }
 
     private val selectedNodesPerTree = mutableMapOf<Int, String>()
-    private var globalSelectedTreeId: Int = -1
-    private var globalSelectedNodeId: String = ""
-
-    var onNodeSelectedListener: ((Int, String) -> Unit)? = null
-    var onAddToBasketListener: ((Int, String) -> Unit)? = null
 
     private lateinit var webView: WebView
+    private lateinit var viewModel: TreeExplorerViewModel
+    private lateinit var ttsManager: TTSManager
 
     companion object {
         private const val TAG = "PictoTreeNav"
 
         fun newInstance(treeIds: IntArray, currentTreeId: Int, username: String, selectedNodeId: String): TreeGlobalMapDialog {
             val dialog = TreeGlobalMapDialog()
-            dialog.treeIds = treeIds
-            dialog.currentIndex = treeIds.indexOf(currentTreeId)
-            if (dialog.currentIndex == -1 && treeIds.isNotEmpty()) dialog.currentIndex = 0
-            dialog.username = username
-            dialog.initialSelectedNodeId = selectedNodeId
-            dialog.globalSelectedTreeId = currentTreeId
-            dialog.globalSelectedNodeId = selectedNodeId
-            if (currentTreeId != -1) dialog.selectedNodesPerTree[currentTreeId] = selectedNodeId
+            val args = Bundle().apply {
+                putIntArray("treeIds", treeIds)
+                val idx = treeIds.indexOf(currentTreeId)
+                putInt("currentIndex", if (idx == -1 && treeIds.isNotEmpty()) 0 else idx)
+                putString("username", username)
+                putString("initialSelectedNodeId", selectedNodeId)
+                putInt("globalSelectedTreeId", currentTreeId)
+                putString("globalSelectedNodeId", selectedNodeId)
+            }
+            dialog.arguments = args
             return dialog
         }
     }
@@ -70,10 +94,64 @@ class TreeGlobalMapDialog : DialogFragment() {
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         val root = inflater.inflate(R.layout.dialog_tree_global_map, container, false)
         webView = root.findViewById(R.id.web_view_map)
+        
+        // Shared ViewModel at Activity level
+        viewModel = ViewModelProvider(requireActivity())[TreeExplorerViewModel::class.java]
+        ttsManager = TTSManager(requireContext())
+
+        root.findViewById<View>(R.id.btn_fullscreen_phrase).setOnClickListener {
+            androidx.navigation.fragment.NavHostFragment.findNavController(this)
+                .navigate(R.id.action_treeExplorerFragment_to_phraseFullscreenFragment)
+        }
 
         val database = AppDatabase.getDatabase(requireContext(), username)
         val treeDao = database.treeDao()
         val imageDao = database.imageDao()
+
+        // Setup Phrase Bar (RecyclerView)
+        val rvPhrase = root.findViewById<RecyclerView>(R.id.rv_phrase)
+        val phraseAdapter = PhraseAdapter()
+        rvPhrase.adapter = phraseAdapter
+        rvPhrase.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
+
+        // Drag & Drop / Swipe to Delete
+        val itemTouchHelper = androidx.recyclerview.widget.ItemTouchHelper(object : androidx.recyclerview.widget.ItemTouchHelper.SimpleCallback(
+            androidx.recyclerview.widget.ItemTouchHelper.LEFT or androidx.recyclerview.widget.ItemTouchHelper.RIGHT,
+            androidx.recyclerview.widget.ItemTouchHelper.UP
+        ) {
+            override fun onMove(
+                recyclerView: RecyclerView,
+                viewHolder: RecyclerView.ViewHolder,
+                target: RecyclerView.ViewHolder
+            ): Boolean {
+                viewModel.moveItemInPhrase(viewHolder.bindingAdapterPosition, target.bindingAdapterPosition)
+                return true
+            }
+
+            override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
+                if (direction == androidx.recyclerview.widget.ItemTouchHelper.UP) {
+                    viewModel.removeItemFromPhrase(viewHolder.bindingAdapterPosition)
+                }
+            }
+        })
+        itemTouchHelper.attachToRecyclerView(rvPhrase)
+
+        // Observe Phrase List
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.phraseList.collect { phrase ->
+                    phraseAdapter.submitList(phrase)
+                    if (phrase.isNotEmpty()) {
+                        rvPhrase.smoothScrollToPosition(phrase.size - 1)
+                    }
+                }
+            }
+        }
+
+        // Restaurer la sélection dans la map temporaire au démarrage
+        if (globalSelectedTreeId != -1 && globalSelectedNodeId.isNotEmpty()) {
+            selectedNodesPerTree[globalSelectedTreeId] = globalSelectedNodeId
+        }
 
         val bridge = object {
             @JavascriptInterface
@@ -137,13 +215,16 @@ class TreeGlobalMapDialog : DialogFragment() {
             val visibleSelection = selectedNodesPerTree[currentTreeId]
             if (currentTreeId != -1) {
                 if (!visibleSelection.isNullOrEmpty()) {
-                    onAddToBasketListener?.invoke(currentTreeId, visibleSelection)
+                    viewModel.jumpToTreeAndNode(currentTreeId, visibleSelection, addToBasket = true)
                 } else {
+                    // Fallback: add root of the current tree
                     lifecycleScope.launch(Dispatchers.IO) {
                         val treeEntity = treeDao.getTreeById(currentTreeId)
                         val rawId = treeEntity?.let { extractRootIdFromJson(it.jsonPayload) } ?: ""
                         val fallbackId = "${currentTreeId}_${rawId}_r"
-                        withContext(Dispatchers.Main) { onAddToBasketListener?.invoke(currentTreeId, fallbackId) }
+                        withContext(Dispatchers.Main) { 
+                            viewModel.jumpToTreeAndNode(currentTreeId, fallbackId, addToBasket = true) 
+                        }
                     }
                 }
             }
@@ -152,12 +233,35 @@ class TreeGlobalMapDialog : DialogFragment() {
         root.findViewById<View>(R.id.btn_back_to_nav).setOnClickListener {
             Log.d(TAG, "VIEW_CHANGE: Returning to Nav. Tree $globalSelectedTreeId, Node $globalSelectedNodeId")
             if (globalSelectedTreeId != -1 && globalSelectedNodeId.isNotEmpty()) {
-                onNodeSelectedListener?.invoke(globalSelectedTreeId, globalSelectedNodeId)
+                viewModel.jumpToTreeAndNode(globalSelectedTreeId, globalSelectedNodeId)
             }
             dismiss()
         }
 
+        // TTS Support
+        val fabSpeak = root.findViewById<View>(R.id.fab_speak_dialog)
+        fabSpeak.setOnClickListener {
+            val phrase = viewModel.phraseList.value
+            if (phrase.isEmpty()) return@setOnClickListener
+            ttsManager.stop()
+            phrase.forEachIndexed { index, node ->
+                ttsManager.speak(node.label, index.toString())
+            }
+        }
+        fabSpeak.setOnLongClickListener {
+            viewModel.clearPhrase()
+            ttsManager.stop()
+            true
+        }
+
         return root
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        if (::ttsManager.isInitialized) {
+            ttsManager.shutdown()
+        }
     }
 
     private fun extractRootIdFromJson(jsonPayload: String): String {
@@ -170,3 +274,4 @@ class TreeGlobalMapDialog : DialogFragment() {
         } catch (e: Exception) { "" }
     }
 }
+

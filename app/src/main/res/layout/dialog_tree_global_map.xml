@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#FAFAFA">
@@ -10,21 +11,47 @@
         android:id="@+id/web_view_map"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        app:layout_constraintBottom_toTopOf="@id/layout_bottom_actions"
+        app:layout_constraintBottom_toTopOf="@id/panel_phrase"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
+    <!-- TOP BAR ACTIONS -->
+    <!-- Back Button (Round Icon) -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/btn_back_to_nav"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="16dp"
+        app:fabSize="mini"
+        android:src="@android:drawable/ic_menu_revert"
+        app:backgroundTint="@color/white"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        android:contentDescription="Retour" />
+
+    <!-- Add Button -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_add_to_basket"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="16dp"
+        android:text="Ajouter"
+        app:cornerRadius="20dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <!-- NAVIGATION ARROWS (Center Mid-Height) -->
     <!-- Left Arrow (Previous Tree) -->
     <ImageButton
         android:id="@+id/btn_prev_tree"
         android:layout_width="56dp"
         android:layout_height="56dp"
-        android:layout_marginStart="16dp"
+        android:layout_marginStart="8dp"
         android:background="?android:attr/selectableItemBackgroundBorderless"
         android:contentDescription="Arbre précédent"
         android:src="@android:drawable/ic_media_previous"
-        android:backgroundTint="#80FFFFFF"
+        app:tint="#6200EE"
         android:elevation="4dp"
         app:layout_constraintBottom_toBottomOf="@id/web_view_map"
         app:layout_constraintStart_toStartOf="parent"
@@ -35,48 +62,65 @@
         android:id="@+id/btn_next_tree"
         android:layout_width="56dp"
         android:layout_height="56dp"
-        android:layout_marginEnd="16dp"
+        android:layout_marginEnd="8dp"
         android:background="?android:attr/selectableItemBackgroundBorderless"
         android:contentDescription="Arbre suivant"
         android:src="@android:drawable/ic_media_next"
-        android:backgroundTint="#80FFFFFF"
+        app:tint="#6200EE"
         android:elevation="4dp"
         app:layout_constraintBottom_toBottomOf="@id/web_view_map"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="@id/web_view_map" />
 
-    <!-- Bottom Actions Container -->
-    <LinearLayout
-        android:id="@+id/layout_bottom_actions"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:background="#FFFFFF"
-        android:elevation="8dp"
-        android:orientation="horizontal"
-        android:padding="16dp"
+    <!-- BANDEAU DE PHRASE (Panier) -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/panel_phrase"
+        android:layout_width="match_parent"
+        android:layout_height="180dp"
+        android:background="@drawable/rounded_bottom_sheet"
+        android:elevation="16dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent">
 
-        <!-- Add to Basket Button -->
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_add_to_basket"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginEnd="8dp"
-            android:layout_weight="1"
-            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-            android:text="Ajouter au Panier" />
+        <ImageButton
+            android:id="@+id/btn_fullscreen_phrase"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_margin="4dp"
+            android:padding="8dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@android:drawable/ic_menu_zoom"
+            android:elevation="20dp"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:contentDescription="Mode plein écran" />
 
-        <!-- Back to View 4 Button -->
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_back_to_nav"
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rv_phrase"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:layout_weight="1"
-            android:text="Retour Navigation" />
+            android:layout_height="0dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="8dp"
+            android:clipToPadding="false"
+            android:paddingHorizontal="16dp"
+            android:orientation="horizontal"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            tools:listitem="@layout/item_phrase_picto" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
-    </LinearLayout>
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fab_speak_dialog"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="16dp"
+        android:src="@android:drawable/ic_btn_speak_now"
+        app:layout_anchor="@id/panel_phrase"
+        app:layout_constraintBottom_toTopOf="@id/panel_phrase"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:contentDescription="Lire la phrase" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

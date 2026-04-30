@@ -51,7 +51,13 @@ class SearchTabFragment : Fragment() {
             (parentFragment as? PictoSearchDialog)?.onPictoSelected?.invoke(selected)
             (parentFragment as? PictoSearchDialog)?.dismiss()
         }
-        root.layoutManager = GridLayoutManager(requireContext(), 3)
+        
+        // Calcul dynamique du nombre de colonnes en fonction de la largeur disponible
+        val displayMetrics = resources.displayMetrics
+        val screenWidthDp = displayMetrics.widthPixels / displayMetrics.density
+        val spanCount = (screenWidthDp / 120).toInt().coerceAtLeast(3) // Environ 120dp par picto
+        
+        root.layoutManager = GridLayoutManager(requireContext(), spanCount)
         root.adapter = adapter
 
         observeViewModel()

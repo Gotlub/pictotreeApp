@@ -54,6 +54,15 @@
         <argument
             android:name="treeId"
             app:argType="integer" />
+        <action
+            android:id="@+id/action_treeExplorerFragment_to_phraseFullscreenFragment"
+            app:destination="@id/phraseFullscreenFragment" />
     </fragment>
+
+    <dialog
+        android:id="@+id/phraseFullscreenFragment"
+        android:name="org.libera.pictotree.ui.explorer.PhraseFullscreenFragment"
+        android:label="Phrase Fullscreen"
+        tools:layout="@layout/fragment_phrase_fullscreen" />
 
 </navigation>

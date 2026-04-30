@@ -11,7 +11,7 @@ import androidx.recyclerview.widget.RecyclerView
 import coil.load
 import org.libera.pictotree.R
 
-class PhraseAdapter : ListAdapter<TreeNode, PhraseAdapter.PhraseViewHolder>(PhraseDiffCallback()) {
+class PhraseAdapter(private val layoutId: Int = R.layout.item_phrase_picto) : ListAdapter<TreeNode, PhraseAdapter.PhraseViewHolder>(PhraseDiffCallback()) {
 
     private var highlightedPosition: Int = -1
 
@@ -26,7 +26,7 @@ class PhraseAdapter : ListAdapter<TreeNode, PhraseAdapter.PhraseViewHolder>(Phra
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PhraseViewHolder {
-        val view = LayoutInflater.from(parent.context).inflate(R.layout.item_phrase_picto, parent, false)
+        val view = LayoutInflater.from(parent.context).inflate(layoutId, parent, false)
         return PhraseViewHolder(view)
     }
 

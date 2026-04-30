@@ -1,32 +1,33 @@
 # Pictotree (Android App)
 
-## 🌳 Vision du projet
-Pictotree est un outil de CAA (Communication Améliorée et Alternative) conçu pour les personnes ayant des déficiences de communication orale, ainsi que pour leurs aidants (familles, institutions médico-sociales). 
-Le projet s'articule autour d'une plateforme web (`pictotree.eu`) pour la création de contenu, et de cette application Android qui sert de "lecteur" interactif et de moyen d'expression.
+## 🌳 Project Vision
+Pictotree is an AAC (Augmentative and Alternative Communication) tool designed for people with oral communication disabilities, as well as for their caregivers.
+The project is built around a web platform (`pictotree.eu`) for content creation, and this Android application which serves as an interactive "reader" and a means of expression.
 
-L'objectif est de permettre aux utilisateurs de naviguer dans des "arbres de pictogrammes" (routines de la journée, repas, activités) pour se projeter dans le temps et communiquer leurs besoins.
+The goal is to allow users to navigate through "pictogram trees" (daily routines, meals, activities) to project themselves in time and communicate their needs.
 
-## 🛠 Architecture Globale
-L'application repose sur le **Design Pattern Composite** : les données sont structurées sous forme de nœuds et de feuilles (dossiers et pictogrammes d'action/objet) interconnectés pour former des listes chaînées et des arborescences logiques.
+## 🛠 Global Architecture
+The application is based on the **Composite Design Pattern**: data is structured as nodes and leaves (folders and action/object pictograms) interconnected to form linked lists and logical trees.
 
-### Fonctionnalités Clés
-* **Gestion des profils :** Un menu d'entrée permettant de sélectionner des profils (ex: "David", "George Sortie", "George Foyer").
-* **Synchronisation Cloud / Local :** * Utilisation sans compte (accès aux arbres publics).
-    * Connexion via un compte `pictotree.eu` pour récupérer les arbres et images privés de l'utilisateur.
-* **Navigation intra-arbres :** Déplacement fluide dans les arbres de pictogrammes avec retour vocal (Text-to-Speech) de la légende personnalisée de chaque image.
-* **Mode Hors-Ligne (Crucial) :** Pensé pour un environnement médico-social. Les images (notamment celles de l'API ARASAAC ou uploadées sur le site) sont téléchargées physiquement dans un dossier local (`images_picto`) sur la tablette/téléphone pour garantir un accès ininterrompu même sans connexion internet.
+### Key Features
+* **Profile Management:** An entry menu allowing the selection of profiles (e.g., "David", "George Outing", "George Home").
+* **Cloud / Local Sync:** 
+    * Account-less use (access to public trees).
+    * Connection via a `pictotree.eu` account to retrieve the user's private trees and images.
+* **Intra-tree Navigation:** Smooth movement within pictogram trees with vocal feedback (Text-to-Speech) of each image's personalized caption.
+* **Offline Mode (Crucial):** Designed for medico-social environments. Images (notably those from the ARASAAC API or uploaded to the site) are physically downloaded to a local folder (`images_picto`) on the tablet/phone to guarantee uninterrupted access even without an internet connection.
 
-## ⚙️ Stack Technique Android
-* **Package Name :** `org.libera.pictotree`
-* **Langage :** Kotlin
-* **Minimum SDK :** API 28 (Android 9.0)
-* **UI :** XML (Empty Views Activity)
-* **Architecture :** MVVM (Model - View - ViewModel)
-* **Base de données locale :** Room en mode "Database-per-User" (Tables : trees avec payload JSON, et images pour le cache local haché). Les profils globaux sont gérés via EncryptedSharedPreferences.
-* **Réseau :** Retrofit + Kotlin Coroutines (pour communiquer avec l'API pictotree.eu).
-* **Gestion des images :** Glide ou Coil (pour l'affichage depuis le stockage local ou le réseau).
+## ⚙️ Android Technical Stack
+* **Package Name:** `org.libera.pictotree`
+* **Language:** Kotlin
+* **Minimum SDK:** API 28 (Android 9.0)
+* **UI:** XML (Empty Views Activity)
+* **Architecture:** MVVM (Model - View - ViewModel)
+* **Local Database:** Room in "Database-per-User" mode (Tables: trees with JSON payload, and images for hashed local cache). Global profiles are managed via EncryptedSharedPreferences.
+* **Network:** Retrofit + Kotlin Coroutines (to communicate with the pictotree.eu API).
+* **Image Management:** Glide or Coil (for display from local storage or network).
 
-## 🧠 Consignes pour l'IA / Assistant
-* Privilégier un code propre, modulaire et commenté.
-* Respecter l'architecture MVVM : la View ne gère aucune logique métier.
-* Prendre en compte les contraintes d'accessibilité (contraste, cibles de clic larges, simplicité de l'UI).
+## 🧠 Guidelines for AI / Assistant
+* Prioritize clean, modular, and commented code.
+* Respect the MVVM architecture: the View handles no business logic.
+* Consider accessibility constraints (contrast, large click targets, UI simplicity).

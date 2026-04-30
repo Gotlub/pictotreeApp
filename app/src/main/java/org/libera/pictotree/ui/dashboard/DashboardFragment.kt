@@ -8,7 +8,6 @@ import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModelProvider
@@ -77,21 +76,17 @@ class DashboardFragment : Fragment() {
         val factory = DashboardViewModelFactory(profileRepository, userConfigRepository)
         viewModel = ViewModelProvider(this, factory)[DashboardViewModel::class.java]
         
-        // Sécurité : Si on est en ligne, on est ADMIN par défaut (non verrouillable)
         if (isOnline) {
             viewModel.setAdminMode(true)
         }
 
-        adapter =
-                ProfileAdapter(
-                        onProfileClick = { profile ->
-                            viewModel.playProfile(profile.id)
-                        },
-                        onEditClick = { profile ->
-                            val bundle = Bundle().apply { putLong("profileId", profile.id.toLong()) }
-                            findNavController().navigate(R.id.action_dashboardFragment_to_editProfileFragment, bundle)
-                        }
-                )
+        adapter = ProfileAdapter(
+                onProfileClick = { profile -> viewModel.playProfile(profile.id) },
+                onEditClick = { profile ->
+                    val bundle = Bundle().apply { putLong("profileId", profile.id.toLong()) }
+                    findNavController().navigate(R.id.action_dashboardFragment_to_editProfileFragment, bundle)
+                }
+        )
         rvProfiles.layoutManager = LinearLayoutManager(requireContext())
         rvProfiles.adapter = adapter
 
@@ -116,7 +111,6 @@ class DashboardFragment : Fragment() {
                     }
                 }
 
-                // Observer for UI State
                 launch {
                     viewModel.uiState.collect { state ->
                         when (state) {
@@ -140,14 +134,10 @@ class DashboardFragment : Fragment() {
                     }
                 }
 
-                // Observer for Safe/Admin Mode State
                 launch {
                     viewModel.isAdminMode.collect { isAdmin ->
                         adapter.isAdminMode = isAdmin
-
-                        // Restriction : Le bouton "New Profile" n'est accessible qu'en ONLINE + ADMIN
                         fabAddProfile.visibility = if (isAdmin && isOnline) View.VISIBLE else View.GONE
-
                         if (isAdmin) {
                             cardUserSettings.visibility = View.VISIBLE
                             ivAdminStatus.setImageResource(android.R.drawable.ic_partial_secure)
@@ -158,19 +148,16 @@ class DashboardFragment : Fragment() {
                     }
                 }
 
-                // Observer for User Config (Language)
                 launch {
                     viewModel.userConfig.collect { config ->
-                        config?.let {
-                            tvCurrentLanguage.text = it.locale.uppercase()
-                        }
+                        config?.let { tvCurrentLanguage.text = it.locale.uppercase() }
                     }
                 }
             }
         }
 
         // Setup Listeners
-        fabAddProfile.setOnClickListener { showCreateProfileDialog() }
+        fabAddProfile.setOnClickListener { viewModel.createQuickProfile() }
         tvCurrentLanguage.setOnClickListener { showLanguageDialog() }
         btnSetPin.setOnClickListener { showSetPinDialog() }
         
@@ -179,7 +166,6 @@ class DashboardFragment : Fragment() {
             findNavController().navigate(R.id.action_dashboardFragment_to_loginFragment)
         }
 
-        // Listener sur le cadenas pour le Mode Admin
         ivAdminStatus.setOnClickListener { 
             if (isOnline) {
                 Toast.makeText(requireContext(), getString(R.string.dashboard_admin_online_toast), Toast.LENGTH_SHORT).show()
@@ -226,9 +212,7 @@ class DashboardFragment : Fragment() {
         
         MaterialAlertDialogBuilder(requireContext())
             .setTitle(R.string.dialog_lang_title)
-            .setItems(languages) { _, which ->
-                viewModel.setLanguage(codes[which])
-            }
+            .setItems(languages) { _, which -> viewModel.setLanguage(codes[which]) }
             .show()
     }
 
@@ -255,59 +239,5 @@ class DashboardFragment : Fragment() {
             }
             .setNegativeButton(R.string.dialog_create_profile_btn_cancel, null)
             .show()
-    }
-
-    private fun showCreateProfileDialog() {
-        val dialogView =
-                LayoutInflater.from(requireContext()).inflate(R.layout.dialog_create_profile, null)
-        val tilProfileName = dialogView.findViewById<TextInputLayout>(R.id.tilProfileName)
-        val etProfileName = dialogView.findViewById<TextInputEditText>(R.id.etProfileName)
-        
-        var selectedAvatarUrl: String? = null
-        val avatars = listOf(
-            dialogView.findViewById<ImageView>(R.id.avatar_blue) to "#2196F3",
-            dialogView.findViewById<ImageView>(R.id.avatar_pink) to "#E91E63",
-            dialogView.findViewById<ImageView>(R.id.avatar_green) to "#4CAF50",
-            dialogView.findViewById<ImageView>(R.id.avatar_orange) to "#FF9800"
-        )
-
-        avatars.forEach { (view, color) ->
-            view.setOnClickListener {
-                avatars.forEach { 
-                    it.first.alpha = 0.4f
-                    it.first.setBackgroundResource(0)
-                }
-                view.alpha = 1.0f
-                view.setBackgroundResource(android.R.drawable.editbox_dropdown_light_frame)
-                selectedAvatarUrl = "color:$color"
-            }
-            view.alpha = 0.4f
-        }
-
-        val dialog =
-                MaterialAlertDialogBuilder(requireContext())
-                        .setTitle(R.string.dialog_create_profile_title)
-                        .setView(dialogView)
-                        .setPositiveButton(R.string.dialog_create_profile_btn_add, null)
-                        .setNegativeButton(R.string.dialog_create_profile_btn_cancel) { d, _ ->
-                            d.dismiss()
-                        }
-                        .create()
-
-        dialog.setOnShowListener {
-            val positiveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE)
-            positiveButton.setOnClickListener {
-                val name = etProfileName.text?.toString()?.trim()
-                if (name.isNullOrEmpty()) {
-                    tilProfileName.error = getString(R.string.dialog_create_profile_name_error)
-                } else {
-                    tilProfileName.error = null
-                    viewModel.addProfile(name, selectedAvatarUrl)
-                    dialog.dismiss()
-                }
-            }
-        }
-
-        dialog.show()
     }
 }

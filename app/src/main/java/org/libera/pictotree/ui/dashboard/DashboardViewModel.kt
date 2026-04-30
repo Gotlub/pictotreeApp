@@ -82,6 +82,21 @@ class DashboardViewModel(
         }
     }
 
+    /**
+     * Crée un profil par défaut (ex: Profil 3) et déclenche la navigation immédiate
+     */
+    fun createQuickProfile() {
+        viewModelScope.launch {
+            val state = uiState.value
+            val currentCount = if (state is DashboardUiState.Success) state.profiles.size else 0
+            val defaultName = "Profil ${currentCount + 1}"
+            
+            // On peut choisir un avatar par défaut au hasard ou laisser vide
+            val id = profileRepository.insertProfile(Profile(name = defaultName))
+            _navigateToProfileEvent.send(id)
+        }
+    }
+
     fun deleteProfile(profile: Profile) {
         viewModelScope.launch { profileRepository.deleteProfile(profile) }
     }

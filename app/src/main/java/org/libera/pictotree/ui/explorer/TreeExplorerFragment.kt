@@ -14,8 +14,10 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import coil.load
 import kotlinx.coroutines.launch
+import androidx.navigation.fragment.findNavController
 import org.libera.pictotree.R
 import org.libera.pictotree.data.database.AppDatabase
+import org.libera.pictotree.data.database.entity.UserConfig
 import kotlin.math.abs
 
 import org.libera.pictotree.utils.TTSManager
@@ -61,6 +63,11 @@ class TreeExplorerFragment : Fragment() {
         val fabSearch = root.findViewById<View>(R.id.fab_search)
         val fabSpeak = root.findViewById<View>(R.id.fab_speak)
         val rvPhrase = root.findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.rv_phrase)
+        val btnFullscreen = root.findViewById<View>(R.id.btn_fullscreen_phrase)
+
+        btnFullscreen.setOnClickListener {
+            findNavController().navigate(R.id.action_treeExplorerFragment_to_phraseFullscreenFragment)
+        }
 
         // Configuration PhraseAdapter
         val phraseAdapter = PhraseAdapter()
@@ -68,22 +75,61 @@ class TreeExplorerFragment : Fragment() {
         val layoutManager = androidx.recyclerview.widget.LinearLayoutManager(requireContext(), androidx.recyclerview.widget.LinearLayoutManager.HORIZONTAL, false)
         rvPhrase.layoutManager = layoutManager
 
-        // Configuration TTS
-        ttsManager = TTSManager(requireContext())
+        // Drag & Drop / Swipe to Delete
+        val itemTouchHelper = androidx.recyclerview.widget.ItemTouchHelper(object : androidx.recyclerview.widget.ItemTouchHelper.SimpleCallback(
+            androidx.recyclerview.widget.ItemTouchHelper.LEFT or androidx.recyclerview.widget.ItemTouchHelper.RIGHT,
+            androidx.recyclerview.widget.ItemTouchHelper.UP
+        ) {
+            override fun onMove(
+                recyclerView: androidx.recyclerview.widget.RecyclerView,
+                viewHolder: androidx.recyclerview.widget.RecyclerView.ViewHolder,
+                target: androidx.recyclerview.widget.RecyclerView.ViewHolder
+            ): Boolean {
+                viewModel.moveItemInPhrase(viewHolder.bindingAdapterPosition, target.bindingAdapterPosition)
+                return true
+            }
 
-        // Configuration ViewModel avec Factory pour passer les dépendances requises
+            override fun onSwiped(viewHolder: androidx.recyclerview.widget.RecyclerView.ViewHolder, direction: Int) {
+                if (direction == androidx.recyclerview.widget.ItemTouchHelper.UP) {
+                    viewModel.removeItemFromPhrase(viewHolder.bindingAdapterPosition)
+                }
+            }
+        })
+        itemTouchHelper.attachToRecyclerView(rvPhrase)
+
+        // Configuration ViewModel / Database context
         val username = org.libera.pictotree.data.SessionManager(requireContext()).getUsername() ?: "dummy"
         val database = AppDatabase.getDatabase(requireContext(), username)
         val treeDao = database.treeDao()
         val profileDao = database.profileDao()
+        val userConfigRepository = org.libera.pictotree.data.repository.UserConfigRepository(database.userConfigDao())
+
+        // Configuration TTS
+        ttsManager = TTSManager(requireContext())
 
         val factory = object : ViewModelProvider.Factory {
             override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
                 @Suppress("UNCHECKED_CAST")
-                return TreeExplorerViewModel(requireActivity().application, treeDao, org.libera.pictotree.network.RetrofitClient.SERVER_URL, username) as T
+                return TreeExplorerViewModel(
+                    requireActivity().application, 
+                    treeDao, 
+                    userConfigRepository,
+                    org.libera.pictotree.network.RetrofitClient.SERVER_URL, 
+                    username
+                ) as T
             }
         }
-        viewModel = ViewModelProvider(this, factory)[TreeExplorerViewModel::class.java]
+        viewModel = ViewModelProvider(requireActivity(), factory)[TreeExplorerViewModel::class.java]
+        
+        // Observer la langue depuis le ViewModel (Cache réactif)
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) {
+                viewModel.userConfig.collect { config ->
+                    android.util.Log.d("PictoTreeNav", "UserConfig changed: locale=${config?.locale}")
+                    config?.let { ttsManager.setLanguage(it.locale) }
+                }
+            }
+        }
         
         val targetTreeId = arguments?.getInt("treeId", -1) ?: -1
         val profileId = arguments?.getInt("profileId", -1) ?: -1
@@ -142,24 +188,7 @@ class TreeExplorerFragment : Fragment() {
                 username = username,
                 selectedNodeId = centerNodeId
             )
-            dialog.onNodeSelectedListener = { treeId, nodeId ->
-                android.util.Log.d("PictoTreeNav", "VIEW_CHANGE: Returning to Spatial View. Target Tree: $treeId, Node: $nodeId")
-                if (treeId != -1) {
-                    viewModel.jumpToTreeAndNode(treeId, nodeId)
-                } else {
-                    viewModel.jumpToNodeId(nodeId)
-                }
-            }
-            dialog.onAddToBasketListener = { treeId, nodeId ->
-                if (treeId != -1 && treeId != viewModel.getCurrentTreeId()) {
-                    // Tree has changed, load the tree and add the node to basket
-                    viewModel.jumpToTreeAndNode(treeId, nodeId, addToBasket = true)
-                } else {
-                    // Tree hasn't changed or isn't specified, rely on existing tree state
-                    viewModel.addToPhraseById(nodeId)
-                }
-            }
-            dialog.show(parentFragmentManager, "TreeGlobalMapDialog")
+            dialog.show(childFragmentManager, "TreeGlobalMapDialog")
         }
         
         // Binding de la Recherche
@@ -176,7 +205,7 @@ class TreeExplorerFragment : Fragment() {
                 )
                 viewModel.addToPhrase(searchNode)
             }
-            dialog.show(parentFragmentManager, "PictoSearch")
+            dialog.show(childFragmentManager, "PictoSearch")
         }
         
         // Binding TTS

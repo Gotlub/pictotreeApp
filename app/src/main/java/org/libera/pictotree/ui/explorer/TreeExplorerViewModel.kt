@@ -7,6 +7,8 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 import org.libera.pictotree.data.database.dao.TreeDao
@@ -67,6 +69,7 @@ data class SpatialUiState(
 class TreeExplorerViewModel(
     application: Application,
     private val treeDao: TreeDao,
+    private val userConfigRepository: org.libera.pictotree.data.repository.UserConfigRepository,
     private val hostUrl: String,
     private val username: String
 ) : AndroidViewModel(application) {
@@ -80,6 +83,13 @@ class TreeExplorerViewModel(
 
     private val _phraseList = MutableStateFlow<List<TreeNode>>(emptyList())
     val phraseList: StateFlow<List<TreeNode>> = _phraseList.asStateFlow()
+
+    // Configuration réactive (locale, pin, etc.)
+    val userConfig = userConfigRepository.userConfig.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = null
+    )
 
     private var rootNode: TreeNode? = null
     private var currentTreeId: Int = -1
@@ -204,4 +214,21 @@ class TreeExplorerViewModel(
     }
 
     fun clearPhrase() { _phraseList.value = emptyList() }
+
+    fun moveItemInPhrase(from: Int, to: Int) {
+        val list = _phraseList.value.toMutableList()
+        if (from in list.indices && to in list.indices) {
+            val item = list.removeAt(from)
+            list.add(to, item)
+            _phraseList.value = list
+        }
+    }
+
+    fun removeItemFromPhrase(position: Int) {
+        val list = _phraseList.value.toMutableList()
+        if (position in list.indices) {
+            list.removeAt(position)
+            _phraseList.value = list
+        }
+    }
 }

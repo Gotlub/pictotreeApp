@@ -12,6 +12,10 @@ import org.libera.pictotree.data.repository.ArasaacRepository
 import org.libera.pictotree.data.repository.UserConfigRepository
 import org.libera.pictotree.network.TreeApiService
 import org.libera.pictotree.network.dto.PictoSearchResultDTO
+import org.libera.pictotree.utils.ConnectivityObserver
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow as KStateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.firstOrNull
 
 sealed class SearchUiState {
@@ -27,6 +31,7 @@ class PictoSearchViewModel(
     private val treeApiService: TreeApiService,
     private val arasaacRepository: ArasaacRepository,
     private val userConfigRepository: UserConfigRepository,
+    private val connectivityObserver: ConnectivityObserver,
     private val authToken: String?,
     private val username: String,
     private val hostUrl: String
@@ -41,15 +46,45 @@ class PictoSearchViewModel(
     private val _arasaacResults = MutableStateFlow<SearchUiState>(SearchUiState.Idle)
     val arasaacResults: StateFlow<SearchUiState> = _arasaacResults.asStateFlow()
 
-    fun search(query: String, locale: String? = null) {
-        if (query.isBlank()) return
+    // Observation du statut réseau en temps réel
+    val networkStatus = connectivityObserver.observe().stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = ConnectivityObserver.Status.Unavailable
+    )
 
-        searchLocal(query)
-        searchBase(query)
+    private val lastQueries = mutableMapOf<Int, String>()
+    private var currentGlobalQuery: String = ""
+
+    fun updateQuery(query: String) {
+        if (query != currentGlobalQuery) {
+            currentGlobalQuery = query
+            _baseResults.value = SearchUiState.Idle
+            _arasaacResults.value = SearchUiState.Idle
+            lastQueries.clear()
+        }
+    }
+
+    fun search(type: Int) {
+        if (currentGlobalQuery.isBlank()) return
         
-        viewModelScope.launch {
-            val finalLocale = locale ?: userConfigRepository.userConfig.firstOrNull()?.locale ?: "fr"
-            searchArasaac(query, finalLocale)
+        // Si on a déjà cherché ce mot clé pour ce type, on ne fait rien
+        if (lastQueries[type] == currentGlobalQuery) return
+        
+        // Pour les types "Online", on vérifie la connexion avant de lancer
+        if (type != SearchTabFragment.TYPE_LOCAL && networkStatus.value != ConnectivityObserver.Status.Available) {
+            val errorState = SearchUiState.Error("Hors-ligne : Vérifiez votre connexion internet.")
+            if (type == SearchTabFragment.TYPE_BASE) _baseResults.value = errorState
+            if (type == SearchTabFragment.TYPE_ARASAAC) _arasaacResults.value = errorState
+            return
+        }
+
+        lastQueries[type] = currentGlobalQuery
+
+        when (type) {
+            SearchTabFragment.TYPE_LOCAL -> searchLocal(currentGlobalQuery)
+            SearchTabFragment.TYPE_BASE -> searchBase(currentGlobalQuery)
+            SearchTabFragment.TYPE_ARASAAC -> searchArasaac(currentGlobalQuery)
         }
     }
 
@@ -68,14 +103,14 @@ class PictoSearchViewModel(
                 }
                 _localResults.value = SearchUiState.Success(results)
             } catch (e: Exception) {
-                _localResults.value = SearchUiState.Error(e.localizedMessage ?: "Unknown error")
+                _localResults.value = SearchUiState.Error(e.localizedMessage ?: "Erreur")
             }
         }
     }
 
     private fun searchBase(query: String) {
         if (authToken == null) {
-            _baseResults.value = SearchUiState.Error("Offline: Connect to search on PictoTree.eu")
+            _baseResults.value = SearchUiState.Error("Veuillez vous connecter pour chercher sur PictoTree.")
             return
         }
         viewModelScope.launch {
@@ -85,22 +120,23 @@ class PictoSearchViewModel(
                 if (response.isSuccessful) {
                     _baseResults.value = SearchUiState.Success(response.body() ?: emptyList())
                 } else {
-                    _baseResults.value = SearchUiState.Error("Server error: ${response.code()}")
+                    _baseResults.value = SearchUiState.Error("Erreur serveur")
                 }
             } catch (e: Exception) {
-                _baseResults.value = SearchUiState.Error(e.localizedMessage ?: "Network error")
+                _baseResults.value = SearchUiState.Error("Erreur réseau")
             }
         }
     }
 
-    private fun searchArasaac(query: String, locale: String) {
+    private fun searchArasaac(query: String) {
         viewModelScope.launch {
             _arasaacResults.value = SearchUiState.Loading
             try {
+                val locale = userConfigRepository.userConfig.firstOrNull()?.locale ?: "fr"
                 val results = arasaacRepository.search(query, locale)
                 _arasaacResults.value = SearchUiState.Success(results)
             } catch (e: Exception) {
-                _arasaacResults.value = SearchUiState.Error(e.localizedMessage ?: "Network error")
+                _arasaacResults.value = SearchUiState.Error("Erreur réseau")
             }
         }
     }
