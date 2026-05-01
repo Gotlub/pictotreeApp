@@ -75,9 +75,9 @@ class EditProfileViewModel(
         }
     }
 
-    fun openTreeSelection(authToken: String) {
+    fun openTreeSelection() {
         viewModelScope.launch {
-            searchTrees(authToken, "", true)
+            searchTrees("", true)
             _showTreeSelectionEvent.send(Unit)
         }
     }
@@ -88,7 +88,7 @@ class EditProfileViewModel(
     private var currentRemoteQuery = ""
     private var currentRemoteIsPublic = true
 
-    fun searchTrees(authToken: String, query: String, isPublic: Boolean) {
+    fun searchTrees(query: String, isPublic: Boolean) {
         currentRemoteQuery = query
         currentRemoteIsPublic = isPublic
         currentRemotePage = 1
@@ -97,7 +97,6 @@ class EditProfileViewModel(
         viewModelScope.launch {
             try {
                 val response = treeApiService.getAvailableTrees(
-                    authHeader = "Bearer $authToken",
                     isPublic = isPublic,
                     search = if (query.isBlank()) null else query,
                     page = currentRemotePage,
@@ -114,7 +113,7 @@ class EditProfileViewModel(
         }
     }
 
-    fun loadMoreTrees(authToken: String) {
+    fun loadMoreTrees() {
         if (isRemoteLoadingMore || isRemoteLastPage) return
         isRemoteLoadingMore = true
         currentRemotePage++
@@ -122,7 +121,6 @@ class EditProfileViewModel(
         viewModelScope.launch {
             try {
                 val response = treeApiService.getAvailableTrees(
-                    authHeader = "Bearer $authToken",
                     isPublic = currentRemoteIsPublic,
                     search = if (currentRemoteQuery.isBlank()) null else currentRemoteQuery,
                     page = currentRemotePage,
@@ -148,15 +146,18 @@ class EditProfileViewModel(
         }
     }
 
-    fun synchronizeAndImportTree(treeId: Int, profileId: Int, authToken: String, username: String) {
+    fun synchronizeAndImportTree(treeId: Int, profileId: Int, username: String) {
+        val sessionManager = SessionManager(getApplication())
+        val authToken = sessionManager.getToken() ?: ""
+
         viewModelScope.launch {
             try {
-                // Étape 1 : Récupérer "l'ADN" de l'Arbre via Retrofit
-                val response = treeApiService.getTree("Bearer $authToken", treeId)
+                // Étape 1 : Récupérer "l'ADN" de l'Arbre via Retrofit (Token automatique via Interceptor)
+                val response = treeApiService.getTree(treeId)
                 if (response.isSuccessful && response.body() != null) {
                     val fullTree = response.body()!!
                     
-                    // Étape 2 : Insérer l'Entité de Base (Arbre Textuel) AVANT les images pour la contrainte ForeignKey CASCADE !
+                    // Étape 2 : Insérer l'Entité de Base
                     val jsonPayload = Gson().toJson(fullTree)
                     val treeEntity = TreeEntity(
                         id = fullTree.treeId,
@@ -168,16 +169,15 @@ class EditProfileViewModel(
                     )
                     treeDao.insertTree(treeEntity)
                     
-                    // Étape 3 : Engine d'Importation Hachée d'images -> Lien via CrossRef avec tree.id
+                    // Étape 3 : Engine d'Importation (On garde authToken ici car ImageSyncEngine utilise HttpURLConnection manuel)
                     val engine = ImageSyncEngine(getApplication(), imageDao, username, authToken)
                     fullTree.rootNode?.let { engine.syncImagesFromNode(it, fullTree.treeId) }
                     
-                    // Étape 4 : Lier à ce Profil spécifique (En le mettant tout en bas de la liste)
+                    // Étape 4 : Lier à ce Profil
                     val maxOrder = profileDao.getMaxDisplayOrderForProfile(profileId) ?: -1
                     val crossRef = ProfileTreeCrossRef(profileId, treeEntity.id, maxOrder + 1)
                     profileDao.insertProfileTreeCrossRef(crossRef)
                     
-                    // Étape 5 : Rafraichir le Flow Dynamique Android
                     loadProfile(profileId)
                 }
             } catch (e: Exception) {

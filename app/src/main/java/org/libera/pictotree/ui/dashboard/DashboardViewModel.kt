@@ -29,7 +29,7 @@ class DashboardViewModel(
     private val _navigateToProfileEvent = Channel<Long>(Channel.BUFFERED)
     val navigateToProfileEvent = _navigateToProfileEvent.receiveAsFlow()
 
-    private val _playProfileEvent = Channel<Pair<Int, Int>>(Channel.BUFFERED)
+    private val _playProfileEvent = Channel<Int>(Channel.BUFFERED)
     val playProfileEvent = _playProfileEvent.receiveAsFlow()
 
     val userConfig: StateFlow<UserConfig?> = userConfigRepository.userConfig
@@ -103,11 +103,7 @@ class DashboardViewModel(
 
     fun playProfile(profileId: Int) {
         viewModelScope.launch {
-            val trees = profileRepository.getTreesForProfileOrdered(profileId)
-            val firstTreeId = trees.firstOrNull()?.id
-            if (firstTreeId != null) {
-                _playProfileEvent.send(firstTreeId to profileId)
-            }
+            _playProfileEvent.send(profileId)
         }
     }
 }

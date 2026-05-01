@@ -11,7 +11,11 @@ import androidx.recyclerview.widget.RecyclerView
 import coil.load
 import org.libera.pictotree.R
 
-class PhraseAdapter(private val layoutId: Int = R.layout.item_phrase_picto) : ListAdapter<TreeNode, PhraseAdapter.PhraseViewHolder>(PhraseDiffCallback()) {
+class PhraseAdapter(
+    private val layoutId: Int = R.layout.item_phrase_picto,
+    private val onItemClick: ((TreeNode) -> Unit)? = null,
+    private val onItemLongClick: ((Int) -> Unit)? = null
+) : ListAdapter<TreeNode, PhraseAdapter.PhraseViewHolder>(PhraseDiffCallback()) {
 
     private var highlightedPosition: Int = -1
 
@@ -27,20 +31,24 @@ class PhraseAdapter(private val layoutId: Int = R.layout.item_phrase_picto) : Li
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PhraseViewHolder {
         val view = LayoutInflater.from(parent.context).inflate(layoutId, parent, false)
-        return PhraseViewHolder(view)
+        return PhraseViewHolder(view, onItemClick, onItemLongClick)
     }
 
     override fun onBindViewHolder(holder: PhraseViewHolder, position: Int) {
         val node = getItem(position)
-        holder.bind(node, position == highlightedPosition)
+        holder.bind(node, position == highlightedPosition, position)
     }
 
-    class PhraseViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+    class PhraseViewHolder(
+        itemView: View,
+        private val onItemClick: ((TreeNode) -> Unit)? = null,
+        private val onItemLongClick: ((Int) -> Unit)? = null
+    ) : RecyclerView.ViewHolder(itemView) {
         private val ivPicto: ImageView = itemView.findViewById(R.id.iv_picto)
         private val tvLabel: TextView = itemView.findViewById(R.id.tv_label)
         private val card: com.google.android.material.card.MaterialCardView = itemView as com.google.android.material.card.MaterialCardView
 
-        fun bind(node: TreeNode, isHighlighted: Boolean) {
+        fun bind(node: TreeNode, isHighlighted: Boolean, position: Int) {
             tvLabel.text = node.label
             
             // Gestion de l'illumination au rythme de la lecture TTS
@@ -61,6 +69,12 @@ class PhraseAdapter(private val layoutId: Int = R.layout.item_phrase_picto) : Li
                 }
             } else {
                 ivPicto.setImageResource(R.drawable.ic_launcher_foreground)
+            }
+
+            itemView.setOnClickListener { onItemClick?.invoke(node) }
+            itemView.setOnLongClickListener { 
+                onItemLongClick?.invoke(position)
+                true
             }
         }
     }

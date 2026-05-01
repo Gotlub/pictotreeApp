@@ -32,7 +32,6 @@ class PictoSearchViewModel(
     private val arasaacRepository: ArasaacRepository,
     private val userConfigRepository: UserConfigRepository,
     private val connectivityObserver: ConnectivityObserver,
-    private val authToken: String?,
     private val username: String,
     private val hostUrl: String
 ) : AndroidViewModel(application) {
@@ -109,14 +108,10 @@ class PictoSearchViewModel(
     }
 
     private fun searchBase(query: String) {
-        if (authToken == null) {
-            _baseResults.value = SearchUiState.Error("Veuillez vous connecter pour chercher sur PictoTree.")
-            return
-        }
         viewModelScope.launch {
             _baseResults.value = SearchUiState.Loading
             try {
-                val response = treeApiService.searchPictograms("Bearer $authToken", query)
+                val response = treeApiService.searchPictograms(query)
                 if (response.isSuccessful) {
                     _baseResults.value = SearchUiState.Success(response.body() ?: emptyList())
                 } else {

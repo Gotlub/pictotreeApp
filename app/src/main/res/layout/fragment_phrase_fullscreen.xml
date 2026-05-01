@@ -38,6 +38,7 @@
         android:id="@+id/fab_speak_fullscreen"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginEnd="48dp"
         android:src="@android:drawable/ic_btn_speak_now"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"

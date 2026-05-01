@@ -102,12 +102,11 @@ class DashboardFragment : Fragment() {
                 }
 
                 launch {
-                    viewModel.playProfileEvent.collect { profileTreeData ->
+                    viewModel.playProfileEvent.collect { profileId ->
                         val bundle = Bundle().apply { 
-                            putInt("treeId", profileTreeData.first)
-                            putInt("profileId", profileTreeData.second)
+                            putInt("profileId", profileId)
                         }
-                        findNavController().navigate(R.id.action_dashboardFragment_to_treeExplorerFragment, bundle)
+                        findNavController().navigate(R.id.action_dashboardFragment_to_treeSelectionFragment, bundle)
                     }
                 }
 

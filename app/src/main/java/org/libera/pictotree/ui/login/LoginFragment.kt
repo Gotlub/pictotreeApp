@@ -115,7 +115,11 @@ class LoginFragment : Fragment() {
 
                     // 6. Handle Success
                     if (state.isLoginSuccessful && state.username != null) {
-                        SessionManager(requireContext()).saveSession(state.username, state.token)
+                        SessionManager(requireContext()).saveSession(
+                            username = state.username, 
+                            token = state.token,
+                            refreshToken = state.refreshToken
+                        )
                         
                         val bundle = android.os.Bundle().apply {
                             putBoolean("isAdmin", state.isOnlineMode)

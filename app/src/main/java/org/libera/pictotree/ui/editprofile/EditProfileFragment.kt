@@ -159,10 +159,7 @@ class EditProfileFragment : Fragment() {
         // ================= FAB DIALOG LAUNCHER =================
         fabAddTree.visibility = if (isOnline) View.VISIBLE else View.GONE
         fabAddTree.setOnClickListener {
-            val token = sessionManager.getToken()
-            if (token != null) {
-                viewModel.openTreeSelection(token)
-            }
+            viewModel.openTreeSelection()
         }
 
         // ================= VIEWMODEL OBSERVER =================
@@ -174,25 +171,17 @@ class EditProfileFragment : Fragment() {
                         val dialog = TreeSelectionDialogFragment(
                             remoteTreesFlow = viewModel.remoteTrees,
                             onSearchRequested = { query, isPublic ->
-                                val token = sessionManager.getToken()
-                                if (token != null) {
-                                    viewModel.searchTrees(token, query, isPublic)
-                                }
+                                viewModel.searchTrees(query, isPublic)
                             },
                             onLoadMoreRequested = {
-                                val token = sessionManager.getToken()
-                                if (token != null) {
-                                    viewModel.loadMoreTrees(token)
-                                }
+                                viewModel.loadMoreTrees()
                             },
                             onTreeSelected = { selectedTree ->
-                                val token = sessionManager.getToken()
                                 val username = sessionManager.getUsername()
-                                if (token != null && username != null && profileId != -1) {
+                                if (username != null && profileId != -1) {
                                     viewModel.synchronizeAndImportTree(
                                         treeId = selectedTree.id,
                                         profileId = profileId,
-                                        authToken = token,
                                         username = username
                                     )
                                 }

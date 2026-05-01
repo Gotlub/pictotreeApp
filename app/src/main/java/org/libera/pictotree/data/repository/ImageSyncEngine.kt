@@ -13,9 +13,8 @@ import org.libera.pictotree.network.dto.TreeNodeDTO
 class ImageSyncEngine(
         private val context: Context,
         private val imageDao: ImageDao,
-        private val username:
-                String, // Isoler hermétiquement le stockage par utilisateur (Cahier des charges)
-        private val authToken: String // Injection du token JWT pour télécharger les images internes
+        private val username: String, // Isoler hermétiquement le stockage par utilisateur
+        private val authToken: String? = null // Conservé pour compatibilité URL manuelle mais optionnel
 ) {
     suspend fun syncImagesFromNode(node: TreeNodeDTO, treeId: Int) {
         if (node.imageUrl.isNotBlank()) {
@@ -26,10 +25,6 @@ class ImageSyncEngine(
         }
     }
 
-    /**
-     * Télécharge une image isolée (ex: avatar de profil) sans la lier à un arbre. Retourne l'URL
-     * locale finale (file://...)
-     */
     suspend fun downloadSingleImage(remoteUrl: String, name: String? = null): String? =
             withContext(Dispatchers.IO) {
                 if (remoteUrl.isBlank()) return@withContext null
@@ -51,7 +46,10 @@ class ImageSyncEngine(
                 try {
                     val connection = URL(remoteUrl).openConnection() as java.net.HttpURLConnection
                     connection.setRequestProperty("User-Agent", "Mozilla/5.0")
-                    if (remoteUrl.contains("/api/v1/mobile/")) {
+                    
+                    // Note: Si on utilise HttpURLConnection au lieu de Retrofit, l'intercepteur global ne s'applique pas.
+                    // On garde donc la logique manuelle ici pour les téléchargements directs de fichiers.
+                    if (remoteUrl.contains("/api/v1/mobile/") && authToken != null) {
                         connection.setRequestProperty("Authorization", "Bearer $authToken")
                     }
                     connection.connect()
@@ -75,7 +73,6 @@ class ImageSyncEngine(
                             FileOutputStream(file).use { output -> input.copyTo(output) }
                         }
 
-                        // Enregistrer en BDD pour ne plus re-télécharger
                         imageDao.insertImage(
                                 ImageEntity(
                                         remotePath = remoteUrl,
@@ -84,6 +81,8 @@ class ImageSyncEngine(
                                 )
                         )
                         return@withContext localUrl
+                    } else if (connection.responseCode == 401) {
+                         org.libera.pictotree.utils.AuthEvents.triggerLogout()
                     }
                 } catch (e: Exception) {
                     e.printStackTrace()
@@ -96,7 +95,6 @@ class ImageSyncEngine(
                 val fileName =
                         org.libera.pictotree.utils.FileUtils.getLocalFileNameFromUrl(remoteUrl)
 
-                // Si l'application possède DÉJÀ cette empreinte, on la lie directement
                 val existing = imageDao.getImageByRemotePath(remoteUrl)
                 if (existing != null) {
                     imageDao.insertTreeImageCrossRef(
@@ -108,13 +106,11 @@ class ImageSyncEngine(
                     return@withContext
                 }
 
-                // Scaffold de l'architecture dossier
                 val userImagesDir = File(context.filesDir, "$username/images")
                 if (!userImagesDir.exists()) userImagesDir.mkdirs()
 
                 val file = File(userImagesDir, fileName)
-                val localPath =
-                        "images/$fileName" // On sauve le chemin de façon relative pour SQLite
+                val localPath = "images/$fileName"
 
                 var finalName = fileName
 
@@ -122,18 +118,21 @@ class ImageSyncEngine(
                     try {
                         val connection =
                                 URL(remoteUrl).openConnection() as java.net.HttpURLConnection
-                        // Émuler un navigateur pour bypasser les blocages CloudFlare (ex: Arasaac)
                         connection.setRequestProperty(
                                 "User-Agent",
                                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
                         )
 
-                        // Passer le token JWT si l'image provient de notre API locale protégée
-                        if (remoteUrl.contains("/api/v1/mobile/")) {
+                        if (remoteUrl.contains("/api/v1/mobile/") && authToken != null) {
                             connection.setRequestProperty("Authorization", "Bearer $authToken")
                         }
 
                         connection.connect()
+
+                        if (connection.responseCode == 401) {
+                            org.libera.pictotree.utils.AuthEvents.triggerLogout()
+                            return@withContext
+                        }
 
                         val headerDesc = connection.getHeaderField("X-Image-Description")
                         if (!headerDesc.isNullOrBlank()) {
@@ -158,13 +157,8 @@ class ImageSyncEngine(
                         e.printStackTrace()
                         return@withContext
                     }
-                } else {
-                    // Si le fichier existe physiquement mais qu'on n'a pas pu l'associer plus haut
-                    // ?
-                    // On peut s'arrêter, mais au cas où on continue avec finalName = fileName
                 }
 
-                // Finalement, on met la Base de données à jour
                 val newImageId =
                         imageDao.insertImage(
                                 ImageEntity(

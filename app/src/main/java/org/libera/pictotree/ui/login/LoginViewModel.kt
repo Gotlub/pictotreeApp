@@ -22,6 +22,7 @@ data class LoginUiState(
     val errorMessage: String? = null,
     val isLoginSuccessful: Boolean = false,
     val token: String? = null,
+    val refreshToken: String? = null,
     val username: String? = null
 )
 
@@ -102,6 +103,7 @@ class LoginViewModel(
                 _uiState.update { it.copy(
                     isLoginSuccessful = true,
                     token = response.accessToken,
+                    refreshToken = response.refreshToken,
                     username = username
                 ) }
             }.onFailure { exception ->

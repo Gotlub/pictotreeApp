@@ -59,7 +59,7 @@
             android:orientation="horizontal"
             app:layout_constraintGuide_percent="0.72" />
 
-        <!-- 1. ITEM CENTRAL (Focus Actif - Conteneur Vertical pour la proximité Picto/Label) -->
+        <!-- 1. ITEM CENTRAL -->
         <LinearLayout
             android:id="@+id/container_center"
             android:layout_width="0dp"
@@ -95,8 +95,7 @@
                 tools:text="Pomme" />
         </LinearLayout>
 
-        <!-- 2. ITEMS ADJACENTS (Plus petits) -->
-        <!-- Parent (Haut) -->
+        <!-- 2. ITEMS ADJACENTS -->
         <ImageView
             android:id="@+id/iv_top"
             android:layout_width="80dp"
@@ -111,7 +110,6 @@
             app:layout_constraintEnd_toEndOf="@id/guide_v_right"
             tools:src="@drawable/ic_launcher_background" />
 
-        <!-- Child (Bas) -->
         <ImageView
             android:id="@+id/iv_bottom"
             android:layout_width="80dp"
@@ -126,7 +124,6 @@
             app:layout_constraintEnd_toEndOf="@id/guide_v_right"
             tools:src="@drawable/ic_launcher_background" />
 
-        <!-- Sibling Gauche (OU Arbre Précédent) -->
         <ImageView
             android:id="@+id/iv_left"
             android:layout_width="80dp"
@@ -141,7 +138,6 @@
             app:layout_constraintBottom_toBottomOf="@id/guide_h_bottom"
             tools:src="@drawable/ic_launcher_background" />
 
-        <!-- Sibling Droite (OU Arbre Suivant) -->
         <ImageView
             android:id="@+id/iv_right"
             android:layout_width="80dp"
@@ -156,8 +152,7 @@
             app:layout_constraintBottom_toBottomOf="@id/guide_h_bottom"
             tools:src="@drawable/ic_launcher_background" />
 
-        <!-- 3. MICRO-MINIATURES (Non cliquables) -->
-        <!-- Lookahead Haut -->
+        <!-- 3. MICRO-MINIATURES -->
         <LinearLayout
             android:id="@+id/ll_micro_top"
             android:layout_width="wrap_content"
@@ -184,7 +179,6 @@
                 tools:text="+3" />
         </LinearLayout>
 
-        <!-- Lookahead Gauche -->
         <LinearLayout
             android:id="@+id/ll_micro_left"
             android:layout_width="wrap_content"
@@ -210,7 +204,6 @@
                 tools:text="+5" />
         </LinearLayout>
 
-        <!-- Lookahead Droite -->
         <LinearLayout
             android:id="@+id/ll_micro_right"
             android:layout_width="wrap_content"
@@ -236,7 +229,7 @@
                 tools:text="+1" />
         </LinearLayout>
 
-        <!-- HUD: Flèches directionnelles (UNIFIÉES EN TRIANGLES) -->
+        <!-- HUD: Flèches -->
         <ImageView
             android:id="@+id/arrow_top"
             android:layout_width="24dp"
@@ -278,39 +271,29 @@
             app:layout_constraintTop_toTopOf="@id/guide_h_center"
             app:layout_constraintBottom_toBottomOf="@id/guide_h_center"
             app:tint="@color/black" />
+
+        <!-- COUCHE HUD FLOTTANTE: Boutons supérieurs -->
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/fab_eye"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="16dp"
+            android:src="@android:drawable/ic_menu_view"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            android:contentDescription="Ouvrir Vue Globale Arbre" />
+
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/fab_search"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="16dp"
+            android:src="@android:drawable/ic_menu_search"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:contentDescription="Chercher Picto" />
             
     </androidx.constraintlayout.widget.ConstraintLayout>
-
-    <!-- COUCHE HUD FLOTTANTE: Boutons supérieurs -->
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/fab_eye"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_margin="16dp"
-        android:src="@android:drawable/ic_menu_view"
-        app:layout_anchor="@id/layout_spatial_engine"
-        app:layout_anchorGravity="top|start"
-        android:contentDescription="Ouvrir Vue Globale Arbre" />
-
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/fab_search"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_margin="16dp"
-        android:src="@android:drawable/ic_menu_search"
-        app:layout_anchor="@id/layout_spatial_engine"
-        app:layout_anchorGravity="top|end"
-        android:contentDescription="Chercher Picto" />
-
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/fab_speak"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_margin="16dp"
-        android:src="@android:drawable/ic_btn_speak_now"
-        app:layout_anchor="@id/panel_phrase"
-        app:layout_anchorGravity="top|end"
-        android:contentDescription="Lire la phrase" />
 
     <!-- BANDEAU DE PHRASE FIXE (Panier) -->
     <androidx.constraintlayout.widget.ConstraintLayout
@@ -350,5 +333,18 @@
             tools:itemCount="5"
             tools:listitem="@layout/item_phrase_picto" />
     </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <!-- Bouton Lecture : positionné par rapport au bas de l'écran, au-dessus du bandeau (200dp + 16dp) -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fab_speak"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="216dp"
+        android:src="@android:drawable/ic_btn_speak_now"
+        app:elevation="12dp"
+        app:pressedTranslationZ="16dp"
+        android:contentDescription="Lire la phrase" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

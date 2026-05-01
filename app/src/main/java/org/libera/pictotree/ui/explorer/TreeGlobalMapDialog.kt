@@ -28,6 +28,7 @@ import org.libera.pictotree.data.database.AppDatabase
 import org.libera.pictotree.utils.WebViewImageInterceptor
 import org.libera.pictotree.utils.TTSManager
 import org.json.JSONObject
+import coil.load
 
 class TreeGlobalMapDialog : DialogFragment() {
 
@@ -153,9 +154,19 @@ class TreeGlobalMapDialog : DialogFragment() {
             selectedNodesPerTree[globalSelectedTreeId] = globalSelectedNodeId
         }
 
+        val ivPreview = root.findViewById<android.widget.ImageView>(R.id.iv_selection_preview)
+
+        // Initialiser la miniature si une sélection existe déjà
+        viewModel.uiState.value.center?.let { centerNode ->
+            if (centerNode.id == globalSelectedNodeId) {
+                ivPreview.visibility = View.VISIBLE
+                ivPreview.load(centerNode.imageUrl)
+            }
+        }
+
         val bridge = object {
             @JavascriptInterface
-            fun onNodeSelected(prefixedNodeId: String) {
+            fun onNodeSelected(prefixedNodeId: String, imageUrl: String?) {
                 val treeId = prefixedNodeId.split("_").firstOrNull()?.toIntOrNull() ?: return
                 
                 // UNICITÉ GLOBALE : On vide les sélections des autres arbres
@@ -165,6 +176,16 @@ class TreeGlobalMapDialog : DialogFragment() {
                 globalSelectedTreeId = treeId
                 globalSelectedNodeId = prefixedNodeId
                 Log.d(TAG, "TREANT_SELECT: Global target updated to Tree $treeId, Node $prefixedNodeId")
+
+                // Mettre à jour la miniature
+                requireActivity().runOnUiThread {
+                    if (!imageUrl.isNullOrEmpty()) {
+                        ivPreview.visibility = View.VISIBLE
+                        ivPreview.load(imageUrl)
+                    } else {
+                        ivPreview.visibility = View.GONE
+                    }
+                }
             }
         }
 

@@ -28,8 +28,8 @@
             android:id="@+id/action_dashboardFragment_to_editProfileFragment"
             app:destination="@id/editProfileFragment" />
         <action
-            android:id="@+id/action_dashboardFragment_to_treeExplorerFragment"
-            app:destination="@id/treeExplorerFragment" />
+            android:id="@+id/action_dashboardFragment_to_treeSelectionFragment"
+            app:destination="@id/treeSelectionFragment" />
         <action
             android:id="@+id/action_dashboardFragment_to_loginFragment"
             app:destination="@id/loginFragment"
@@ -46,6 +46,20 @@
             android:name="profileId"
             app:argType="long" />
     </fragment>
+
+    <fragment
+        android:id="@+id/treeSelectionFragment"
+        android:name="org.libera.pictotree.ui.treeselection.TreeSelectionFragment"
+        android:label="Select Tree"
+        tools:layout="@layout/fragment_tree_selection">
+        <argument
+            android:name="profileId"
+            app:argType="integer" />
+        <action
+            android:id="@+id/action_treeSelectionFragment_to_treeExplorerFragment"
+            app:destination="@id/treeExplorerFragment" />
+    </fragment>
+
     <fragment
         android:id="@+id/treeExplorerFragment"
         android:name="org.libera.pictotree.ui.explorer.TreeExplorerFragment"
@@ -54,6 +68,10 @@
         <argument
             android:name="treeId"
             app:argType="integer" />
+        <argument
+            android:name="profileId"
+            app:argType="integer"
+            android:defaultValue="-1" />
         <action
             android:id="@+id/action_treeExplorerFragment_to_phraseFullscreenFragment"
             app:destination="@id/phraseFullscreenFragment" />
