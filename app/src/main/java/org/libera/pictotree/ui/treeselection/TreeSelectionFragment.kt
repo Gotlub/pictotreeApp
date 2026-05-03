@@ -39,7 +39,6 @@ class TreeSelectionFragment : Fragment() {
     private lateinit var fabSearch: FloatingActionButton
     private lateinit var fabSpeak: FloatingActionButton
     private lateinit var btnFullscreenPhrase: View
-    private lateinit var layoutGhostFrames: View
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -92,7 +91,6 @@ class TreeSelectionFragment : Fragment() {
         fabSearch = view.findViewById(R.id.fab_search)
         fabSpeak = view.findViewById(R.id.fab_speak)
         btnFullscreenPhrase = view.findViewById(R.id.btn_fullscreen_phrase)
-        layoutGhostFrames = view.findViewById(R.id.layout_ghost_frames)
 
         // Adapter pour les arbres
         val hostUrl = org.libera.pictotree.network.RetrofitClient.SERVER_URL
@@ -166,7 +164,6 @@ class TreeSelectionFragment : Fragment() {
                 launch {
                     explorerViewModel.phraseList.collect { phrase ->
                         phraseAdapter.submitList(phrase)
-                        layoutGhostFrames.visibility = if (phrase.isEmpty()) View.VISIBLE else View.GONE
                         if (phrase.isNotEmpty()) {
                             rvPhrase.smoothScrollToPosition(phrase.size - 1)
                         }

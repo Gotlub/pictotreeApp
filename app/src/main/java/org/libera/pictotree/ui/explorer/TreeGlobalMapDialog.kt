@@ -141,12 +141,10 @@ class TreeGlobalMapDialog : DialogFragment() {
         itemTouchHelper.attachToRecyclerView(rvPhrase)
 
         // Observe Phrase List
-        val layoutGhostFrames = root.findViewById<View>(R.id.layout_ghost_frames)
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.phraseList.collect { phrase ->
                     phraseAdapter.submitList(phrase)
-                    layoutGhostFrames.visibility = if (phrase.isEmpty()) View.VISIBLE else View.GONE
                     if (phrase.isNotEmpty()) {
                         rvPhrase.smoothScrollToPosition(phrase.size - 1)
                     }

@@ -41,6 +41,9 @@ class TreeExplorerFragment : Fragment() {
     private lateinit var rvChildren: RecyclerView
     private lateinit var rvPhrase: RecyclerView
     
+    private lateinit var scrollTopIndicator: View
+    private lateinit var scrollBottomIndicator: View
+    
     private lateinit var containerParent: View
     private lateinit var ivParent: ImageView
     private lateinit var tvParentLabel: TextView
@@ -48,10 +51,7 @@ class TreeExplorerFragment : Fragment() {
     private lateinit var ivSelectedLarge: ImageView
     private lateinit var btnAddToPhrase: Button
     private lateinit var fabSpeak: View
-    private lateinit var layoutGhostFrames: View
-    
-    private lateinit var scrollTopIndicator: View
-    private lateinit var scrollBottomIndicator: View
+    private lateinit var ivArrowToChildren: ImageView
 
     private val snapHelper = LinearSnapHelper()
 
@@ -85,6 +85,9 @@ class TreeExplorerFragment : Fragment() {
         rvChildren = view.findViewById(R.id.rv_children_preview)
         rvPhrase = view.findViewById(R.id.rv_phrase)
         
+        scrollTopIndicator = view.findViewById(R.id.breadcrumb_scroll_top)
+        scrollBottomIndicator = view.findViewById(R.id.breadcrumb_scroll_bottom)
+        
         containerParent = view.findViewById(R.id.container_parent)
         ivParent = view.findViewById(R.id.iv_parent)
         tvParentLabel = view.findViewById(R.id.tv_parent_label)
@@ -92,9 +95,7 @@ class TreeExplorerFragment : Fragment() {
         ivSelectedLarge = view.findViewById(R.id.iv_selected_large)
         btnAddToPhrase = view.findViewById(R.id.btn_add_to_phrase)
         fabSpeak = view.findViewById(R.id.fab_speak)
-        layoutGhostFrames = view.findViewById(R.id.layout_ghost_frames)
-        scrollTopIndicator = view.findViewById(R.id.breadcrumb_scroll_top)
-        scrollBottomIndicator = view.findViewById(R.id.breadcrumb_scroll_bottom)
+        ivArrowToChildren = view.findViewById(R.id.iv_arrow_to_children)
     }
 
     private fun setupAdapters() {
@@ -152,16 +153,14 @@ class TreeExplorerFragment : Fragment() {
             }
         })
 
-        // Children Preview (Bottom Right) - BANDEAU AVEC SUPERPOSITION UNIFORMISÉE (Gabarit 140dp)
-        childrenAdapter = NodeAdapter(R.layout.item_child_preview) { node ->
+        // Children Preview (Bottom Right) - UNIFORMISÉ AVEC LES FRÈRES (140dp x 180dp)
+        childrenAdapter = NodeAdapter(R.layout.item_sibling_node) { node ->
             viewModel.focusOnNode(node)
         }
         rvChildren.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
         rvChildren.adapter = childrenAdapter
         
-        // Appliquer l'effet de superposition (60dp d'overlap pour des cartes de 140dp de large mais moins hautes)
-        val overlapPx = (60 * resources.displayMetrics.density).toInt()
-        rvChildren.addItemDecoration(OverlapDecoration(overlapPx))
+        // Pas de superposition pour les enfants (juxtaposition standard)
 
         // Phrase Band (Bottom)
         phraseAdapter = PhraseAdapter(
@@ -290,7 +289,6 @@ class TreeExplorerFragment : Fragment() {
                 launch {
                     viewModel.phraseList.collect { phrase ->
                         phraseAdapter.submitList(phrase)
-                        layoutGhostFrames.visibility = if (phrase.isEmpty()) View.VISIBLE else View.GONE
                         if (phrase.isNotEmpty()) rvPhrase.smoothScrollToPosition(phrase.size - 1)
                     }
                 }
@@ -350,12 +348,15 @@ class TreeExplorerFragment : Fragment() {
             }
         }
 
+        // Flèche vers enfants : visible seulement si le noeud focus a des enfants
+        ivArrowToChildren.visibility = if (state.focusedNode?.children?.isNotEmpty() == true) View.VISIBLE else View.INVISIBLE
+
         // Bottom Zone: Large Focus
         state.focusedNode?.let { node ->
             ivSelectedLarge.load(node.imageUrl) { placeholder(R.drawable.ic_launcher_foreground) }
         }
 
-        // Bottom Zone: Children (Full bandeau superposé uniformisé)
+        // Bottom Zone: Children (Full bandeau uniformisé)
         childrenAdapter.submitList(state.children)
     }
 
