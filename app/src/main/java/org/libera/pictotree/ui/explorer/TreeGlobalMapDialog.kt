@@ -13,11 +13,14 @@ import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.ImageButton
+import android.widget.ImageView
 import androidx.fragment.app.DialogFragment
+import androidx.fragment.app.Fragment
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import kotlinx.coroutines.Dispatchers
@@ -138,10 +141,12 @@ class TreeGlobalMapDialog : DialogFragment() {
         itemTouchHelper.attachToRecyclerView(rvPhrase)
 
         // Observe Phrase List
+        val layoutGhostFrames = root.findViewById<View>(R.id.layout_ghost_frames)
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.phraseList.collect { phrase ->
                     phraseAdapter.submitList(phrase)
+                    layoutGhostFrames.visibility = if (phrase.isEmpty()) View.VISIBLE else View.GONE
                     if (phrase.isNotEmpty()) {
                         rvPhrase.smoothScrollToPosition(phrase.size - 1)
                     }
@@ -257,6 +262,29 @@ class TreeGlobalMapDialog : DialogFragment() {
                 viewModel.jumpToTreeAndNode(globalSelectedTreeId, globalSelectedNodeId)
             }
             dismiss()
+        }
+
+        root.findViewById<View>(R.id.card_search).setOnClickListener {
+            val searchDialog = org.libera.pictotree.ui.common.PictoSearchDialog()
+            searchDialog.onPictoSelected = { result ->
+                val searchNode = TreeNode(
+                    id = "search_${result.id}_recherche",
+                    label = result.name,
+                    imageUrl = result.imageUrl,
+                    children = emptyList()
+                )
+                viewModel.addToPhrase(searchNode)
+            }
+            searchDialog.show(childFragmentManager, "PictoSearch")
+        }
+
+        root.findViewById<View>(R.id.card_back_to_trees).setOnClickListener {
+            // Fermer le dialogue et demander à l'explorer de revenir en arrière
+            dismiss()
+            // On peut envoyer un signal via le ViewModel ou simplement laisser l'utilisateur 
+            // cliquer sur le bouton physique retour, mais ici on veut simuler le bouton grille.
+            // Le plus simple est de déclencher une navigation arrière sur le parent.
+            (parentFragment as? Fragment)?.findNavController()?.popBackStack()
         }
 
         // TTS Support

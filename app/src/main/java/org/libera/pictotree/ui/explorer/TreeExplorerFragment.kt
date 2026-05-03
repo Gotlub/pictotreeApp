@@ -48,6 +48,7 @@ class TreeExplorerFragment : Fragment() {
     private lateinit var ivSelectedLarge: ImageView
     private lateinit var btnAddToPhrase: Button
     private lateinit var fabSpeak: View
+    private lateinit var layoutGhostFrames: View
 
     private val snapHelper = LinearSnapHelper()
 
@@ -78,6 +79,7 @@ class TreeExplorerFragment : Fragment() {
         ivSelectedLarge = view.findViewById(R.id.iv_selected_large)
         btnAddToPhrase = view.findViewById(R.id.btn_add_to_phrase)
         fabSpeak = view.findViewById(R.id.fab_speak)
+        layoutGhostFrames = view.findViewById(R.id.layout_ghost_frames)
     }
 
     private fun setupAdapters() {
@@ -256,6 +258,7 @@ class TreeExplorerFragment : Fragment() {
                 launch {
                     viewModel.phraseList.collect { phrase ->
                         phraseAdapter.submitList(phrase)
+                        layoutGhostFrames.visibility = if (phrase.isEmpty()) View.VISIBLE else View.GONE
                         if (phrase.isNotEmpty()) rvPhrase.smoothScrollToPosition(phrase.size - 1)
                     }
                 }

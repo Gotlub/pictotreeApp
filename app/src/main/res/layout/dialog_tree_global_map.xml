@@ -16,18 +16,77 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <!-- TOP BAR ACTIONS -->
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/btn_back_to_nav"
+    <!-- TOP BAR ACTIONS (Synchronisées avec fragment_tree_explorer) -->
+    <LinearLayout
+        android:id="@+id/container_actions"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_margin="16dp"
-        app:fabSize="mini"
-        android:src="@android:drawable/ic_menu_revert"
-        app:backgroundTint="@color/white"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        android:contentDescription="Retour" />
+        android:orientation="vertical"
+        android:gravity="end"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="16dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <!-- Bouton Retour (Ferme le dialogue et revient à l'endroit exact dans l'explorateur) -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/btn_back_to_nav"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginBottom="8dp"
+            app:cardCornerRadius="12dp"
+            app:cardBackgroundColor="#EDE7F6"
+            app:cardElevation="2dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?attr/selectableItemBackground">
+            <ImageView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:padding="10dp"
+                android:src="@android:drawable/ic_menu_revert"
+                app:tint="#5E35B1" />
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Bouton Recherche -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_search"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginBottom="8dp"
+            app:cardCornerRadius="12dp"
+            app:cardBackgroundColor="#EDE7F6"
+            app:cardElevation="2dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?attr/selectableItemBackground">
+            <ImageView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:padding="10dp"
+                android:src="@android:drawable/ic_menu_search"
+                app:tint="#5E35B1" />
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Bouton Grille (Retour aux arbres) -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_back_to_trees"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            app:cardCornerRadius="12dp"
+            app:cardBackgroundColor="#EDE7F6"
+            app:cardElevation="2dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?attr/selectableItemBackground">
+            <ImageView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:padding="10dp"
+                android:src="@android:drawable/ic_dialog_dialer"
+                app:tint="#5E35B1" />
+        </com.google.android.material.card.MaterialCardView>
+    </LinearLayout>
 
     <!-- Preview and Add Panel -->
     <LinearLayout
@@ -36,7 +95,8 @@
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:gravity="center"
-        android:layout_margin="16dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginBottom="16dp"
         app:layout_constraintBottom_toTopOf="@id/panel_phrase"
         app:layout_constraintStart_toStartOf="parent">
 
@@ -58,6 +118,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:text="Ajouter"
+            android:textAllCaps="false"
             app:cornerRadius="20dp" />
     </LinearLayout>
 
@@ -100,6 +161,25 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent">
+
+        <!-- Ghost Frames for empty state -->
+        <LinearLayout
+            android:id="@+id/layout_ghost_frames"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:orientation="horizontal"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="12dp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent">
+
+            <View android:layout_width="110dp" android:layout_height="match_parent" android:layout_marginEnd="8dp" android:background="@drawable/bg_ghost_frame" />
+            <View android:layout_width="110dp" android:layout_height="match_parent" android:layout_marginEnd="8dp" android:background="@drawable/bg_ghost_frame" />
+            <View android:layout_width="110dp" android:layout_height="match_parent" android:layout_marginEnd="8dp" android:background="@drawable/bg_ghost_frame" />
+            <View android:layout_width="110dp" android:layout_height="match_parent" android:layout_marginEnd="8dp" android:background="@drawable/bg_ghost_frame" />
+            <View android:layout_width="110dp" android:layout_height="match_parent" android:layout_marginEnd="8dp" android:background="@drawable/bg_ghost_frame" />
+        </LinearLayout>
 
         <ImageButton
             android:id="@+id/btn_fullscreen_phrase"

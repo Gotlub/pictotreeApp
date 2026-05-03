@@ -82,6 +82,7 @@
                 android:layout_height="match_parent"
                 android:orientation="vertical"
                 android:gravity="center_vertical|end"
+                android:layout_marginEnd="16dp"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
                 app:layout_constraintBottom_toBottomOf="parent">
@@ -183,15 +184,14 @@
             <!-- Gauche: Action (Miniature + Ajouter) -->
             <LinearLayout
                 android:id="@+id/layout_action"
-                android:layout_width="0dp"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
                 android:gravity="center"
                 android:layout_marginStart="16dp"
-                android:layout_marginBottom="8dp"
+                android:layout_marginBottom="16dp"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toStartOf="@id/guideline_split">
+                app:layout_constraintBottom_toBottomOf="parent">
 
                 <ImageView
                     android:id="@+id/iv_selected_large"
@@ -243,6 +243,25 @@
         android:layout_gravity="bottom"
         android:background="@drawable/rounded_bottom_sheet"
         android:elevation="16dp">
+
+        <!-- Ghost Frames for empty state -->
+        <LinearLayout
+            android:id="@+id/layout_ghost_frames"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:orientation="horizontal"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="12dp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent">
+
+            <View android:layout_width="110dp" android:layout_height="match_parent" android:layout_marginEnd="8dp" android:background="@drawable/bg_ghost_frame" />
+            <View android:layout_width="110dp" android:layout_height="match_parent" android:layout_marginEnd="8dp" android:background="@drawable/bg_ghost_frame" />
+            <View android:layout_width="110dp" android:layout_height="match_parent" android:layout_marginEnd="8dp" android:background="@drawable/bg_ghost_frame" />
+            <View android:layout_width="110dp" android:layout_height="match_parent" android:layout_marginEnd="8dp" android:background="@drawable/bg_ghost_frame" />
+            <View android:layout_width="110dp" android:layout_height="match_parent" android:layout_marginEnd="8dp" android:background="@drawable/bg_ghost_frame" />
+        </LinearLayout>
 
         <ImageButton
             android:id="@+id/btn_fullscreen_phrase"
