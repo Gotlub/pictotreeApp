@@ -151,6 +151,15 @@ class TreeExplorerFragment : Fragment() {
                     updateFocusFromSnap()
                 }
             }
+
+            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                // Aligner dynamiquement la flèche sous l'élément central pendant le scroll
+                val centerView = snapHelper.findSnapView(rvSiblings.layoutManager)
+                centerView?.let { view ->
+                    val viewCenter = (view.left + view.right) / 2
+                    ivArrowToChildren.translationX = (viewCenter - rvSiblings.width / 2).toFloat()
+                }
+            }
         })
 
         // Children Preview (Bottom Right) - UNIFORMISÉ AVEC LES FRÈRES (140dp x 180dp)

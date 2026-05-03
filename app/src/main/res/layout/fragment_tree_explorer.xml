@@ -156,8 +156,7 @@
             </LinearLayout>
         </androidx.constraintlayout.widget.ConstraintLayout>
 
-        <!-- 2. ZONE MILIEU (Frères + Flèche sous focus) -->
-        <!-- Width match_parent pour permettre la superposition sous les breadcrumbs -->
+        <!-- 2. ZONE MILIEU (Frères) -->
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/middle_container"
             android:layout_width="match_parent"
@@ -170,25 +169,26 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:clipToPadding="false"
-                android:paddingStart="80dp" 
-                android:paddingEnd="16dp"
+                android:paddingHorizontal="40dp"
                 android:orientation="horizontal"
                 app:layout_constraintTop_toTopOf="parent"
                 app:layout_constraintBottom_toBottomOf="parent"
                 tools:listitem="@layout/item_sibling_node" />
-
-            <!-- Flèche horizontale centrée sur l'écran (s'aligne avec le SnapHelper) -->
-            <ImageView
-                android:id="@+id/iv_arrow_to_children"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
-                android:src="@android:drawable/arrow_down_float"
-                android:visibility="invisible"
-                app:tint="#CCCCCC"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent" />
         </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <!-- Flèche horizontale centrée entre les deux lignes -->
+        <ImageView
+            android:id="@+id/iv_arrow_to_children"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:src="@android:drawable/arrow_down_float"
+            android:visibility="invisible"
+            android:elevation="4dp"
+            app:tint="#CCCCCC"
+            app:layout_constraintTop_toBottomOf="@id/middle_container"
+            app:layout_constraintBottom_toTopOf="@id/bottom_nav_zone"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
 
         <!-- 3. ZONE BASSE (Enfants) -->
         <!-- Width match_parent pour permettre la superposition sous le bloc Ajouter -->
