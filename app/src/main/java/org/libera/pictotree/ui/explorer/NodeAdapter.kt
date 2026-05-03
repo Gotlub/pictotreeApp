@@ -45,17 +45,23 @@ class NodeAdapter(
 
         fun bind(node: TreeNode, isSelected: Boolean) {
             tvLabel.text = node.label
-            if (node.imageUrl.isNotEmpty()) {
-                ivPicto.load(node.imageUrl) {
-                    crossfade(true)
-                    placeholder(R.drawable.ic_launcher_foreground)
-                    error(R.drawable.ic_launcher_foreground)
-                }
+            
+            if (node.id == "MORE_CHILDREN") {
+                ivPicto.setImageResource(android.R.drawable.ic_menu_more)
+                ivPicto.scaleType = ImageView.ScaleType.CENTER_INSIDE
+                ivHasChildren?.visibility = View.GONE
             } else {
-                ivPicto.setImageResource(R.drawable.ic_launcher_foreground)
+                if (node.imageUrl.isNotEmpty()) {
+                    ivPicto.load(node.imageUrl) {
+                        crossfade(true)
+                        placeholder(R.drawable.ic_launcher_foreground)
+                        error(R.drawable.ic_launcher_foreground)
+                    }
+                } else {
+                    ivPicto.setImageResource(R.drawable.ic_launcher_foreground)
+                }
+                ivHasChildren?.visibility = if (node.children.isNotEmpty()) View.VISIBLE else View.GONE
             }
-
-            ivHasChildren?.visibility = if (node.children.isNotEmpty()) View.VISIBLE else View.GONE
             
             if (isSelected) {
                 card.strokeWidth = 6

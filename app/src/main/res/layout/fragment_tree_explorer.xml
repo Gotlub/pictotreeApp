@@ -12,51 +12,119 @@
         android:layout_height="match_parent"
         android:paddingBottom="180dp">
 
-        <!-- 1. TOP BAR -->
-        <androidx.constraintlayout.widget.ConstraintLayout
-            android:id="@+id/top_bar"
+        <!-- 1. BACKGROUND SCROLLABLE LAYERS (Full Width) -->
+
+        <!-- Zone des Frères (Arrière-plan, toute la largeur) -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rv_siblings"
             android:layout_width="match_parent"
             android:layout_height="180dp"
-            app:layout_constraintTop_toTopOf="parent">
+            android:layout_marginTop="16dp"
+            android:clipToPadding="false"
+            android:paddingStart="80dp" 
+            android:paddingEnd="16dp"
+            android:orientation="horizontal"
+            app:layout_constraintTop_toBottomOf="@id/top_bar"
+            tools:listitem="@layout/item_sibling_node" />
 
-            <!-- Breadcrumb (Parents lointains) - A GAUCHE, VERTICAL -->
+        <!-- Zone des Enfants (Arrière-plan, toute la largeur) -->
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/bottom_nav_zone"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_marginTop="16dp"
+            app:layout_constraintTop_toBottomOf="@id/rv_siblings"
+            app:layout_constraintBottom_toBottomOf="parent">
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rv_children_preview"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="8dp"
+                android:background="@drawable/rounded_bottom_sheet"
+                android:clipToPadding="false"
+                android:paddingStart="120dp"
+                android:paddingEnd="16dp"
+                android:paddingVertical="4dp"
+                android:orientation="horizontal"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                tools:listitem="@layout/item_child_preview" />
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+
+        <!-- 2. FOREGROUND FIXED LAYERS (Superposés) -->
+
+        <!-- Breadcrumb (Fil d'Ariane) - FIXE À GAUCHE AU PREMIER PLAN -->
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/container_breadcrumbs"
+            android:layout_width="66dp"
+            android:layout_height="0dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="8dp"
+            android:elevation="8dp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toTopOf="@+id/layout_action">
+
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/rv_breadcrumbs"
-                android:layout_width="60dp"
+                android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:layout_marginStart="8dp"
-                android:layout_marginTop="8dp"
-                android:layout_marginBottom="8dp"
-                android:layout_marginEnd="8dp"
                 android:orientation="vertical"
                 android:scrollbars="none"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintBottom_toBottomOf="parent"
                 tools:listitem="@layout/item_breadcrumb" />
 
-            <!-- Parent Direct (CENTRE) -->
+            <View
+                android:id="@+id/breadcrumb_scroll_top"
+                android:layout_width="match_parent"
+                android:layout_height="20dp"
+                android:background="@drawable/scroll_gradient_top"
+                android:visibility="invisible"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <View
+                android:id="@+id/breadcrumb_scroll_bottom"
+                android:layout_width="match_parent"
+                android:layout_height="20dp"
+                android:background="@drawable/scroll_gradient_bottom"
+                android:visibility="invisible"
+                app:layout_constraintBottom_toBottomOf="parent" />
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <!-- Top Bar (Parent + Actions) - Toujours en haut, mais commence après le breadcrumb pour la clarté -->
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/top_bar"
+            android:layout_width="0dp"
+            android:layout_height="180dp"
+            app:layout_constraintStart_toEndOf="@id/container_breadcrumbs"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent">
+
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/container_parent"
-                android:layout_width="120dp"
+                android:layout_width="140dp"
                 android:layout_height="match_parent"
                 android:layout_marginTop="8dp"
                 android:layout_marginBottom="8dp"
-                app:cardCornerRadius="12dp"
+                app:cardCornerRadius="16dp"
                 app:cardElevation="4dp"
-                app:layout_constraintStart_toEndOf="@id/rv_breadcrumbs"
+                app:strokeWidth="2dp"
+                app:strokeColor="@color/material_dynamic_neutral90"
+                app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toStartOf="@id/container_actions"
                 app:layout_constraintTop_toTopOf="parent"
                 app:layout_constraintBottom_toBottomOf="parent">
                 
                 <androidx.constraintlayout.widget.ConstraintLayout
                     android:layout_width="match_parent"
-                    android:layout_height="match_parent">
+                    android:layout_height="match_parent"
+                    android:padding="8dp">
                     <ImageView
                         android:id="@+id/iv_parent"
                         android:layout_width="match_parent"
                         android:layout_height="0dp"
-                        android:padding="8dp"
                         android:scaleType="centerInside"
                         app:layout_constraintTop_toTopOf="parent"
                         app:layout_constraintBottom_toTopOf="@id/tv_parent_label"
@@ -65,17 +133,16 @@
                         android:id="@+id/tv_parent_label"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="4dp"
                         android:gravity="center"
                         android:textSize="14sp"
                         android:textStyle="bold"
                         android:maxLines="1"
+                        android:ellipsize="end"
                         app:layout_constraintBottom_toBottomOf="parent"
                         tools:text="Parent" />
                 </androidx.constraintlayout.widget.ConstraintLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Actions (VERTICALES) - A DROITE -->
             <LinearLayout
                 android:id="@+id/container_actions"
                 android:layout_width="wrap_content"
@@ -87,7 +154,6 @@
                 app:layout_constraintTop_toTopOf="parent"
                 app:layout_constraintBottom_toBottomOf="parent">
 
-                <!-- Bouton Vue Treant -->
                 <com.google.android.material.card.MaterialCardView
                     android:id="@+id/card_eye"
                     android:layout_width="48dp"
@@ -97,8 +163,7 @@
                     app:cardBackgroundColor="#EDE7F6"
                     app:cardElevation="2dp"
                     android:clickable="true"
-                    android:focusable="true"
-                    android:foreground="?attr/selectableItemBackground">
+                    android:focusable="true">
                     <ImageView
                         android:id="@+id/iv_eye"
                         android:layout_width="match_parent"
@@ -108,7 +173,6 @@
                         app:tint="#5E35B1" />
                 </com.google.android.material.card.MaterialCardView>
 
-                <!-- Bouton Recherche -->
                 <com.google.android.material.card.MaterialCardView
                     android:id="@+id/card_search"
                     android:layout_width="48dp"
@@ -118,8 +182,7 @@
                     app:cardBackgroundColor="#EDE7F6"
                     app:cardElevation="2dp"
                     android:clickable="true"
-                    android:focusable="true"
-                    android:foreground="?attr/selectableItemBackground">
+                    android:focusable="true">
                     <ImageView
                         android:id="@+id/iv_search"
                         android:layout_width="match_parent"
@@ -129,7 +192,6 @@
                         app:tint="#5E35B1" />
                 </com.google.android.material.card.MaterialCardView>
 
-                <!-- Bouton Grille (Retour aux arbres) -->
                 <com.google.android.material.card.MaterialCardView
                     android:id="@+id/card_back_to_trees"
                     android:layout_width="48dp"
@@ -138,8 +200,7 @@
                     app:cardBackgroundColor="#EDE7F6"
                     app:cardElevation="2dp"
                     android:clickable="true"
-                    android:focusable="true"
-                    android:foreground="?attr/selectableItemBackground">
+                    android:focusable="true">
                     <ImageView
                         android:id="@+id/iv_grid"
                         android:layout_width="match_parent"
@@ -149,93 +210,44 @@
                         app:tint="#5E35B1" />
                 </com.google.android.material.card.MaterialCardView>
             </LinearLayout>
-
         </androidx.constraintlayout.widget.ConstraintLayout>
 
-        <!-- 2. MIDDLE ZONE (Les Frères) -->
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/rv_siblings"
-            android:layout_width="match_parent"
-            android:layout_height="180dp"
-            android:layout_marginTop="16dp"
-            android:clipToPadding="false"
-            android:paddingHorizontal="40dp"
-            android:orientation="horizontal"
-            app:layout_constraintTop_toBottomOf="@id/top_bar"
-            tools:listitem="@layout/item_phrase_picto" />
-
-        <!-- 3. BOTTOM ZONE (Action & Preview) -->
-        <androidx.constraintlayout.widget.ConstraintLayout
-            android:id="@+id/bottom_nav_zone"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_marginTop="16dp"
-            app:layout_constraintTop_toBottomOf="@id/rv_siblings"
+        <!-- Zone Action (Miniature + Ajouter) - FIXE EN BAS À GAUCHE AU PREMIER PLAN -->
+        <LinearLayout
+            android:id="@+id/layout_action"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:layout_marginStart="8dp"
+            android:layout_marginBottom="16dp"
+            android:elevation="10dp"
+            app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintBottom_toBottomOf="parent">
 
-            <!-- Guideline 40% -->
-            <androidx.constraintlayout.widget.Guideline
-                android:id="@+id/guideline_split"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                app:layout_constraintGuide_percent="0.4" />
-
-            <!-- Gauche: Action (Miniature + Ajouter) -->
-            <LinearLayout
-                android:id="@+id/layout_action"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:gravity="center"
-                android:layout_marginStart="16dp"
-                android:layout_marginBottom="16dp"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintBottom_toBottomOf="parent">
-
-                <ImageView
-                    android:id="@+id/iv_selected_large"
-                    android:layout_width="80dp"
-                    android:layout_height="80dp"
-                    android:background="@drawable/rounded_bottom_sheet"
-                    android:backgroundTint="#F0F0F0"
-                    android:padding="4dp"
-                    android:scaleType="centerInside"
-                    tools:src="@drawable/ic_launcher_background" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btn_add_to_phrase"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="Ajouter"
-                    android:textAllCaps="false"
-                    app:cornerRadius="20dp" />
-
-            </LinearLayout>
-
-            <!-- Droite: Preview (Enfants) -->
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/rv_children_preview"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_marginStart="8dp"
-                android:layout_marginEnd="8dp"
-                android:layout_marginTop="8dp"
-                android:layout_marginBottom="8dp"
+            <ImageView
+                android:id="@+id/iv_selected_large"
+                android:layout_width="80dp"
+                android:layout_height="80dp"
                 android:background="@drawable/rounded_bottom_sheet"
+                android:backgroundTint="#F0F0F0"
                 android:padding="4dp"
-                app:layout_constraintStart_toEndOf="@id/guideline_split"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
-                app:spanCount="3"
-                tools:listitem="@layout/item_phrase_picto" />
+                android:scaleType="centerInside"
+                tools:src="@drawable/ic_launcher_background" />
 
-        </androidx.constraintlayout.widget.ConstraintLayout>
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_add_to_phrase"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="Ajouter"
+                android:textAllCaps="false"
+                app:cornerRadius="20dp" />
+        </LinearLayout>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-    <!-- BANDEAU DE PHRASE FIXE (Panier) - ABSOLUTE BOTTOM -->
+    <!-- BANDEAU DE PHRASE FIXE (Panier) -->
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/panel_phrase"
         android:layout_width="match_parent"
@@ -244,7 +256,6 @@
         android:background="@drawable/rounded_bottom_sheet"
         android:elevation="16dp">
 
-        <!-- Ghost Frames for empty state -->
         <LinearLayout
             android:id="@+id/layout_ghost_frames"
             android:layout_width="wrap_content"
@@ -273,8 +284,7 @@
             android:src="@android:drawable/ic_menu_zoom"
             android:elevation="20dp"
             app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            android:contentDescription="Mode plein écran" />
+            app:layout_constraintEnd_toEndOf="parent" />
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/rv_phrase"
@@ -300,7 +310,6 @@
         android:layout_marginEnd="16dp"
         android:layout_marginBottom="188dp"
         android:src="@android:drawable/ic_btn_speak_now"
-        app:elevation="12dp"
-        android:contentDescription="Lire la phrase" />
+        app:elevation="12dp" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

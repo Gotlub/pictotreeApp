@@ -49,8 +49,21 @@ class TreeExplorerFragment : Fragment() {
     private lateinit var btnAddToPhrase: Button
     private lateinit var fabSpeak: View
     private lateinit var layoutGhostFrames: View
+    
+    private lateinit var scrollTopIndicator: View
+    private lateinit var scrollBottomIndicator: View
 
     private val snapHelper = LinearSnapHelper()
+
+    // Décoration pour l'effet de superposition (overlap)
+    private inner class OverlapDecoration(private val overlapPx: Int) : RecyclerView.ItemDecoration() {
+        override fun getItemOffsets(outRect: android.graphics.Rect, view: View, parent: RecyclerView, state: RecyclerView.State) {
+            val position = parent.getChildAdapterPosition(view)
+            if (position > 0) {
+                outRect.left = -overlapPx
+            }
+        }
+    }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         return inflater.inflate(R.layout.fragment_tree_explorer, container, false)
@@ -80,6 +93,8 @@ class TreeExplorerFragment : Fragment() {
         btnAddToPhrase = view.findViewById(R.id.btn_add_to_phrase)
         fabSpeak = view.findViewById(R.id.fab_speak)
         layoutGhostFrames = view.findViewById(R.id.layout_ghost_frames)
+        scrollTopIndicator = view.findViewById(R.id.breadcrumb_scroll_top)
+        scrollBottomIndicator = view.findViewById(R.id.breadcrumb_scroll_bottom)
     }
 
     private fun setupAdapters() {
@@ -89,6 +104,14 @@ class TreeExplorerFragment : Fragment() {
         }
         rvBreadcrumbs.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.VERTICAL, false)
         rvBreadcrumbs.adapter = breadcrumbAdapter
+        
+        // Indicateurs de scroll pour les breadcrumbs
+        rvBreadcrumbs.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                scrollTopIndicator.visibility = if (recyclerView.canScrollVertically(-1)) View.VISIBLE else View.INVISIBLE
+                scrollBottomIndicator.visibility = if (recyclerView.canScrollVertically(1)) View.VISIBLE else View.INVISIBLE
+            }
+        })
 
         // Siblings (Middle Zone)
         siblingAdapter = NodeAdapter(R.layout.item_sibling_node) { node ->
@@ -129,12 +152,16 @@ class TreeExplorerFragment : Fragment() {
             }
         })
 
-        // Children Preview (Bottom Right)
-        childrenAdapter = NodeAdapter(R.layout.item_phrase_picto) { node ->
+        // Children Preview (Bottom Right) - BANDEAU AVEC SUPERPOSITION UNIFORMISÉE (Gabarit 140dp)
+        childrenAdapter = NodeAdapter(R.layout.item_child_preview) { node ->
             viewModel.focusOnNode(node)
         }
-        rvChildren.layoutManager = GridLayoutManager(requireContext(), 3)
+        rvChildren.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
         rvChildren.adapter = childrenAdapter
+        
+        // Appliquer l'effet de superposition (60dp d'overlap pour des cartes de 140dp de large mais moins hautes)
+        val overlapPx = (60 * resources.displayMetrics.density).toInt()
+        rvChildren.addItemDecoration(OverlapDecoration(overlapPx))
 
         // Phrase Band (Bottom)
         phraseAdapter = PhraseAdapter(
@@ -253,6 +280,11 @@ class TreeExplorerFragment : Fragment() {
                 launch {
                     viewModel.uiState.collect { state ->
                         updateUI(state)
+                        // Forcer la mise à jour des indicateurs après le chargement des données
+                        rvBreadcrumbs.post {
+                            scrollTopIndicator.visibility = if (rvBreadcrumbs.canScrollVertically(-1)) View.VISIBLE else View.INVISIBLE
+                            scrollBottomIndicator.visibility = if (rvBreadcrumbs.canScrollVertically(1)) View.VISIBLE else View.INVISIBLE
+                        }
                     }
                 }
                 launch {
@@ -323,7 +355,7 @@ class TreeExplorerFragment : Fragment() {
             ivSelectedLarge.load(node.imageUrl) { placeholder(R.drawable.ic_launcher_foreground) }
         }
 
-        // Bottom Zone: Children
+        // Bottom Zone: Children (Full bandeau superposé uniformisé)
         childrenAdapter.submitList(state.children)
     }
 
