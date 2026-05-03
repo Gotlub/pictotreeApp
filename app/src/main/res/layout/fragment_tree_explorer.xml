@@ -3,303 +3,243 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/cl_tree_explorer_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/white"
-    tools:context=".ui.explorer.TreeExplorerFragment">
+    android:background="@color/white">
 
-    <!-- COUCHE NAVIGATION FIXE : Le moteur physique 2D (ConstraintLayout) -->
     <androidx.constraintlayout.widget.ConstraintLayout
-        android:id="@+id/layout_spatial_engine"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:paddingBottom="200dp"> <!-- Espace pour le Bandeau Rétractable -->
+        android:paddingBottom="180dp">
 
-        <!-- Guidelines pour la Grille Spatiale (Élargissement de la zone centrale) -->
-        <androidx.constraintlayout.widget.Guideline
-            android:id="@+id/guide_v_left"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            app:layout_constraintGuide_percent="0.28" />
+        <!-- 1. TOP BAR -->
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/top_bar"
+            android:layout_width="match_parent"
+            android:layout_height="180dp"
+            app:layout_constraintTop_toTopOf="parent">
 
-        <androidx.constraintlayout.widget.Guideline
-            android:id="@+id/guide_v_center"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            app:layout_constraintGuide_percent="0.5" />
+            <!-- Breadcrumb (Parents lointains) - A GAUCHE, VERTICAL -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rv_breadcrumbs"
+                android:layout_width="60dp"
+                android:layout_height="match_parent"
+                android:layout_marginStart="8dp"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="8dp"
+                android:layout_marginEnd="8dp"
+                android:orientation="vertical"
+                android:scrollbars="none"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent"
+                tools:listitem="@layout/item_breadcrumb" />
 
-        <androidx.constraintlayout.widget.Guideline
-            android:id="@+id/guide_v_right"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            app:layout_constraintGuide_percent="0.72" />
+            <!-- Parent Direct (CENTRE) -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/container_parent"
+                android:layout_width="120dp"
+                android:layout_height="match_parent"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="8dp"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="4dp"
+                app:layout_constraintStart_toEndOf="@id/rv_breadcrumbs"
+                app:layout_constraintEnd_toStartOf="@id/container_actions"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent">
+                
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent">
+                    <ImageView
+                        android:id="@+id/iv_parent"
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:padding="8dp"
+                        android:scaleType="centerInside"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:layout_constraintBottom_toTopOf="@id/tv_parent_label"
+                        tools:src="@drawable/ic_launcher_background" />
+                    <TextView
+                        android:id="@+id/tv_parent_label"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="4dp"
+                        android:gravity="center"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        android:maxLines="1"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        tools:text="Parent" />
+                </androidx.constraintlayout.widget.ConstraintLayout>
+            </com.google.android.material.card.MaterialCardView>
 
-        <androidx.constraintlayout.widget.Guideline
-            android:id="@+id/guide_h_top"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            <!-- Actions (VERTICALES) - A DROITE -->
+            <LinearLayout
+                android:id="@+id/container_actions"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:orientation="vertical"
+                android:gravity="center_vertical|end"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent">
+
+                <!-- Bouton Vue Treant -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/card_eye"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_marginBottom="8dp"
+                    app:cardCornerRadius="12dp"
+                    app:cardBackgroundColor="#EDE7F6"
+                    app:cardElevation="2dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?attr/selectableItemBackground">
+                    <ImageView
+                        android:id="@+id/iv_eye"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:padding="10dp"
+                        android:src="@android:drawable/ic_menu_view"
+                        app:tint="#5E35B1" />
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- Bouton Recherche -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/card_search"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_marginBottom="8dp"
+                    app:cardCornerRadius="12dp"
+                    app:cardBackgroundColor="#EDE7F6"
+                    app:cardElevation="2dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?attr/selectableItemBackground">
+                    <ImageView
+                        android:id="@+id/iv_search"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:padding="10dp"
+                        android:src="@android:drawable/ic_menu_search"
+                        app:tint="#5E35B1" />
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- Bouton Grille (Retour aux arbres) -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/card_back_to_trees"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    app:cardCornerRadius="12dp"
+                    app:cardBackgroundColor="#EDE7F6"
+                    app:cardElevation="2dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?attr/selectableItemBackground">
+                    <ImageView
+                        android:id="@+id/iv_grid"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:padding="10dp"
+                        android:src="@android:drawable/ic_dialog_dialer"
+                        app:tint="#5E35B1" />
+                </com.google.android.material.card.MaterialCardView>
+            </LinearLayout>
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <!-- 2. MIDDLE ZONE (Les Frères) -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rv_siblings"
+            android:layout_width="match_parent"
+            android:layout_height="180dp"
+            android:layout_marginTop="16dp"
+            android:clipToPadding="false"
+            android:paddingHorizontal="40dp"
             android:orientation="horizontal"
-            app:layout_constraintGuide_percent="0.28" />
+            app:layout_constraintTop_toBottomOf="@id/top_bar"
+            tools:listitem="@layout/item_phrase_picto" />
 
-        <androidx.constraintlayout.widget.Guideline
-            android:id="@+id/guide_h_center"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            app:layout_constraintGuide_percent="0.5" />
-
-        <androidx.constraintlayout.widget.Guideline
-            android:id="@+id/guide_h_bottom"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            app:layout_constraintGuide_percent="0.72" />
-
-        <!-- 1. ITEM CENTRAL -->
-        <LinearLayout
-            android:id="@+id/container_center"
-            android:layout_width="0dp"
+        <!-- 3. BOTTOM ZONE (Action & Preview) -->
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/bottom_nav_zone"
+            android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:orientation="vertical"
-            android:gravity="center"
-            android:clickable="true"
-            android:focusable="true"
-            android:foreground="?attr/selectableItemBackgroundBorderless"
-            app:layout_constraintTop_toTopOf="@id/guide_h_top"
-            app:layout_constraintBottom_toBottomOf="@id/guide_h_bottom"
-            app:layout_constraintStart_toStartOf="@id/guide_v_left"
-            app:layout_constraintEnd_toEndOf="@id/guide_v_right">
+            android:layout_marginTop="16dp"
+            app:layout_constraintTop_toBottomOf="@id/rv_siblings"
+            app:layout_constraintBottom_toBottomOf="parent">
 
-            <ImageView
-                android:id="@+id/iv_center"
-                android:layout_width="180dp"
-                android:layout_height="180dp"
-                android:scaleType="centerInside"
-                android:contentDescription="Centre"
-                android:elevation="4dp"
-                tools:src="@drawable/ic_launcher_background" />
-
-            <TextView
-                android:id="@+id/tv_center_label"
-                android:layout_width="match_parent"
+            <!-- Guideline 40% -->
+            <androidx.constraintlayout.widget.Guideline
+                android:id="@+id/guideline_split"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
+                android:orientation="vertical"
+                app:layout_constraintGuide_percent="0.4" />
+
+            <!-- Gauche: Action (Miniature + Ajouter) -->
+            <LinearLayout
+                android:id="@+id/layout_action"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
                 android:gravity="center"
-                android:textSize="24sp"
-                android:textStyle="bold"
-                android:maxLines="2"
-                tools:text="Pomme" />
-        </LinearLayout>
+                android:layout_marginStart="16dp"
+                android:layout_marginBottom="8dp"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toStartOf="@id/guideline_split">
 
-        <!-- 2. ITEMS ADJACENTS -->
-        <ImageView
-            android:id="@+id/iv_top"
-            android:layout_width="80dp"
-            android:layout_height="80dp"
-            android:alpha="0.4"
-            android:foreground="?attr/selectableItemBackgroundBorderless"
-            android:clickable="true"
-            android:focusable="true"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toTopOf="@id/guide_h_top"
-            app:layout_constraintStart_toStartOf="@id/guide_v_left"
-            app:layout_constraintEnd_toEndOf="@id/guide_v_right"
-            tools:src="@drawable/ic_launcher_background" />
+                <ImageView
+                    android:id="@+id/iv_selected_large"
+                    android:layout_width="80dp"
+                    android:layout_height="80dp"
+                    android:background="@drawable/rounded_bottom_sheet"
+                    android:backgroundTint="#F0F0F0"
+                    android:padding="4dp"
+                    android:scaleType="centerInside"
+                    tools:src="@drawable/ic_launcher_background" />
 
-        <ImageView
-            android:id="@+id/iv_bottom"
-            android:layout_width="80dp"
-            android:layout_height="80dp"
-            android:alpha="0.4"
-            android:foreground="?attr/selectableItemBackgroundBorderless"
-            android:clickable="true"
-            android:focusable="true"
-            app:layout_constraintTop_toBottomOf="@id/guide_h_bottom"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintStart_toStartOf="@id/guide_v_left"
-            app:layout_constraintEnd_toEndOf="@id/guide_v_right"
-            tools:src="@drawable/ic_launcher_background" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_add_to_phrase"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="Ajouter"
+                    android:textAllCaps="false"
+                    app:cornerRadius="20dp" />
 
-        <ImageView
-            android:id="@+id/iv_left"
-            android:layout_width="80dp"
-            android:layout_height="80dp"
-            android:alpha="0.4"
-            android:foreground="?attr/selectableItemBackgroundBorderless"
-            android:clickable="true"
-            android:focusable="true"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toStartOf="@id/guide_v_left"
-            app:layout_constraintTop_toTopOf="@id/guide_h_top"
-            app:layout_constraintBottom_toBottomOf="@id/guide_h_bottom"
-            tools:src="@drawable/ic_launcher_background" />
+            </LinearLayout>
 
-        <ImageView
-            android:id="@+id/iv_right"
-            android:layout_width="80dp"
-            android:layout_height="80dp"
-            android:alpha="0.4"
-            android:foreground="?attr/selectableItemBackgroundBorderless"
-            android:clickable="true"
-            android:focusable="true"
-            app:layout_constraintStart_toEndOf="@id/guide_v_right"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="@id/guide_h_top"
-            app:layout_constraintBottom_toBottomOf="@id/guide_h_bottom"
-            tools:src="@drawable/ic_launcher_background" />
+            <!-- Droite: Preview (Enfants) -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rv_children_preview"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_marginStart="8dp"
+                android:layout_marginEnd="8dp"
+                android:layout_marginTop="8dp"
+                android:layout_marginBottom="8dp"
+                android:background="@drawable/rounded_bottom_sheet"
+                android:padding="4dp"
+                app:layout_constraintStart_toEndOf="@id/guideline_split"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
+                app:spanCount="3"
+                tools:listitem="@layout/item_phrase_picto" />
 
-        <!-- 3. MICRO-MINIATURES -->
-        <LinearLayout
-            android:id="@+id/ll_micro_top"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center"
-            android:layout_marginBottom="8dp"
-            app:layout_constraintBottom_toTopOf="@id/iv_top"
-            app:layout_constraintStart_toStartOf="@id/guide_v_center"
-            app:layout_constraintEnd_toEndOf="@id/guide_v_center">
-            
-            <ImageView
-                android:id="@+id/iv_micro_top_img"
-                android:layout_width="30dp"
-                android:layout_height="30dp"
-                android:alpha="0.6"
-                tools:src="@drawable/ic_launcher_background" />
-            <TextView
-                android:id="@+id/tv_micro_top_count"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textSize="10sp"
-                android:paddingStart="4dp"
-                tools:text="+3" />
-        </LinearLayout>
+        </androidx.constraintlayout.widget.ConstraintLayout>
 
-        <LinearLayout
-            android:id="@+id/ll_micro_left"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:gravity="center"
-            android:layout_marginEnd="8dp"
-            app:layout_constraintEnd_toStartOf="@id/iv_left"
-            app:layout_constraintTop_toTopOf="@id/guide_h_center"
-            app:layout_constraintBottom_toBottomOf="@id/guide_h_center">
-            
-            <ImageView
-                android:id="@+id/iv_micro_left_img"
-                android:layout_width="30dp"
-                android:layout_height="30dp"
-                android:alpha="0.6"
-                tools:src="@drawable/ic_launcher_background" />
-            <TextView
-                android:id="@+id/tv_micro_left_count"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textSize="10sp"
-                tools:text="+5" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:id="@+id/ll_micro_right"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:gravity="center"
-            android:layout_marginStart="8dp"
-            app:layout_constraintStart_toEndOf="@id/iv_right"
-            app:layout_constraintTop_toTopOf="@id/guide_h_center"
-            app:layout_constraintBottom_toBottomOf="@id/guide_h_center">
-            
-            <ImageView
-                android:id="@+id/iv_micro_right_img"
-                android:layout_width="30dp"
-                android:layout_height="30dp"
-                android:alpha="0.6"
-                tools:src="@drawable/ic_launcher_background" />
-            <TextView
-                android:id="@+id/tv_micro_right_count"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textSize="10sp"
-                tools:text="+1" />
-        </LinearLayout>
-
-        <!-- HUD: Flèches -->
-        <ImageView
-            android:id="@+id/arrow_top"
-            android:layout_width="24dp"
-            android:layout_height="24dp"
-            android:src="@android:drawable/arrow_up_float"
-            app:layout_constraintBottom_toTopOf="@id/iv_top"
-            app:layout_constraintStart_toStartOf="@id/guide_v_center"
-            app:layout_constraintEnd_toEndOf="@id/guide_v_center"
-            app:tint="@color/black" />
-
-        <ImageView
-            android:id="@+id/arrow_bottom"
-            android:layout_width="24dp"
-            android:layout_height="24dp"
-            android:src="@android:drawable/arrow_down_float"
-            app:layout_constraintTop_toBottomOf="@id/iv_bottom"
-            app:layout_constraintStart_toStartOf="@id/guide_v_center"
-            app:layout_constraintEnd_toEndOf="@id/guide_v_center"
-            app:tint="@color/black" />
-
-        <ImageView
-            android:id="@+id/arrow_left"
-            android:layout_width="24dp"
-            android:layout_height="24dp"
-            android:rotation="-90"
-            android:src="@android:drawable/arrow_up_float"
-            app:layout_constraintEnd_toStartOf="@id/iv_left"
-            app:layout_constraintTop_toTopOf="@id/guide_h_center"
-            app:layout_constraintBottom_toBottomOf="@id/guide_h_center"
-            app:tint="@color/black" />
-
-        <ImageView
-            android:id="@+id/arrow_right"
-            android:layout_width="24dp"
-            android:layout_height="24dp"
-            android:rotation="90"
-            android:src="@android:drawable/arrow_up_float"
-            app:layout_constraintStart_toEndOf="@id/iv_right"
-            app:layout_constraintTop_toTopOf="@id/guide_h_center"
-            app:layout_constraintBottom_toBottomOf="@id/guide_h_center"
-            app:tint="@color/black" />
-
-        <!-- COUCHE HUD FLOTTANTE: Boutons supérieurs -->
-        <com.google.android.material.floatingactionbutton.FloatingActionButton
-            android:id="@+id/fab_eye"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_margin="16dp"
-            android:src="@android:drawable/ic_menu_view"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            android:contentDescription="Ouvrir Vue Globale Arbre" />
-
-        <com.google.android.material.floatingactionbutton.FloatingActionButton
-            android:id="@+id/fab_search"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_margin="16dp"
-            android:src="@android:drawable/ic_menu_search"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            android:contentDescription="Chercher Picto" />
-            
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-    <!-- BANDEAU DE PHRASE FIXE (Panier) -->
+    <!-- BANDEAU DE PHRASE FIXE (Panier) - ABSOLUTE BOTTOM -->
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/panel_phrase"
         android:layout_width="match_parent"
-        android:layout_height="200dp"
+        android:layout_height="180dp"
         android:layout_gravity="bottom"
         android:background="@drawable/rounded_bottom_sheet"
         android:elevation="16dp">
@@ -330,21 +270,18 @@
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            tools:itemCount="5"
             tools:listitem="@layout/item_phrase_picto" />
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-    <!-- Bouton Lecture : positionné par rapport au bas de l'écran, au-dessus du bandeau (200dp + 16dp) -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fab_speak"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
         android:layout_marginEnd="16dp"
-        android:layout_marginBottom="216dp"
+        android:layout_marginBottom="188dp"
         android:src="@android:drawable/ic_btn_speak_now"
         app:elevation="12dp"
-        app:pressedTranslationZ="16dp"
         android:contentDescription="Lire la phrase" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

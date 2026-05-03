@@ -13,13 +13,16 @@ import org.libera.pictotree.R
 import org.libera.pictotree.data.database.entity.TreeEntity
 import java.io.File
 
-class TreeAdapter(private val onTreeClick: (TreeEntity) -> Unit) :
-    ListAdapter<TreeEntity, TreeAdapter.TreeViewHolder>(TreeDiffCallback()) {
+class TreeAdapter(
+    private val username: String,
+    private val hostUrl: String,
+    private val onTreeClick: (TreeEntity) -> Unit
+) : ListAdapter<TreeEntity, TreeAdapter.TreeViewHolder>(TreeDiffCallback()) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TreeViewHolder {
         val view = LayoutInflater.from(parent.context)
             .inflate(R.layout.item_tree_card, parent, false)
-        return TreeViewHolder(view, onTreeClick)
+        return TreeViewHolder(view, username, hostUrl, onTreeClick)
     }
 
     override fun onBindViewHolder(holder: TreeViewHolder, position: Int) {
@@ -28,6 +31,8 @@ class TreeAdapter(private val onTreeClick: (TreeEntity) -> Unit) :
 
     class TreeViewHolder(
         itemView: View,
+        private val username: String,
+        private val hostUrl: String,
         private val onTreeClick: (TreeEntity) -> Unit
     ) : RecyclerView.ViewHolder(itemView) {
         private val ivTreeRoot: ImageView = itemView.findViewById(R.id.ivTreeRoot)
@@ -36,19 +41,29 @@ class TreeAdapter(private val onTreeClick: (TreeEntity) -> Unit) :
         fun bind(tree: TreeEntity) {
             tvTreeName.text = tree.name
             
-            // On utilise Coil pour charger l'image
-            if (!tree.rootUrl.isNullOrEmpty()) {
-                val file = File(tree.rootUrl)
-                if (file.exists()) {
-                    ivTreeRoot.load(file) {
-                        placeholder(R.drawable.ic_launcher_background)
-                        error(R.drawable.ic_launcher_background)
-                    }
-                } else {
-                    ivTreeRoot.load(tree.rootUrl) {
-                        placeholder(R.drawable.ic_launcher_background)
-                        error(R.drawable.ic_launcher_background)
-                    }
+            val url = tree.rootUrl ?: ""
+            var finalSource: Any = url
+
+            // 1. Chercher d'abord en local via le hash de l'URL
+            if (url.isNotEmpty()) {
+                val fileName = org.libera.pictotree.utils.FileUtils.getLocalFileNameFromUrl(url)
+                val localFile = java.io.File(itemView.context.filesDir, "$username/images/$fileName")
+                if (localFile.exists()) {
+                    finalSource = localFile
+                } else if (!url.startsWith("http") && !url.startsWith("file")) {
+                    // Si c'est un chemin relatif et pas de fichier local, on normalise pour Coil (fallback)
+                    val normPath = url.replace("^/+".toRegex(), "").replace("^(pictograms/|images/)".toRegex(), "")
+                    finalSource = "$hostUrl/api/v1/mobile/pictograms/$normPath"
+                }
+            }
+
+            if (url.isNotEmpty()) {
+                ivTreeRoot.load(finalSource) {
+                    crossfade(true)
+                    placeholder(R.drawable.ic_launcher_background)
+                    error(R.drawable.ic_launcher_background)
+                    diskCachePolicy(coil.request.CachePolicy.ENABLED)
+                    memoryCachePolicy(coil.request.CachePolicy.ENABLED)
                 }
             } else {
                 ivTreeRoot.setImageResource(R.drawable.ic_launcher_background)

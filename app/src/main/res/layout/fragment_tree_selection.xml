@@ -10,7 +10,7 @@
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:paddingBottom="200dp">
+        android:paddingBottom="180dp">
 
         <TextView
             android:id="@+id/tvTitle"
@@ -58,11 +58,11 @@
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-    <!-- BANDEAU DE PHRASE FIXE (Panier) -->
+    <!-- BANDEAU DE PHRASE FIXE (Panier) - ABSOLUTE BOTTOM -->
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/panel_phrase"
         android:layout_width="match_parent"
-        android:layout_height="200dp"
+        android:layout_height="180dp"
         android:layout_gravity="bottom"
         android:background="@drawable/rounded_bottom_sheet"
         android:elevation="16dp">
@@ -102,7 +102,7 @@
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
         android:layout_marginEnd="16dp"
-        android:layout_marginBottom="216dp"
+        android:layout_marginBottom="188dp"
         android:src="@android:drawable/ic_btn_speak_now"
         app:elevation="12dp"
         app:pressedTranslationZ="16dp"

@@ -29,7 +29,9 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
+            // On ne met pas de padding en bas pour laisser le bandeau de phrase 
+            // descendre jusqu'au bord de l'écran (edge-to-edge) comme la vue Treant.
+            v.setPadding(systemBars.left, systemBars.top, systemBars.right, 0)
             insets
         }
 

@@ -84,6 +84,7 @@ class TreeSelectionFragment : Fragment() {
     }
 
     private fun setupUI(view: View) {
+        val username = org.libera.pictotree.data.SessionManager(requireContext()).getUsername() ?: "default"
         rvTrees = view.findViewById(R.id.rvTrees)
         rvPhrase = view.findViewById(R.id.rv_phrase)
         progressBar = view.findViewById(R.id.progressBar)
@@ -92,7 +93,8 @@ class TreeSelectionFragment : Fragment() {
         btnFullscreenPhrase = view.findViewById(R.id.btn_fullscreen_phrase)
 
         // Adapter pour les arbres
-        adapter = TreeAdapter { tree ->
+        val hostUrl = org.libera.pictotree.network.RetrofitClient.SERVER_URL
+        adapter = TreeAdapter(username, hostUrl) { tree ->
             val bundle = Bundle().apply {
                 putInt("treeId", tree.id)
                 putInt("profileId", arguments?.getInt("profileId", -1) ?: -1)

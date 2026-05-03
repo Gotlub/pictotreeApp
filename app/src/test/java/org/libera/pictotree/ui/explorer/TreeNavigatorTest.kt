@@ -29,7 +29,7 @@ class TreeNavigatorTest {
     }
 
     @Test
-    fun `test spatial navigation with duplicate images using referential equality`() {
+    fun `test hierarchical navigation with duplicate images using referential equality`() {
         val treeId = 6
         val imgId = "529"
         
@@ -40,12 +40,12 @@ class TreeNavigatorTest {
         nodeA.parent = root
         nodeB.parent = root
 
-        val stateA = TreeNavigator.computeSpatialState(nodeA)
-        assertEquals(nodeB, stateA.right)
-        assertNull(stateA.left)
+        val stateA = TreeNavigator.computeHierarchicalState(nodeA)
+        assertTrue(stateA.siblings.contains(nodeB))
+        assertEquals(root, stateA.parent)
 
-        val stateB = TreeNavigator.computeSpatialState(nodeB)
-        assertEquals(nodeA, stateB.left)
-        assertNull(stateB.right)
+        val stateB = TreeNavigator.computeHierarchicalState(nodeB)
+        assertTrue(stateB.siblings.contains(nodeA))
+        assertEquals(root, stateB.parent)
     }
 }

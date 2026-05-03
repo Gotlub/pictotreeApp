@@ -157,10 +157,10 @@ class TreeGlobalMapDialog : DialogFragment() {
         val ivPreview = root.findViewById<android.widget.ImageView>(R.id.iv_selection_preview)
 
         // Initialiser la miniature si une sélection existe déjà
-        viewModel.uiState.value.center?.let { centerNode ->
+        viewModel.uiState.value.focusedNode?.let { centerNode ->
             if (centerNode.id == globalSelectedNodeId) {
                 ivPreview.visibility = View.VISIBLE
-                ivPreview.load(centerNode.imageUrl)
+                loadPreviewImage(centerNode.imageUrl, ivPreview)
             }
         }
 
@@ -181,7 +181,7 @@ class TreeGlobalMapDialog : DialogFragment() {
                 requireActivity().runOnUiThread {
                     if (!imageUrl.isNullOrEmpty()) {
                         ivPreview.visibility = View.VISIBLE
-                        ivPreview.load(imageUrl)
+                        loadPreviewImage(imageUrl, ivPreview)
                     } else {
                         ivPreview.visibility = View.GONE
                     }
@@ -282,6 +282,40 @@ class TreeGlobalMapDialog : DialogFragment() {
         super.onDestroyView()
         if (::ttsManager.isInitialized) {
             ttsManager.shutdown()
+        }
+    }
+
+    private fun loadPreviewImage(url: String, imageView: android.widget.ImageView) {
+        if (url.isEmpty()) {
+            imageView.visibility = View.GONE
+            return
+        }
+
+        val hostUrl = org.libera.pictotree.network.RetrofitClient.SERVER_URL
+        // On nettoie l'URL pour Coil et pour le check local
+        val cleanUrl = url.substringBefore('?')
+        
+        var finalSource: Any = cleanUrl
+
+        // 1. Chercher d'abord en local via le hash de l'URL propre
+        val fileName = org.libera.pictotree.utils.FileUtils.getLocalFileNameFromUrl(cleanUrl)
+        val localFile = java.io.File(requireContext().filesDir, "$username/images/$fileName")
+
+        if (localFile.exists()) {
+            finalSource = localFile
+        } else if (!cleanUrl.startsWith("http") && !cleanUrl.startsWith("file")) {
+            // 2. Fallback normalisé si chemin relatif (cas rare ici mais pour sécurité)
+            val normPath = cleanUrl.replace("^/+".toRegex(), "").replace("^(pictograms/|images/)".toRegex(), "")
+            finalSource = "$hostUrl/api/v1/mobile/pictograms/$normPath"
+        }
+
+        imageView.visibility = View.VISIBLE
+        imageView.load(finalSource) {
+            crossfade(true)
+            placeholder(R.drawable.ic_launcher_foreground)
+            error(R.drawable.ic_launcher_foreground)
+            diskCachePolicy(coil.request.CachePolicy.ENABLED)
+            memoryCachePolicy(coil.request.CachePolicy.ENABLED)
         }
     }
 

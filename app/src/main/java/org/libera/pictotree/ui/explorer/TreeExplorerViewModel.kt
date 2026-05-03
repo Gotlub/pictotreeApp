@@ -48,22 +48,14 @@ class TreeNode(
     }
 }
 
-data class SpatialUiState(
-    val center: TreeNode? = null,
-    val top: TreeNode? = null,
-    val bottom: TreeNode? = null,
-    val left: TreeNode? = null,
-    val right: TreeNode? = null,
-    val microTop: TreeNode? = null,
-    val microTopCount: Int = 0,
-    val microLeft: TreeNode? = null,
-    val microLeftCount: Int = 0,
-    val microRight: TreeNode? = null,
-    val microRightCount: Int = 0,
+data class HierarchicalUiState(
+    val breadcrumbs: List<TreeNode> = emptyList(),
+    val parent: TreeNode? = null,
+    val siblings: List<TreeNode> = emptyList(),
+    val children: List<TreeNode> = emptyList(),
+    val focusedNode: TreeNode? = null,
     val isLoading: Boolean = true,
-    val error: String? = null,
-    val prevTreeId: Int? = null,
-    val nextTreeId: Int? = null
+    val error: String? = null
 )
 
 class TreeExplorerViewModel(
@@ -78,8 +70,8 @@ class TreeExplorerViewModel(
         private const val TAG = "PictoTreeNav"
     }
 
-    private val _uiState = MutableStateFlow(SpatialUiState())
-    val uiState: StateFlow<SpatialUiState> = _uiState.asStateFlow()
+    private val _uiState = MutableStateFlow(HierarchicalUiState())
+    val uiState: StateFlow<HierarchicalUiState> = _uiState.asStateFlow()
 
     private val _phraseList = MutableStateFlow<List<TreeNode>>(emptyList())
     val phraseList: StateFlow<List<TreeNode>> = _phraseList.asStateFlow()
@@ -94,10 +86,21 @@ class TreeExplorerViewModel(
     private var rootNode: TreeNode? = null
     private var currentTreeId: Int = -1
     private var profileTreeIds: List<Int> = emptyList()
+    private val profileTreeRootsCache = mutableMapOf<Int, TreeNode>()
 
     fun getProfileTreeIds(): IntArray = profileTreeIds.toIntArray()
     fun getCurrentTreeId(): Int = currentTreeId
-    fun setProfileTreeContext(treeIds: List<Int>) { this.profileTreeIds = treeIds }
+    fun setProfileTreeContext(treeIds: List<Int>) { 
+        this.profileTreeIds = treeIds 
+        // Pré-charger les racines pour la navigation inter-arbres
+        viewModelScope.launch {
+            treeIds.forEach { id ->
+                if (!profileTreeRootsCache.containsKey(id)) {
+                    fetchRootNodePreview(id)?.let { profileTreeRootsCache[id] = it }
+                }
+            }
+        }
+    }
 
     fun loadTree(treeId: Int) {
         viewModelScope.launch {
@@ -107,12 +110,21 @@ class TreeExplorerViewModel(
                 treeDao.getTreeById(treeId)?.let { entity ->
                     val rawJson = JSONObject(entity.jsonPayload)
                     getRootObject(rawJson)?.let { rootObj ->
-                        rootNode = parseAndSortNode(rootObj, null, treeId, "r")
-                        rootNode?.let { focusOnNode(it) }
-                    } ?: run { _uiState.value = SpatialUiState(isLoading = false, error = "Format invalide.") }
-                } ?: run { _uiState.value = SpatialUiState(isLoading = false, error = "Arbre introuvable.") }
+                        val parsedRoot = parseAndSortNode(rootObj, null, treeId, "r")
+                        rootNode = parsedRoot
+                        profileTreeRootsCache[treeId] = parsedRoot
+                        
+                        // Logique demandée : focus sur le premier enfant du root pour que le root soit le "parent"
+                        val firstChild = parsedRoot.children.firstOrNull()
+                        if (firstChild != null) {
+                            focusOnNode(firstChild)
+                        } else {
+                            focusOnNode(parsedRoot)
+                        }
+                    } ?: run { _uiState.value = HierarchicalUiState(isLoading = false, error = "Format invalide.") }
+                } ?: run { _uiState.value = HierarchicalUiState(isLoading = false, error = "Arbre introuvable.") }
             } catch (e: Exception) {
-                _uiState.value = SpatialUiState(isLoading = false, error = e.localizedMessage)
+                _uiState.value = HierarchicalUiState(isLoading = false, error = e.localizedMessage)
             }
         }
     }
@@ -153,19 +165,31 @@ class TreeExplorerViewModel(
 
     fun focusOnNode(node: TreeNode) {
         Log.d(TAG, "NAV_MOVE: ${node.id} (${node.label})")
-        val navState = TreeNavigator.computeSpatialState(node, profileTreeIds, currentTreeId)
-        viewModelScope.launch {
-            val finalLeft = navState.left ?: navState.prevTreeId?.let { fetchRootNodePreview(it) }
-            val finalRight = navState.right ?: navState.nextTreeId?.let { fetchRootNodePreview(it) }
-            _uiState.value = SpatialUiState(
-                isLoading = false, center = navState.center, top = navState.top, bottom = navState.bottom,
-                left = finalLeft, right = finalRight, microTop = navState.microTop,
-                microTopCount = navState.microTopCount, microLeft = navState.microLeft,
-                microLeftCount = navState.microLeftCount, microRight = navState.microRight,
-                microRightCount = navState.microRightCount, prevTreeId = navState.prevTreeId,
-                nextTreeId = navState.nextTreeId
-            )
-        }
+        
+        // S'assurer que les racines sont prêtes pour l'inter-arbre
+        val roots = profileTreeIds.mapNotNull { profileTreeRootsCache[it] }
+        
+        val newState = TreeNavigator.computeHierarchicalState(node, roots)
+        _uiState.value = HierarchicalUiState(
+            breadcrumbs = newState.breadcrumbs,
+            parent = newState.parent,
+            siblings = newState.siblings,
+            children = newState.children,
+            focusedNode = newState.focusedNode,
+            isLoading = false
+        )
+    }
+
+    /**
+     * Met à jour uniquement le noeud focus (quand on scrolle dans le carrousel)
+     * sans recalculer toute la hiérarchie.
+     */
+    fun updateFocusWithinSiblings(node: TreeNode) {
+        if (_uiState.value.focusedNode?.id == node.id) return
+        _uiState.value = _uiState.value.copy(
+            focusedNode = node,
+            children = node.children
+        )
     }
 
     private suspend fun fetchRootNodePreview(treeId: Int): TreeNode? {
@@ -175,7 +199,7 @@ class TreeExplorerViewModel(
     }
 
     fun addToPhrase(externalNode: TreeNode? = null) {
-        val nodeToAdd = externalNode ?: _uiState.value.center ?: return
+        val nodeToAdd = externalNode ?: _uiState.value.focusedNode ?: return
         _phraseList.value = _phraseList.value + nodeToAdd
     }
 
