@@ -52,6 +52,7 @@ class TreeExplorerFragment : Fragment() {
     private lateinit var btnAddToPhrase: Button
     private lateinit var fabSpeak: View
     private lateinit var ivArrowToChildren: ImageView
+    private lateinit var ivArrowToSiblings: ImageView
 
     private val snapHelper = LinearSnapHelper()
 
@@ -96,6 +97,7 @@ class TreeExplorerFragment : Fragment() {
         btnAddToPhrase = view.findViewById(R.id.btn_add_to_phrase)
         fabSpeak = view.findViewById(R.id.fab_speak)
         ivArrowToChildren = view.findViewById(R.id.iv_arrow_to_children)
+        ivArrowToSiblings = view.findViewById(R.id.iv_arrow_to_siblings)
     }
 
     private fun setupAdapters() {
@@ -336,8 +338,10 @@ class TreeExplorerFragment : Fragment() {
             containerParent.visibility = View.VISIBLE
             tvParentLabel.text = state.parent.label
             ivParent.load(state.parent.imageUrl) { placeholder(R.drawable.ic_launcher_foreground) }
+            ivArrowToSiblings.visibility = View.VISIBLE
         } else {
             containerParent.visibility = View.INVISIBLE
+            ivArrowToSiblings.visibility = View.INVISIBLE
         }
 
         // Top Bar: Breadcrumbs
