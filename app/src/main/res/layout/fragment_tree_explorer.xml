@@ -118,7 +118,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
                         android:padding="10dp"
-                        android:src="@android:drawable/ic_menu_view"
+                        android:src="@android:drawable/ic_menu_sort_by_size"
                         app:tint="#5E35B1" />
                 </com.google.android.material.card.MaterialCardView>
 
@@ -420,6 +420,7 @@
         android:layout_marginEnd="16dp"
         android:layout_marginBottom="188dp"
         android:src="@android:drawable/ic_btn_speak_now"
+        android:visibility="gone"
         app:elevation="12dp" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

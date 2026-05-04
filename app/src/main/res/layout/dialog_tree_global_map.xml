@@ -17,18 +17,20 @@
         app:layout_constraintTop_toTopOf="parent" />
 
     <!-- TOP BAR ACTIONS (Synchronisées avec fragment_tree_explorer) -->
+    <!-- Ajustement à 48dp pour compenser la barre de statut absente en plein écran -->
     <LinearLayout
         android:id="@+id/container_actions"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:gravity="end"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="48dp"
         android:layout_marginEnd="16dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
         <!-- Bouton Retour (Ferme le dialogue et revient à l'endroit exact dans l'explorateur) -->
+        <!-- Icône remplacée par 3 barres horizontales (ic_menu_sort_by_size) -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/btn_back_to_nav"
             android:layout_width="48dp"
@@ -44,7 +46,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:padding="10dp"
-                android:src="@android:drawable/ic_menu_revert"
+                android:src="@android:drawable/ic_menu_sort_by_size"
                 app:tint="#5E35B1" />
         </com.google.android.material.card.MaterialCardView>
 
@@ -191,6 +193,7 @@
             tools:listitem="@layout/item_phrase_picto" />
     </androidx.constraintlayout.widget.ConstraintLayout>
 
+    <!-- Bouton Lecture Vocal masqué (doublon avec mode plein écran) -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fab_speak_dialog"
         android:layout_width="wrap_content"
@@ -198,6 +201,7 @@
         android:layout_marginEnd="16dp"
         android:layout_marginBottom="8dp"
         android:src="@android:drawable/ic_btn_speak_now"
+        android:visibility="gone"
         app:layout_constraintBottom_toTopOf="@id/panel_phrase"
         app:layout_constraintEnd_toEndOf="parent"
         android:contentDescription="Lire la phrase" />
