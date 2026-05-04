@@ -208,7 +208,11 @@ class TreeExplorerViewModel(
 
     fun addToPhrase(externalNode: TreeNode? = null) {
         val nodeToAdd = externalNode ?: _uiState.value.focusedNode ?: return
-        _phraseList.value = _phraseList.value + nodeToAdd
+        // On crée une copie avec un ID d'instance unique (doublons autorisés mais distincts techniquement)
+        val uniqueInstanceNode = nodeToAdd.copy(
+            id = "${nodeToAdd.id}_${System.currentTimeMillis()}_${(0..999).random()}"
+        )
+        _phraseList.value = _phraseList.value + uniqueInstanceNode
     }
 
     fun addToPhraseById(uniqueId: String): Boolean {
@@ -254,6 +258,13 @@ class TreeExplorerViewModel(
             list.add(to, item)
             _phraseList.value = list
         }
+    }
+
+    /**
+     * Met à jour la liste sans déclencher de nouvel état (utilisé en fin de Drag & Drop)
+     */
+    fun updatePhraseListSilently(newList: List<TreeNode>) {
+        _phraseList.value = newList
     }
 
     fun removeItemFromPhrase(position: Int) {

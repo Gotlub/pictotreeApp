@@ -56,6 +56,8 @@ class NodeAdapter(
                         crossfade(true)
                         placeholder(R.drawable.ic_launcher_foreground)
                         error(R.drawable.ic_launcher_foreground)
+                        // Forcer l'utilisation du cache disque pour le mode offline
+                        diskCachePolicy(coil.request.CachePolicy.ENABLED)
                     }
                 } else {
                     ivPicto.setImageResource(R.drawable.ic_launcher_foreground)

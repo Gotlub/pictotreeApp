@@ -54,6 +54,8 @@ class TreeExplorerFragment : Fragment() {
     private lateinit var ivArrowToChildren: ImageView
     private lateinit var ivArrowToSiblings: ImageView
     
+    private var isDraggingPhrase = false
+
     // Indicateurs Siblings
     private lateinit var siblingsGradLeft: View
     private lateinit var siblingsGradRight: View
@@ -231,7 +233,9 @@ class TreeExplorerFragment : Fragment() {
             androidx.recyclerview.widget.ItemTouchHelper.UP
         ) {
             override fun onMove(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder, target: RecyclerView.ViewHolder): Boolean {
-                viewModel.moveItemInPhrase(viewHolder.bindingAdapterPosition, target.bindingAdapterPosition)
+                val fromPos = viewHolder.bindingAdapterPosition
+                val toPos = target.bindingAdapterPosition
+                phraseAdapter.moveItem(fromPos, toPos)
                 return true
             }
 
@@ -239,6 +243,32 @@ class TreeExplorerFragment : Fragment() {
                 if (direction == androidx.recyclerview.widget.ItemTouchHelper.UP) {
                     viewModel.removeItemFromPhrase(viewHolder.bindingAdapterPosition)
                 }
+            }
+
+            override fun onSelectedChanged(viewHolder: RecyclerView.ViewHolder?, actionState: Int) {
+                super.onSelectedChanged(viewHolder, actionState)
+                if (actionState == androidx.recyclerview.widget.ItemTouchHelper.ACTION_STATE_DRAG) {
+                    isDraggingPhrase = true
+                    // Feedback visuel léger pour soulager le GPU/CPU de l'émulateur
+                    viewHolder?.itemView?.apply {
+                        alpha = 0.8f
+                        scaleX = 1.05f
+                        scaleY = 1.05f
+                    }
+                }
+            }
+
+            override fun clearView(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder) {
+                super.clearView(recyclerView, viewHolder)
+                isDraggingPhrase = false
+                viewHolder.itemView.apply {
+                    alpha = 1.0f
+                    scaleX = 1.0f
+                    scaleY = 1.0f
+                }
+                // Une fois le geste terminé, on synchronise le ViewModel avec l'ordre final de l'adapter
+                val finalList = phraseAdapter.getCurrentList().toList()
+                viewModel.updatePhraseListSilently(finalList)
             }
         })
         itemTouchHelper.attachToRecyclerView(rvPhrase)
@@ -360,9 +390,16 @@ class TreeExplorerFragment : Fragment() {
                     }
                 }
                 launch {
+                    var lastPhraseSize = 0
                     viewModel.phraseList.collect { phrase ->
-                        phraseAdapter.submitList(phrase)
-                        if (phrase.isNotEmpty()) rvPhrase.smoothScrollToPosition(phrase.size - 1)
+                        if (!isDraggingPhrase) {
+                            phraseAdapter.submitList(phrase)
+                            // On ne scrolle à la fin QUE si on a ajouté un élément (taille augmente)
+                            if (phrase.size > lastPhraseSize) {
+                                rvPhrase.smoothScrollToPosition(phrase.size - 1)
+                            }
+                        }
+                        lastPhraseSize = phrase.size
                     }
                 }
                 launch {
@@ -399,7 +436,10 @@ class TreeExplorerFragment : Fragment() {
         if (state.parent != null) {
             containerParent.visibility = View.VISIBLE
             tvParentLabel.text = state.parent.label
-            ivParent.load(state.parent.imageUrl) { placeholder(R.drawable.ic_launcher_foreground) }
+            ivParent.load(state.parent.imageUrl) { 
+                placeholder(R.drawable.ic_launcher_foreground) 
+                diskCachePolicy(coil.request.CachePolicy.ENABLED)
+            }
             ivArrowToSiblings.visibility = View.VISIBLE
         } else {
             containerParent.visibility = View.INVISIBLE
@@ -441,7 +481,10 @@ class TreeExplorerFragment : Fragment() {
 
         // Bottom Zone: Large Focus
         state.focusedNode?.let { node ->
-            ivSelectedLarge.load(node.imageUrl) { placeholder(R.drawable.ic_launcher_foreground) }
+            ivSelectedLarge.load(node.imageUrl) { 
+                placeholder(R.drawable.ic_launcher_foreground) 
+                diskCachePolicy(coil.request.CachePolicy.ENABLED)
+            }
         }
 
         // Bottom Zone: Children (Full bandeau uniformisé)

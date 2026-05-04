@@ -39,6 +39,8 @@ class TreeSelectionFragment : Fragment() {
     private lateinit var fabSearch: FloatingActionButton
     private lateinit var fabSpeak: FloatingActionButton
     private lateinit var btnFullscreenPhrase: View
+    
+    private var isDraggingPhrase = false
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -117,7 +119,9 @@ class TreeSelectionFragment : Fragment() {
             androidx.recyclerview.widget.ItemTouchHelper.UP
         ) {
             override fun onMove(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder, target: RecyclerView.ViewHolder): Boolean {
-                explorerViewModel.moveItemInPhrase(viewHolder.bindingAdapterPosition, target.bindingAdapterPosition)
+                val fromPos = viewHolder.bindingAdapterPosition
+                val toPos = target.bindingAdapterPosition
+                phraseAdapter.moveItem(fromPos, toPos)
                 return true
             }
 
@@ -125,6 +129,28 @@ class TreeSelectionFragment : Fragment() {
                 if (direction == androidx.recyclerview.widget.ItemTouchHelper.UP) {
                     explorerViewModel.removeItemFromPhrase(viewHolder.bindingAdapterPosition)
                 }
+            }
+
+            override fun onSelectedChanged(viewHolder: RecyclerView.ViewHolder?, actionState: Int) {
+                super.onSelectedChanged(viewHolder, actionState)
+                if (actionState == androidx.recyclerview.widget.ItemTouchHelper.ACTION_STATE_DRAG) {
+                    viewHolder?.itemView?.apply {
+                        alpha = 0.8f
+                        scaleX = 1.05f
+                        scaleY = 1.05f
+                    }
+                }
+            }
+
+            override fun clearView(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder) {
+                super.clearView(recyclerView, viewHolder)
+                viewHolder.itemView.apply {
+                    alpha = 1.0f
+                    scaleX = 1.0f
+                    scaleY = 1.0f
+                }
+                val finalList = phraseAdapter.getCurrentList().toList()
+                explorerViewModel.updatePhraseListSilently(finalList)
             }
         })
         itemTouchHelper.attachToRecyclerView(rvPhrase)
@@ -179,11 +205,15 @@ class TreeSelectionFragment : Fragment() {
                 }
 
                 launch {
+                    var lastPhraseSize = 0
                     explorerViewModel.phraseList.collect { phrase ->
-                        phraseAdapter.submitList(phrase)
-                        if (phrase.isNotEmpty()) {
-                            rvPhrase.smoothScrollToPosition(phrase.size - 1)
+                        if (!isDraggingPhrase) {
+                            phraseAdapter.submitList(phrase)
+                            if (phrase.size > lastPhraseSize) {
+                                rvPhrase.smoothScrollToPosition(phrase.size - 1)
+                            }
                         }
+                        lastPhraseSize = phrase.size
                     }
                 }
                 
