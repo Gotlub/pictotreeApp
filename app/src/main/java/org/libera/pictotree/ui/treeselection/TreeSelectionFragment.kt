@@ -112,6 +112,24 @@ class TreeSelectionFragment : Fragment() {
         rvPhrase.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
         rvPhrase.adapter = phraseAdapter
 
+        // Drag & Drop / Swipe to Delete pour la phrase
+        val itemTouchHelper = androidx.recyclerview.widget.ItemTouchHelper(object : androidx.recyclerview.widget.ItemTouchHelper.SimpleCallback(
+            androidx.recyclerview.widget.ItemTouchHelper.LEFT or androidx.recyclerview.widget.ItemTouchHelper.RIGHT,
+            androidx.recyclerview.widget.ItemTouchHelper.UP
+        ) {
+            override fun onMove(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder, target: RecyclerView.ViewHolder): Boolean {
+                explorerViewModel.moveItemInPhrase(viewHolder.bindingAdapterPosition, target.bindingAdapterPosition)
+                return true
+            }
+
+            override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
+                if (direction == androidx.recyclerview.widget.ItemTouchHelper.UP) {
+                    explorerViewModel.removeItemFromPhrase(viewHolder.bindingAdapterPosition)
+                }
+            }
+        })
+        itemTouchHelper.attachToRecyclerView(rvPhrase)
+
         fabSearch.setOnClickListener {
             val dialog = org.libera.pictotree.ui.common.PictoSearchDialog()
             dialog.onPictoSelected = { result ->
