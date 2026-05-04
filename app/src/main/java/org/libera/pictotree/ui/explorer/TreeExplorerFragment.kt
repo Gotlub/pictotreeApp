@@ -419,8 +419,8 @@ class TreeExplorerFragment : Fragment() {
             }
         }
 
-        // Flèche vers enfants : visible seulement si le noeud focus a des enfants
-        ivArrowToChildren.visibility = if (state.focusedNode?.children?.isNotEmpty() == true) View.VISIBLE else View.INVISIBLE
+        // Flèche vers enfants : visible si on a des enfants à afficher en bas
+        ivArrowToChildren.visibility = if (state.children.isNotEmpty()) View.VISIBLE else View.INVISIBLE
 
         // Bottom Zone: Large Focus
         state.focusedNode?.let { node ->

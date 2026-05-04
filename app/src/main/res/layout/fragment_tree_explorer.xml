@@ -235,7 +235,7 @@
                 android:layout_height="180dp"
                 android:clipToPadding="false"
                 android:paddingStart="120dp"
-                android:paddingEnd="16dp"
+                android:paddingEnd="80dp"
                 android:orientation="horizontal"
                 app:layout_constraintTop_toTopOf="parent"
                 app:layout_constraintBottom_toBottomOf="parent"
