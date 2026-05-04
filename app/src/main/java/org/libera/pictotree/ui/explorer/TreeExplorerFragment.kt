@@ -198,7 +198,11 @@ class TreeExplorerFragment : Fragment() {
 
         // Children Preview (Bottom Right) - UNIFORMISÉ AVEC LES FRÈRES (140dp x 180dp)
         childrenAdapter = NodeAdapter(R.layout.item_sibling_node) { node ->
-            viewModel.focusOnNode(node)
+            if (node.children.isNotEmpty()) {
+                viewModel.focusOnNode(node)
+            } else {
+                viewModel.selectNodeWithoutNavigating(node)
+            }
         }
         rvChildren.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
         rvChildren.adapter = childrenAdapter
@@ -399,6 +403,9 @@ class TreeExplorerFragment : Fragment() {
                     rvSiblings.scrollToPosition(position)
                 }
                 siblingAdapter.setSelectedPosition(position)
+            } else {
+                // Si le focus est un enfant, on déselectionne les frères
+                siblingAdapter.setSelectedPosition(-1)
             }
             
             // Mettre à jour les indicateurs
@@ -422,6 +429,10 @@ class TreeExplorerFragment : Fragment() {
 
         // Bottom Zone: Children (Full bandeau uniformisé)
         childrenAdapter.submitList(state.children) {
+            // Gérer le surlignage bleu si un enfant est sélectionné
+            val childPosition = state.children.indexOfFirst { it.id == state.focusedNode?.id }
+            childrenAdapter.setSelectedPosition(childPosition)
+
             rvChildren.post {
                 val canLeft = rvChildren.canScrollHorizontally(-1)
                 val canRight = rvChildren.canScrollHorizontally(1)

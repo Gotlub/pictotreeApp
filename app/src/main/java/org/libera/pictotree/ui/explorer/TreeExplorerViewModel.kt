@@ -192,6 +192,14 @@ class TreeExplorerViewModel(
         )
     }
 
+    /**
+     * Sélectionne un noeud (ex: un enfant sans sous-enfants) 
+     * pour mise à jour de la preview "Ajouter" sans changer de niveau.
+     */
+    fun selectNodeWithoutNavigating(node: TreeNode) {
+        _uiState.value = _uiState.value.copy(focusedNode = node)
+    }
+
     private suspend fun fetchRootNodePreview(treeId: Int): TreeNode? {
         return treeDao.getTreeById(treeId)?.let { entity ->
             getRootObject(JSONObject(entity.jsonPayload))?.let { parseAndSortNode(it, null, treeId, "r") }
