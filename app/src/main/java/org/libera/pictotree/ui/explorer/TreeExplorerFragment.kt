@@ -220,8 +220,7 @@ class TreeExplorerFragment : Fragment() {
 
         // Phrase Band (Bottom)
         phraseAdapter = PhraseAdapter(
-            onItemClick = { node -> ttsManager.speak(node.label) },
-            onItemLongClick = { index -> viewModel.removeItemFromPhrase(index) }
+            onItemClick = { node -> ttsManager.speak(node.label) }
         )
         rvPhrase.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
         rvPhrase.adapter = phraseAdapter

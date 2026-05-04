@@ -106,8 +106,7 @@ class TreeSelectionFragment : Fragment() {
 
         // Adapter pour la phrase
         phraseAdapter = PhraseAdapter(
-            onItemClick = { node -> ttsManager.speak(node.label) },
-            onItemLongClick = { index -> explorerViewModel.removeItemFromPhrase(index) }
+            onItemClick = { node -> ttsManager.speak(node.label) }
         )
         rvPhrase.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
         rvPhrase.adapter = phraseAdapter
