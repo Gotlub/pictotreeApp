@@ -53,6 +53,18 @@ class TreeExplorerFragment : Fragment() {
     private lateinit var fabSpeak: View
     private lateinit var ivArrowToChildren: ImageView
     private lateinit var ivArrowToSiblings: ImageView
+    
+    // Indicateurs Siblings
+    private lateinit var siblingsGradLeft: View
+    private lateinit var siblingsGradRight: View
+    private lateinit var siblingsArrowLeft: View
+    private lateinit var siblingsArrowRight: View
+    
+    // Indicateurs Enfants
+    private lateinit var childrenGradLeft: View
+    private lateinit var childrenGradRight: View
+    private lateinit var childrenArrowLeft: View
+    private lateinit var childrenArrowRight: View
 
     private val snapHelper = LinearSnapHelper()
 
@@ -98,6 +110,18 @@ class TreeExplorerFragment : Fragment() {
         fabSpeak = view.findViewById(R.id.fab_speak)
         ivArrowToChildren = view.findViewById(R.id.iv_arrow_to_children)
         ivArrowToSiblings = view.findViewById(R.id.iv_arrow_to_siblings)
+        
+        // Init indicateurs Siblings
+        siblingsGradLeft = view.findViewById(R.id.siblings_gradient_left)
+        siblingsGradRight = view.findViewById(R.id.siblings_gradient_right)
+        siblingsArrowLeft = view.findViewById(R.id.iv_siblings_arrow_left)
+        siblingsArrowRight = view.findViewById(R.id.iv_siblings_arrow_right)
+        
+        // Init indicateurs Enfants
+        childrenGradLeft = view.findViewById(R.id.children_gradient_left)
+        childrenGradRight = view.findViewById(R.id.children_gradient_right)
+        childrenArrowLeft = view.findViewById(R.id.iv_children_arrow_left)
+        childrenArrowRight = view.findViewById(R.id.iv_children_arrow_right)
     }
 
     private fun setupAdapters() {
@@ -161,6 +185,14 @@ class TreeExplorerFragment : Fragment() {
                     val viewCenter = (view.left + view.right) / 2
                     ivArrowToChildren.translationX = (viewCenter - rvSiblings.width / 2).toFloat()
                 }
+                
+                // Mettre à jour les indicateurs de scroll horizontal
+                val canLeft = recyclerView.canScrollHorizontally(-1)
+                val canRight = recyclerView.canScrollHorizontally(1)
+                siblingsGradLeft.visibility = if (canLeft) View.VISIBLE else View.INVISIBLE
+                siblingsArrowLeft.visibility = if (canLeft) View.VISIBLE else View.INVISIBLE
+                siblingsGradRight.visibility = if (canRight) View.VISIBLE else View.INVISIBLE
+                siblingsArrowRight.visibility = if (canRight) View.VISIBLE else View.INVISIBLE
             }
         })
 
@@ -171,7 +203,16 @@ class TreeExplorerFragment : Fragment() {
         rvChildren.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
         rvChildren.adapter = childrenAdapter
         
-        // Pas de superposition pour les enfants (juxtaposition standard)
+        rvChildren.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                val canLeft = recyclerView.canScrollHorizontally(-1)
+                val canRight = recyclerView.canScrollHorizontally(1)
+                childrenGradLeft.visibility = if (canLeft) View.VISIBLE else View.INVISIBLE
+                childrenArrowLeft.visibility = if (canLeft) View.VISIBLE else View.INVISIBLE
+                childrenGradRight.visibility = if (canRight) View.VISIBLE else View.INVISIBLE
+                childrenArrowRight.visibility = if (canRight) View.VISIBLE else View.INVISIBLE
+            }
+        })
 
         // Phrase Band (Bottom)
         phraseAdapter = PhraseAdapter(
@@ -359,6 +400,16 @@ class TreeExplorerFragment : Fragment() {
                 }
                 siblingAdapter.setSelectedPosition(position)
             }
+            
+            // Mettre à jour les indicateurs
+            rvSiblings.post {
+                val canLeft = rvSiblings.canScrollHorizontally(-1)
+                val canRight = rvSiblings.canScrollHorizontally(1)
+                siblingsGradLeft.visibility = if (canLeft) View.VISIBLE else View.INVISIBLE
+                siblingsArrowLeft.visibility = if (canLeft) View.VISIBLE else View.INVISIBLE
+                siblingsGradRight.visibility = if (canRight) View.VISIBLE else View.INVISIBLE
+                siblingsArrowRight.visibility = if (canRight) View.VISIBLE else View.INVISIBLE
+            }
         }
 
         // Flèche vers enfants : visible seulement si le noeud focus a des enfants
@@ -370,7 +421,16 @@ class TreeExplorerFragment : Fragment() {
         }
 
         // Bottom Zone: Children (Full bandeau uniformisé)
-        childrenAdapter.submitList(state.children)
+        childrenAdapter.submitList(state.children) {
+            rvChildren.post {
+                val canLeft = rvChildren.canScrollHorizontally(-1)
+                val canRight = rvChildren.canScrollHorizontally(1)
+                childrenGradLeft.visibility = if (canLeft) View.VISIBLE else View.INVISIBLE
+                childrenArrowLeft.visibility = if (canLeft) View.VISIBLE else View.INVISIBLE
+                childrenGradRight.visibility = if (canRight) View.VISIBLE else View.INVISIBLE
+                childrenArrowRight.visibility = if (canRight) View.VISIBLE else View.INVISIBLE
+            }
+        }
     }
 
     override fun onDestroyView() {

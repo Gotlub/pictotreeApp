@@ -78,7 +78,7 @@
                 </androidx.constraintlayout.widget.ConstraintLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Flèche Parent -> Frères (Désormais centrée et flottante sur la ligne) -->
+            <!-- Flèche Parent -> Frères -->
             <ImageView
                 android:id="@+id/iv_arrow_to_siblings"
                 android:layout_width="32dp"
@@ -179,6 +179,46 @@
                 app:layout_constraintTop_toTopOf="parent"
                 app:layout_constraintBottom_toBottomOf="parent"
                 tools:listitem="@layout/item_sibling_node" />
+
+            <!-- Indicateurs de scroll Frères (Gradients + Flèches) -->
+            <View
+                android:id="@+id/siblings_gradient_left"
+                android:layout_width="60dp"
+                android:layout_height="match_parent"
+                android:background="@drawable/scroll_gradient_left"
+                android:visibility="invisible"
+                app:layout_constraintStart_toStartOf="parent" />
+            <ImageView
+                android:id="@+id/iv_siblings_arrow_left"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@android:drawable/ic_media_previous"
+                android:alpha="0.5"
+                android:visibility="invisible"
+                android:layout_marginStart="8dp"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent" />
+
+            <View
+                android:id="@+id/siblings_gradient_right"
+                android:layout_width="60dp"
+                android:layout_height="match_parent"
+                android:background="@drawable/scroll_gradient_right"
+                android:visibility="invisible"
+                app:layout_constraintEnd_toEndOf="parent" />
+            <ImageView
+                android:id="@+id/iv_siblings_arrow_right"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@android:drawable/ic_media_next"
+                android:alpha="0.5"
+                android:visibility="invisible"
+                android:layout_marginEnd="8dp"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent" />
+
         </androidx.constraintlayout.widget.ConstraintLayout>
 
         <!-- 3. ZONE BASSE (Enfants) -->
@@ -202,6 +242,45 @@
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 tools:listitem="@layout/item_sibling_node" />
+
+            <!-- Indicateurs de scroll Enfants (Gradients + Flèches) -->
+            <View
+                android:id="@+id/children_gradient_left"
+                android:layout_width="60dp"
+                android:layout_height="match_parent"
+                android:background="@drawable/scroll_gradient_left"
+                android:visibility="invisible"
+                app:layout_constraintStart_toStartOf="parent" />
+            <ImageView
+                android:id="@+id/iv_children_arrow_left"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@android:drawable/ic_media_previous"
+                android:alpha="0.5"
+                android:visibility="invisible"
+                android:layout_marginStart="8dp"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent" />
+
+            <View
+                android:id="@+id/children_gradient_right"
+                android:layout_width="60dp"
+                android:layout_height="match_parent"
+                android:background="@drawable/scroll_gradient_right"
+                android:visibility="invisible"
+                app:layout_constraintEnd_toEndOf="parent" />
+            <ImageView
+                android:id="@+id/iv_children_arrow_right"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@android:drawable/ic_media_next"
+                android:alpha="0.5"
+                android:visibility="invisible"
+                android:layout_marginEnd="8dp"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent" />
         </androidx.constraintlayout.widget.ConstraintLayout>
 
         <!-- FLÈCHE FLOTTANTE MILIEU (Dynamique) -->
