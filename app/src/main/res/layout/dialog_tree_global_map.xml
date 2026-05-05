@@ -16,61 +16,56 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <!-- TOP BAR ACTIONS (Synchronisées avec fragment_tree_explorer) -->
-    <!-- Ajustement à 48dp pour compenser la barre de statut absente en plein écran -->
-    <LinearLayout
-        android:id="@+id/container_actions"
+    <!-- BLOC ACTIONS RESPONSIVE (DROITE) -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/right_actions_container"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:gravity="end"
         android:layout_marginTop="48dp"
         android:layout_marginEnd="16dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
-        <!-- Bouton Retour (Ferme le dialogue et revient à l'endroit exact dans l'explorateur) -->
-        <!-- Icône remplacée par 3 barres horizontales (ic_menu_sort_by_size) -->
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/btn_back_to_nav"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:layout_marginBottom="8dp"
-            app:cardCornerRadius="12dp"
-            app:cardBackgroundColor="#EDE7F6"
-            app:cardElevation="2dp"
-            android:clickable="true"
-            android:focusable="true"
-            android:foreground="?attr/selectableItemBackground">
-            <ImageView
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:padding="10dp"
-                android:src="@android:drawable/ic_menu_sort_by_size"
-                app:tint="#5E35B1" />
-        </com.google.android.material.card.MaterialCardView>
-
-        <!-- Bouton Recherche -->
+        <!-- 1. Recherche -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/card_search"
             android:layout_width="48dp"
             android:layout_height="48dp"
-            android:layout_marginBottom="8dp"
             app:cardCornerRadius="12dp"
             app:cardBackgroundColor="#EDE7F6"
             app:cardElevation="2dp"
             android:clickable="true"
-            android:focusable="true"
-            android:foreground="?attr/selectableItemBackground">
-            <ImageView
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:padding="10dp"
-                android:src="@android:drawable/ic_menu_search"
-                app:tint="#5E35B1" />
+            android:focusable="true">
+            <ImageView android:layout_width="match_parent" android:layout_height="match_parent" android:padding="10dp" android:src="@android:drawable/ic_menu_search" app:tint="#5E35B1" />
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- Bouton Grille (Retour aux arbres) -->
+        <!-- 2. Lecture Vocale (Micro) - Ajouté pour corriger le crash -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_speak"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            app:cardCornerRadius="12dp"
+            app:cardBackgroundColor="#E8F5E9"
+            app:cardElevation="2dp"
+            android:clickable="true"
+            android:focusable="true">
+            <ImageView android:layout_width="match_parent" android:layout_height="match_parent" android:padding="10dp" android:src="@android:drawable/ic_btn_speak_now" app:tint="#2E7D32" />
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- 3. Retour à la Navigation (hamburger) -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/btn_back_to_nav"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            app:cardCornerRadius="12dp"
+            app:cardBackgroundColor="#EDE7F6"
+            app:cardElevation="2dp"
+            android:clickable="true"
+            android:focusable="true">
+            <ImageView android:layout_width="match_parent" android:layout_height="match_parent" android:padding="10dp" android:src="@android:drawable/ic_menu_sort_by_size" app:tint="#5E35B1" />
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- 4. Retour aux Arbres (grille) -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/card_back_to_trees"
             android:layout_width="48dp"
@@ -79,28 +74,35 @@
             app:cardBackgroundColor="#EDE7F6"
             app:cardElevation="2dp"
             android:clickable="true"
-            android:focusable="true"
-            android:foreground="?attr/selectableItemBackground">
-            <ImageView
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:padding="10dp"
-                android:src="@android:drawable/ic_dialog_dialer"
-                app:tint="#5E35B1" />
+            android:focusable="true">
+            <ImageView android:layout_width="match_parent" android:layout_height="match_parent" android:padding="10dp" android:src="@android:drawable/ic_dialog_dialer" app:tint="#5E35B1" />
         </com.google.android.material.card.MaterialCardView>
-    </LinearLayout>
 
-    <!-- Preview and Add Panel -->
+        <!-- Flow pour organiser les boutons verticalement et de façon responsive -->
+        <androidx.constraintlayout.helper.widget.Flow
+            android:id="@+id/flow_actions_treant"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            app:flow_verticalGap="8dp"
+            app:flow_wrapMode="none"
+            app:constraint_referenced_ids="card_search,card_speak,btn_back_to_nav,card_back_to_trees"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <!-- Preview and Add Panel (DROITE BAS) -->
     <LinearLayout
         android:id="@+id/panel_selection_preview"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:gravity="center"
-        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
         android:layout_marginBottom="16dp"
         app:layout_constraintBottom_toTopOf="@id/panel_phrase"
-        app:layout_constraintStart_toStartOf="parent">
+        app:layout_constraintEnd_toEndOf="parent">
 
         <ImageView
             android:id="@+id/iv_selection_preview"
@@ -125,35 +127,10 @@
     </LinearLayout>
 
     <!-- NAVIGATION ARROWS -->
-    <ImageButton
-        android:id="@+id/btn_prev_tree"
-        android:layout_width="56dp"
-        android:layout_height="56dp"
-        android:layout_marginStart="8dp"
-        android:background="?android:attr/selectableItemBackgroundBorderless"
-        android:contentDescription="Arbre précédent"
-        android:src="@android:drawable/ic_media_previous"
-        app:tint="#6200EE"
-        android:elevation="4dp"
-        app:layout_constraintBottom_toBottomOf="@id/web_view_map"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="@id/web_view_map" />
+    <ImageButton android:id="@+id/btn_prev_tree" android:layout_width="56dp" android:layout_height="56dp" android:layout_marginStart="8dp" android:background="?android:attr/selectableItemBackgroundBorderless" android:src="@android:drawable/ic_media_previous" app:tint="#6200EE" android:elevation="4dp" app:layout_constraintBottom_toBottomOf="@id/web_view_map" app:layout_constraintStart_toStartOf="parent" app:layout_constraintTop_toTopOf="@id/web_view_map" />
+    <ImageButton android:id="@+id/btn_next_tree" android:layout_width="56dp" android:layout_height="56dp" android:layout_marginEnd="8dp" android:background="?android:attr/selectableItemBackgroundBorderless" android:src="@android:drawable/ic_media_next" app:tint="#6200EE" android:elevation="4dp" app:layout_constraintBottom_toBottomOf="@id/web_view_map" app:layout_constraintEnd_toEndOf="parent" app:layout_constraintTop_toTopOf="@id/web_view_map" />
 
-    <ImageButton
-        android:id="@+id/btn_next_tree"
-        android:layout_width="56dp"
-        android:layout_height="56dp"
-        android:layout_marginEnd="8dp"
-        android:background="?android:attr/selectableItemBackgroundBorderless"
-        android:contentDescription="Arbre suivant"
-        android:src="@android:drawable/ic_media_next"
-        app:tint="#6200EE"
-        android:elevation="4dp"
-        app:layout_constraintBottom_toBottomOf="@id/web_view_map"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="@id/web_view_map" />
-
-    <!-- BANDEAU DE PHRASE (Panier) - ABSOLUTE BOTTOM -->
+    <!-- BANDEAU DE PHRASE -->
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/panel_phrase"
         android:layout_width="match_parent"
@@ -163,47 +140,8 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent">
-
-        <ImageButton
-            android:id="@+id/btn_fullscreen_phrase"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:layout_margin="4dp"
-            android:padding="8dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@android:drawable/ic_menu_zoom"
-            android:elevation="20dp"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            android:contentDescription="Mode plein écran" />
-
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/rv_phrase"
-            android:layout_width="0dp"
-            android:layout_height="0dp"
-            android:layout_marginTop="8dp"
-            android:layout_marginBottom="8dp"
-            android:clipToPadding="false"
-            android:paddingHorizontal="16dp"
-            android:orientation="horizontal"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            tools:listitem="@layout/item_phrase_picto" />
+        <ImageButton android:id="@+id/btn_fullscreen_phrase" android:layout_width="48dp" android:layout_height="48dp" android:layout_margin="4dp" android:padding="8dp" android:background="?attr/selectableItemBackgroundBorderless" android:src="@android:drawable/ic_menu_zoom" android:elevation="20dp" app:layout_constraintTop_toTopOf="parent" app:layout_constraintEnd_toEndOf="parent" />
+        <androidx.recyclerview.widget.RecyclerView android:id="@+id/rv_phrase" android:layout_width="0dp" android:layout_height="0dp" android:layout_marginTop="8dp" android:layout_marginBottom="8dp" android:clipToPadding="false" android:paddingHorizontal="16dp" android:orientation="horizontal" app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent" tools:listitem="@layout/item_phrase_picto" />
     </androidx.constraintlayout.widget.ConstraintLayout>
-
-    <!-- Bouton Lecture Vocal masqué (doublon avec mode plein écran) -->
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/fab_speak_dialog"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginEnd="16dp"
-        android:layout_marginBottom="8dp"
-        android:src="@android:drawable/ic_btn_speak_now"
-        android:visibility="gone"
-        app:layout_constraintBottom_toTopOf="@id/panel_phrase"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:contentDescription="Lire la phrase" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

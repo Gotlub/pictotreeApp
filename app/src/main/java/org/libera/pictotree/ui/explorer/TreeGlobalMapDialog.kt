@@ -297,10 +297,10 @@ class TreeGlobalMapDialog : DialogFragment() {
             }
         }
 
+        // BOUTON RETOUR : Icône 3 barres (ic_menu_sort_by_size)
         root.findViewById<View>(R.id.btn_back_to_nav).setOnClickListener {
             Log.d(TAG, "VIEW_CHANGE: Returning to Nav. Tree $globalSelectedTreeId, Node $globalSelectedNodeId")
             if (globalSelectedTreeId != -1) {
-                // On déclenche le retour même si nodeId est vide (le ViewModel se rabattra sur la racine)
                 viewModel.jumpToTreeAndNode(globalSelectedTreeId, globalSelectedNodeId)
             }
             dismiss()
@@ -320,19 +320,19 @@ class TreeGlobalMapDialog : DialogFragment() {
             searchDialog.show(childFragmentManager, "PictoSearch")
         }
 
-        root.findViewById<View>(R.id.card_back_to_trees).setOnClickListener {
-            dismiss()
-            (parentFragment as? Fragment)?.findNavController()?.popBackStack()
-        }
-
-        val fabSpeak = root.findViewById<View>(R.id.fab_speak_dialog)
-        fabSpeak.setOnClickListener {
+        // ACTION : Lecture Vocale (Micro) intégrée dans le bloc haut droite
+        root.findViewById<View>(R.id.card_speak).setOnClickListener {
             val phrase = viewModel.phraseList.value
             if (phrase.isEmpty()) return@setOnClickListener
             ttsManager.stop()
             phrase.forEachIndexed { index, node ->
                 ttsManager.speak(node.label, index.toString())
             }
+        }
+
+        root.findViewById<View>(R.id.card_back_to_trees).setOnClickListener {
+            dismiss()
+            (parentFragment as? Fragment)?.findNavController()?.popBackStack()
         }
 
         return root

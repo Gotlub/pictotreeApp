@@ -14,9 +14,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
-import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.LinearSnapHelper
 import androidx.recyclerview.widget.RecyclerView
 import coil.load
 import kotlinx.coroutines.launch
@@ -50,7 +48,6 @@ class TreeExplorerFragment : Fragment() {
     
     private lateinit var ivSelectedLarge: ImageView
     private lateinit var btnAddToPhrase: Button
-    private lateinit var fabSpeak: View
     private lateinit var ivArrowToChildren: ImageView
     private lateinit var ivArrowToSiblings: ImageView
     
@@ -67,18 +64,6 @@ class TreeExplorerFragment : Fragment() {
     private lateinit var childrenGradRight: View
     private lateinit var childrenArrowLeft: View
     private lateinit var childrenArrowRight: View
-
-    private val snapHelper = LinearSnapHelper()
-
-    // Décoration pour l'effet de superposition (overlap)
-    private inner class OverlapDecoration(private val overlapPx: Int) : RecyclerView.ItemDecoration() {
-        override fun getItemOffsets(outRect: android.graphics.Rect, view: View, parent: RecyclerView, state: RecyclerView.State) {
-            val position = parent.getChildAdapterPosition(view)
-            if (position > 0) {
-                outRect.left = -overlapPx
-            }
-        }
-    }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         return inflater.inflate(R.layout.fragment_tree_explorer, container, false)
@@ -109,7 +94,6 @@ class TreeExplorerFragment : Fragment() {
         
         ivSelectedLarge = view.findViewById(R.id.iv_selected_large)
         btnAddToPhrase = view.findViewById(R.id.btn_add_to_phrase)
-        fabSpeak = view.findViewById(R.id.fab_speak)
         ivArrowToChildren = view.findViewById(R.id.iv_arrow_to_children)
         ivArrowToSiblings = view.findViewById(R.id.iv_arrow_to_siblings)
         
@@ -127,162 +111,101 @@ class TreeExplorerFragment : Fragment() {
     }
 
     private fun setupAdapters() {
-        // Breadcrumbs (Miniatures verticales à gauche)
-        breadcrumbAdapter = NodeAdapter(R.layout.item_breadcrumb) { node ->
-            viewModel.focusOnNode(node)
-        }
+        // Breadcrumbs (Désormais VERTICAL à droite du parent)
+        breadcrumbAdapter = NodeAdapter(R.layout.item_breadcrumb) { node -> viewModel.focusOnNode(node) }
         rvBreadcrumbs.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.VERTICAL, false)
         rvBreadcrumbs.adapter = breadcrumbAdapter
         
-        // Indicateurs de scroll pour les breadcrumbs
         rvBreadcrumbs.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
-                scrollTopIndicator.visibility = if (recyclerView.canScrollVertically(-1)) View.VISIBLE else View.INVISIBLE
-                scrollBottomIndicator.visibility = if (recyclerView.canScrollVertically(1)) View.VISIBLE else View.INVISIBLE
+                updateVerticalScrollIndicators(recyclerView, scrollTopIndicator, scrollBottomIndicator)
             }
         })
 
-        // Siblings (Middle Zone)
+        // Siblings
         siblingAdapter = NodeAdapter(R.layout.item_sibling_node) { node ->
             val position = siblingAdapter.currentList.indexOf(node)
             if (position != -1) {
-                val layoutManager = rvSiblings.layoutManager as LinearLayoutManager
-                val view = layoutManager.findViewByPosition(position)
-                if (view != null) {
-                    val snapDistance = snapHelper.calculateDistanceToFinalSnap(layoutManager, view)
-                    if (snapDistance != null) {
-                        rvSiblings.smoothScrollBy(snapDistance[0], snapDistance[1])
-                    }
-                } else {
-                    rvSiblings.smoothScrollToPosition(position)
-                }
-                
+                rvSiblings.smoothScrollToPosition(position)
                 siblingAdapter.setSelectedPosition(position)
                 viewModel.updateFocusWithinSiblings(node)
             }
         }
         rvSiblings.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
         rvSiblings.adapter = siblingAdapter
-        
-        // Ajout de padding pour permettre aux éléments des bords de se centrer
         rvSiblings.clipToPadding = false
-        val screenWidth = resources.displayMetrics.widthPixels
-        val itemWidth = resources.getDimensionPixelSize(R.dimen.sibling_item_width)
-        val padding = (screenWidth - itemWidth) / 2
-        rvSiblings.setPadding(padding, 0, padding, 0)
-
-        snapHelper.attachToRecyclerView(rvSiblings)
+        val density = resources.displayMetrics.density
+        rvSiblings.setPadding((160 * density).toInt(), 0, (120 * density).toInt(), 0)
         
         rvSiblings.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
-                if (newState == RecyclerView.SCROLL_STATE_IDLE) {
-                    updateFocusFromSnap()
-                }
+                if (newState == RecyclerView.SCROLL_STATE_IDLE) updateFocusFromFirstVisible()
             }
-
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
-                // Aligner dynamiquement la flèche sous l'élément central pendant le scroll
-                val centerView = snapHelper.findSnapView(rvSiblings.layoutManager)
-                centerView?.let { view ->
+                val layoutManager = rvSiblings.layoutManager as LinearLayoutManager
+                val firstView = layoutManager.findViewByPosition(layoutManager.findFirstVisibleItemPosition())
+                firstView?.let { view ->
                     val viewCenter = (view.left + view.right) / 2
-                    ivArrowToChildren.translationX = (viewCenter - rvSiblings.width / 2).toFloat()
+                    if (::ivArrowToChildren.isInitialized) ivArrowToChildren.translationX = (viewCenter - rvSiblings.width / 2).toFloat()
                 }
-                
-                // Mettre à jour les indicateurs de scroll horizontal
-                val canLeft = recyclerView.canScrollHorizontally(-1)
-                val canRight = recyclerView.canScrollHorizontally(1)
-                siblingsGradLeft.visibility = if (canLeft) View.VISIBLE else View.INVISIBLE
-                siblingsArrowLeft.visibility = if (canLeft) View.VISIBLE else View.INVISIBLE
-                siblingsGradRight.visibility = if (canRight) View.VISIBLE else View.INVISIBLE
-                siblingsArrowRight.visibility = if (canRight) View.VISIBLE else View.INVISIBLE
+                updateHorizontalScrollIndicators(recyclerView, siblingsGradLeft, siblingsArrowLeft, siblingsGradRight, siblingsArrowRight)
             }
         })
 
-        // Children Preview (Bottom Right) - UNIFORMISÉ AVEC LES FRÈRES (140dp x 180dp)
+        // Children Preview
         childrenAdapter = NodeAdapter(R.layout.item_sibling_node) { node ->
-            if (node.children.isNotEmpty()) {
-                viewModel.focusOnNode(node)
-            } else {
-                viewModel.selectNodeWithoutNavigating(node)
-            }
+            if (node.children.isNotEmpty()) viewModel.focusOnNode(node) else viewModel.selectNodeWithoutNavigating(node)
         }
         rvChildren.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
         rvChildren.adapter = childrenAdapter
-        
         rvChildren.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
-                val canLeft = recyclerView.canScrollHorizontally(-1)
-                val canRight = recyclerView.canScrollHorizontally(1)
-                childrenGradLeft.visibility = if (canLeft) View.VISIBLE else View.INVISIBLE
-                childrenArrowLeft.visibility = if (canLeft) View.VISIBLE else View.INVISIBLE
-                childrenGradRight.visibility = if (canRight) View.VISIBLE else View.INVISIBLE
-                childrenArrowRight.visibility = if (canRight) View.VISIBLE else View.INVISIBLE
+                updateHorizontalScrollIndicators(recyclerView, childrenGradLeft, childrenArrowLeft, childrenGradRight, childrenArrowRight)
             }
         })
 
-        // Phrase Band (Bottom)
-        phraseAdapter = PhraseAdapter(
-            onItemClick = { node -> ttsManager.speak(node.label) }
-        )
+        // Phrase Band
+        phraseAdapter = PhraseAdapter(onItemClick = { node -> ttsManager.speak(node.label) })
         rvPhrase.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
         rvPhrase.adapter = phraseAdapter
 
-        // Drag & Drop / Swipe to Delete pour la phrase
         val itemTouchHelper = androidx.recyclerview.widget.ItemTouchHelper(object : androidx.recyclerview.widget.ItemTouchHelper.SimpleCallback(
-            androidx.recyclerview.widget.ItemTouchHelper.LEFT or androidx.recyclerview.widget.ItemTouchHelper.RIGHT,
-            androidx.recyclerview.widget.ItemTouchHelper.UP
+            androidx.recyclerview.widget.ItemTouchHelper.LEFT or androidx.recyclerview.widget.ItemTouchHelper.RIGHT, androidx.recyclerview.widget.ItemTouchHelper.UP
         ) {
-            override fun onMove(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder, target: RecyclerView.ViewHolder): Boolean {
-                val fromPos = viewHolder.bindingAdapterPosition
-                val toPos = target.bindingAdapterPosition
-                phraseAdapter.moveItem(fromPos, toPos)
-                return true
-            }
-
-            override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
-                if (direction == androidx.recyclerview.widget.ItemTouchHelper.UP) {
-                    viewModel.removeItemFromPhrase(viewHolder.bindingAdapterPosition)
-                }
-            }
-
+            override fun onMove(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder, target: RecyclerView.ViewHolder) = phraseAdapter.moveItem(viewHolder.bindingAdapterPosition, target.bindingAdapterPosition).run { true }
+            override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) { if (direction == androidx.recyclerview.widget.ItemTouchHelper.UP) viewModel.removeItemFromPhrase(viewHolder.bindingAdapterPosition) }
             override fun onSelectedChanged(viewHolder: RecyclerView.ViewHolder?, actionState: Int) {
                 super.onSelectedChanged(viewHolder, actionState)
-                if (actionState == androidx.recyclerview.widget.ItemTouchHelper.ACTION_STATE_DRAG) {
-                    isDraggingPhrase = true
-                    // Feedback visuel léger pour soulager le GPU/CPU de l'émulateur
-                    viewHolder?.itemView?.apply {
-                        alpha = 0.8f
-                        scaleX = 1.05f
-                        scaleY = 1.05f
-                    }
-                }
+                if (actionState == androidx.recyclerview.widget.ItemTouchHelper.ACTION_STATE_DRAG) { isDraggingPhrase = true; viewHolder?.itemView?.apply { alpha = 0.8f; scaleX = 1.05f; scaleY = 1.05f } }
             }
-
             override fun clearView(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder) {
-                super.clearView(recyclerView, viewHolder)
-                isDraggingPhrase = false
-                viewHolder.itemView.apply {
-                    alpha = 1.0f
-                    scaleX = 1.0f
-                    scaleY = 1.0f
-                }
-                // Une fois le geste terminé, on synchronise le ViewModel avec l'ordre final de l'adapter
-                val finalList = phraseAdapter.getCurrentList().toList()
-                viewModel.updatePhraseListSilently(finalList)
+                super.clearView(recyclerView, viewHolder); isDraggingPhrase = false; viewHolder.itemView.apply { alpha = 1.0f; scaleX = 1.0f; scaleY = 1.0f }
+                viewModel.updatePhraseListSilently(phraseAdapter.getCurrentList().toList())
             }
         })
         itemTouchHelper.attachToRecyclerView(rvPhrase)
     }
 
-    private fun updateFocusFromSnap() {
-        val centerView = snapHelper.findSnapView(rvSiblings.layoutManager)
-        centerView?.let {
-            val position = rvSiblings.getChildAdapterPosition(it)
-            if (position != RecyclerView.NO_POSITION && position < siblingAdapter.currentList.size) {
-                val focusedNode = siblingAdapter.currentList[position]
-                siblingAdapter.setSelectedPosition(position)
-                viewModel.updateFocusWithinSiblings(focusedNode)
-            }
+    private fun updateHorizontalScrollIndicators(rv: RecyclerView, gradL: View?, arrowL: View?, gradR: View?, arrowR: View?) {
+        val canLeft = rv.canScrollHorizontally(-1); val canRight = rv.canScrollHorizontally(1)
+        if (gradL != null && gradL.id != View.NO_ID && gradL.parent != null) gradL.visibility = if (canLeft) View.VISIBLE else View.INVISIBLE
+        if (arrowL != null && arrowL.id != View.NO_ID && arrowL.parent != null) arrowL.visibility = if (canLeft) View.VISIBLE else View.INVISIBLE
+        if (gradR != null && gradR.id != View.NO_ID && gradR.parent != null) gradR.visibility = if (canRight) View.VISIBLE else View.INVISIBLE
+        if (arrowR != null && arrowR.id != View.NO_ID && arrowR.parent != null) arrowR.visibility = if (canRight) View.VISIBLE else View.INVISIBLE
+    }
+
+    private fun updateVerticalScrollIndicators(rv: RecyclerView, gradTop: View?, gradBottom: View?) {
+        val canUp = rv.canScrollVertically(-1); val canDown = rv.canScrollVertically(1)
+        if (gradTop != null && gradTop.id != View.NO_ID && gradTop.parent != null) gradTop.visibility = if (canUp) View.VISIBLE else View.INVISIBLE
+        if (gradBottom != null && gradBottom.id != View.NO_ID && gradBottom.parent != null) gradBottom.visibility = if (canDown) View.VISIBLE else View.INVISIBLE
+    }
+
+    private fun updateFocusFromFirstVisible() {
+        val layoutManager = rvSiblings.layoutManager as LinearLayoutManager
+        val position = layoutManager.findFirstVisibleItemPosition()
+        if (position != RecyclerView.NO_POSITION && position < siblingAdapter.currentList.size) {
+            val focusedNode = siblingAdapter.currentList[position]
+            siblingAdapter.setSelectedPosition(position); viewModel.updateFocusWithinSiblings(focusedNode)
         }
     }
 
@@ -290,235 +213,77 @@ class TreeExplorerFragment : Fragment() {
         val username = org.libera.pictotree.data.SessionManager(requireContext()).getUsername() ?: "default"
         val database = AppDatabase.getDatabase(requireContext(), username)
         val userConfigRepository = org.libera.pictotree.data.repository.UserConfigRepository(database.userConfigDao())
-        
         ttsManager = TTSManager(requireContext())
-
         val factory = object : ViewModelProvider.Factory {
-            override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
-                @Suppress("UNCHECKED_CAST")
-                return TreeExplorerViewModel(
-                    requireActivity().application, 
-                    database.treeDao(), 
-                    database.profileDao(),
-                    userConfigRepository,
-                    org.libera.pictotree.network.RetrofitClient.SERVER_URL, 
-                    username
-                ) as T
-            }
+            override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T = TreeExplorerViewModel(requireActivity().application, database.treeDao(), database.profileDao(), userConfigRepository, org.libera.pictotree.network.RetrofitClient.SERVER_URL, username) as T
         }
         viewModel = ViewModelProvider(requireActivity(), factory)[TreeExplorerViewModel::class.java]
-        
         val targetTreeId = arguments?.getInt("treeId", -1) ?: -1
         val profileId = arguments?.getInt("profileId", -1) ?: -1
-
-        if (profileId != -1) {
-            viewLifecycleOwner.lifecycleScope.launch {
-                val trees = database.profileDao().getTreesForProfileOrdered(profileId)
-                viewModel.setProfileTreeContext(profileId, trees.map { it.id })
-                if (targetTreeId != -1) viewModel.loadTree(targetTreeId)
-            }
-        } else if (targetTreeId != -1) {
-            viewModel.loadTree(targetTreeId)
-        }
+        if (profileId != -1) { viewLifecycleOwner.lifecycleScope.launch { val trees = database.profileDao().getTreesForProfileOrdered(profileId); viewModel.setProfileTreeContext(profileId, trees.map { it.id }); if (targetTreeId != -1) viewModel.loadTree(targetTreeId) } }
+        else if (targetTreeId != -1) viewModel.loadTree(targetTreeId)
     }
 
     private fun setupListeners(view: View) {
-        view.findViewById<View>(R.id.card_eye).setOnClickListener {
-            // Vue Globale (Treant)
-            val centerNodeId = viewModel.uiState.value.focusedNode?.id ?: ""
-            val profileTreeIds = viewModel.getProfileTreeIds()
-            val currentTreeId = viewModel.getCurrentTreeId()
-            val dialog = TreeGlobalMapDialog.newInstance(
-                treeIds = profileTreeIds,
-                currentTreeId = currentTreeId,
-                username = org.libera.pictotree.data.SessionManager(requireContext()).getUsername() ?: "default",
-                selectedNodeId = centerNodeId
-            )
+        view.findViewById<View>(R.id.card_eye)?.setOnClickListener {
+            val dialog = TreeGlobalMapDialog.newInstance(viewModel.getProfileTreeIds(), viewModel.getCurrentTreeId(), org.libera.pictotree.data.SessionManager(requireContext()).getUsername() ?: "default", viewModel.uiState.value.focusedNode?.id ?: "")
             dialog.show(childFragmentManager, "TreeGlobalMapDialog")
         }
-
-        view.findViewById<View>(R.id.card_search).setOnClickListener {
+        view.findViewById<View>(R.id.card_search)?.setOnClickListener {
             val dialog = org.libera.pictotree.ui.common.PictoSearchDialog()
-            dialog.onPictoSelected = { result ->
-                val searchNode = TreeNode(
-                    id = "search_${result.id}_recherche",
-                    label = result.name,
-                    imageUrl = result.imageUrl,
-                    children = emptyList()
-                )
-                viewModel.addToPhrase(searchNode)
-            }
+            dialog.onPictoSelected = { result -> viewModel.addToPhrase(TreeNode("search_${result.id}_recherche", result.name, result.imageUrl, emptyList())) }
             dialog.show(childFragmentManager, "PictoSearch")
         }
-
-        view.findViewById<View>(R.id.card_back_to_trees).setOnClickListener {
-            findNavController().popBackStack()
-        }
-
-        btnAddToPhrase.setOnClickListener {
-            viewModel.addToPhrase()
-        }
-
-        view.findViewById<View>(R.id.btn_fullscreen_phrase).setOnClickListener {
-            findNavController().navigate(R.id.action_treeExplorerFragment_to_phraseFullscreenFragment)
-        }
-
-        fabSpeak.setOnClickListener {
+        view.findViewById<View>(R.id.card_speak)?.setOnClickListener {
             val phrase = viewModel.phraseList.value
-            if (phrase.isEmpty()) return@setOnClickListener
-            ttsManager.stop()
-            phrase.forEachIndexed { index, node ->
-                ttsManager.speak(node.label, index.toString())
-            }
+            if (phrase.isNotEmpty()) { ttsManager.stop(); phrase.forEachIndexed { index, node -> ttsManager.speak(node.label, index.toString()) } }
         }
-        
-        containerParent.setOnClickListener {
-            viewModel.uiState.value.parent?.let { viewModel.focusOnNode(it) }
-        }
+        view.findViewById<View>(R.id.card_back_to_trees)?.setOnClickListener { findNavController().popBackStack() }
+        btnAddToPhrase.setOnClickListener { viewModel.addToPhrase() }
+        view.findViewById<View>(R.id.btn_fullscreen_phrase)?.setOnClickListener { findNavController().navigate(R.id.action_treeExplorerFragment_to_phraseFullscreenFragment) }
+        containerParent.setOnClickListener { viewModel.uiState.value.parent?.let { viewModel.focusOnNode(it) } }
     }
 
     private fun setupObservers() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                launch {
-                    viewModel.uiState.collect { state ->
-                        updateUI(state)
-                        // Forcer la mise à jour des indicateurs après le chargement des données
-                        rvBreadcrumbs.post {
-                            scrollTopIndicator.visibility = if (rvBreadcrumbs.canScrollVertically(-1)) View.VISIBLE else View.INVISIBLE
-                            scrollBottomIndicator.visibility = if (rvBreadcrumbs.canScrollVertically(1)) View.VISIBLE else View.INVISIBLE
-                        }
-                    }
-                }
-                launch {
-                    var lastPhraseSize = 0
-                    viewModel.phraseList.collect { phrase ->
-                        if (!isDraggingPhrase) {
-                            phraseAdapter.submitList(phrase)
-                            // On ne scrolle à la fin QUE si on a ajouté un élément (taille augmente)
-                            if (phrase.size > lastPhraseSize) {
-                                rvPhrase.smoothScrollToPosition(phrase.size - 1)
-                            }
-                        }
-                        lastPhraseSize = phrase.size
-                    }
-                }
-                launch {
-                    viewModel.userConfig.collect { config ->
-                        config?.let { ttsManager.setLanguage(it.locale) }
-                    }
-                }
+                launch { viewModel.uiState.collect { state -> updateUI(state); rvBreadcrumbs.post { updateVerticalScrollIndicators(rvBreadcrumbs, scrollTopIndicator, scrollBottomIndicator) } } }
+                launch { var lastPhraseSize = 0; viewModel.phraseList.collect { phrase -> if (!isDraggingPhrase) { phraseAdapter.submitList(phrase); if (phrase.size > lastPhraseSize) rvPhrase.smoothScrollToPosition(phrase.size - 1) }; lastPhraseSize = phrase.size } }
+                launch { viewModel.userConfig.collect { config -> config?.let { ttsManager.setLanguage(it.locale) } } }
             }
         }
-
-        ttsManager.setListeners(
-            onStart = { utteranceId ->
-                val index = utteranceId.toIntOrNull() ?: -1
-                requireActivity().runOnUiThread {
-                    if (index != -1) {
-                        phraseAdapter.highlightPosition(index)
-                        rvPhrase.smoothScrollToPosition(index)
-                    }
-                }
-            },
-            onDone = { utteranceId ->
-                val index = utteranceId.toIntOrNull() ?: -1
-                if (index == phraseAdapter.itemCount - 1) {
-                    requireActivity().runOnUiThread { phraseAdapter.highlightPosition(-1) }
-                }
-            }
-        )
+        ttsManager.setListeners(onStart = { id -> id.toIntOrNull()?.let { idx -> requireActivity().runOnUiThread { phraseAdapter.highlightPosition(idx); rvPhrase.smoothScrollToPosition(idx) } } }, onDone = { id -> if (id.toIntOrNull() == phraseAdapter.itemCount - 1) requireActivity().runOnUiThread { phraseAdapter.highlightPosition(-1) } })
     }
 
     private fun updateUI(state: HierarchicalUiState) {
         if (state.isLoading) return
-
-        // Mettre à jour la couleur CAA sur les adapters
-        siblingAdapter.setColorCode(state.colorCode)
-        childrenAdapter.setColorCode(state.colorCode)
-        
-        // Mettre à jour la couleur du parent card
-        try {
-            containerParent.strokeColor = android.graphics.Color.parseColor(state.colorCode)
-            containerParent.strokeWidth = (3 * resources.displayMetrics.density).toInt()
-        } catch (e: Exception) {
-            containerParent.strokeColor = android.graphics.Color.BLACK
+        siblingAdapter.setColorCode(state.colorCode); childrenAdapter.setColorCode(state.colorCode)
+        try { containerParent.strokeColor = android.graphics.Color.parseColor(state.colorCode); containerParent.strokeWidth = (3 * resources.displayMetrics.density).toInt() } catch (e: Exception) { containerParent.strokeColor = android.graphics.Color.BLACK }
+        if (state.parent != null) { containerParent.visibility = View.VISIBLE; tvParentLabel.text = state.parent.label; ivParent.load(state.parent.imageUrl) { placeholder(R.drawable.ic_launcher_background); diskCachePolicy(coil.request.CachePolicy.ENABLED) } }
+        else containerParent.visibility = View.INVISIBLE
+        breadcrumbAdapter.submitList(state.breadcrumbs) { 
+            rvBreadcrumbs.post { 
+                if (state.breadcrumbs.isNotEmpty()) {
+                    rvBreadcrumbs.scrollToPosition(state.breadcrumbs.size - 1)
+                }
+                updateVerticalScrollIndicators(rvBreadcrumbs, scrollTopIndicator, scrollBottomIndicator) 
+            } 
         }
-
-        // Top Bar: Parent
-        if (state.parent != null) {
-            containerParent.visibility = View.VISIBLE
-            tvParentLabel.text = state.parent.label
-            ivParent.load(state.parent.imageUrl) { 
-                placeholder(R.drawable.ic_launcher_foreground) 
-                diskCachePolicy(coil.request.CachePolicy.ENABLED)
-            }
-            ivArrowToSiblings.visibility = View.VISIBLE
-        } else {
-            containerParent.visibility = View.INVISIBLE
-            ivArrowToSiblings.visibility = View.INVISIBLE
-        }
-
-        // Top Bar: Breadcrumbs
-        breadcrumbAdapter.submitList(state.breadcrumbs)
-
-        // Middle Zone: Siblings
         val oldSiblings = siblingAdapter.currentList
         siblingAdapter.submitList(state.siblings) {
-            // Une fois la liste soumise, on centre le focusNode
             val position = state.siblings.indexOfFirst { it.id == state.focusedNode?.id }
-            if (position != -1) {
-                if (oldSiblings != state.siblings) {
-                    // Si la liste a changé (navigation haut/bas), on scrolle direct
-                    rvSiblings.scrollToPosition(position)
-                }
-                siblingAdapter.setSelectedPosition(position)
-            } else {
-                // Si le focus est un enfant, on déselectionne les frères
-                siblingAdapter.setSelectedPosition(-1)
-            }
-            
-            // Mettre à jour les indicateurs
-            rvSiblings.post {
-                val canLeft = rvSiblings.canScrollHorizontally(-1)
-                val canRight = rvSiblings.canScrollHorizontally(1)
-                siblingsGradLeft.visibility = if (canLeft) View.VISIBLE else View.INVISIBLE
-                siblingsArrowLeft.visibility = if (canLeft) View.VISIBLE else View.INVISIBLE
-                siblingsGradRight.visibility = if (canRight) View.VISIBLE else View.INVISIBLE
-                siblingsArrowRight.visibility = if (canRight) View.VISIBLE else View.INVISIBLE
-            }
+            if (position != -1) { if (oldSiblings != state.siblings) rvSiblings.scrollToPosition(0); siblingAdapter.setSelectedPosition(position) }
+            else siblingAdapter.setSelectedPosition(-1)
+            rvSiblings.post { updateHorizontalScrollIndicators(rvSiblings, siblingsGradLeft, siblingsArrowLeft, siblingsGradRight, siblingsArrowRight) }
         }
-
-        // Flèche vers enfants : visible si on a des enfants à afficher en bas
-        ivArrowToChildren.visibility = if (state.children.isNotEmpty()) View.VISIBLE else View.INVISIBLE
-
-        // Bottom Zone: Large Focus
-        state.focusedNode?.let { node ->
-            ivSelectedLarge.load(node.imageUrl) { 
-                placeholder(R.drawable.ic_launcher_foreground) 
-                diskCachePolicy(coil.request.CachePolicy.ENABLED)
-            }
-        }
-
-        // Bottom Zone: Children (Full bandeau uniformisé)
+        if (::ivArrowToChildren.isInitialized) ivArrowToChildren.visibility = if (state.children.isNotEmpty()) View.VISIBLE else View.INVISIBLE
+        if (::ivArrowToSiblings.isInitialized) ivArrowToSiblings.visibility = if (state.parent != null) View.VISIBLE else View.INVISIBLE
+        state.focusedNode?.let { node -> ivSelectedLarge.load(node.imageUrl) { placeholder(R.drawable.ic_launcher_foreground); diskCachePolicy(coil.request.CachePolicy.ENABLED) } }
         childrenAdapter.submitList(state.children) {
-            // Gérer le surlignage bleu si un enfant est sélectionné
-            val childPosition = state.children.indexOfFirst { it.id == state.focusedNode?.id }
-            childrenAdapter.setSelectedPosition(childPosition)
-
-            rvChildren.post {
-                val canLeft = rvChildren.canScrollHorizontally(-1)
-                val canRight = rvChildren.canScrollHorizontally(1)
-                childrenGradLeft.visibility = if (canLeft) View.VISIBLE else View.INVISIBLE
-                childrenArrowLeft.visibility = if (canLeft) View.VISIBLE else View.INVISIBLE
-                childrenGradRight.visibility = if (canRight) View.VISIBLE else View.INVISIBLE
-                childrenArrowRight.visibility = if (canRight) View.VISIBLE else View.INVISIBLE
-            }
+            childrenAdapter.setSelectedPosition(state.children.indexOfFirst { it.id == state.focusedNode?.id })
+            rvChildren.post { updateHorizontalScrollIndicators(rvChildren, childrenGradLeft, childrenArrowLeft, childrenGradRight, childrenArrowRight) }
         }
     }
 
-    override fun onDestroyView() {
-        super.onDestroyView()
-        if (::ttsManager.isInitialized) ttsManager.shutdown()
-    }
+    override fun onDestroyView() { super.onDestroyView(); if (::ttsManager.isInitialized) ttsManager.shutdown() }
 }
