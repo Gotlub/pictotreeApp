@@ -164,24 +164,10 @@ class TreeGlobalMapDialog : DialogFragment() {
                     }
                 }
 
-                // Etape 3 : Injection CSS pour la couleur CAA dans Treant.js
+                // Etape 3 : Injection CSS pour la couleur CAA dans Treant.js (Observer réactif)
                 launch {
                     viewModel.uiState.collect { state ->
-                        val color = state.colorCode
-                        // Injecter le style dans la WebView pour surcharger la bordure
-                        val css = ".node { border: 3px solid $color !important; } " +
-                                 ".node.selected { box-shadow: 0 0 10px $color !important; }"
-                        webView.evaluateJavascript("""
-                            (function() {
-                                var style = document.getElementById('caa-style');
-                                if (!style) {
-                                    style = document.createElement('style');
-                                    style.id = 'caa-style';
-                                    document.head.appendChild(style);
-                                }
-                                style.innerHTML = '$css';
-                            })();
-                        """.trimIndent(), null)
+                        injectCaaStyle(state.colorCode)
                     }
                 }
             }
@@ -199,6 +185,7 @@ class TreeGlobalMapDialog : DialogFragment() {
             if (centerNode.id == globalSelectedNodeId) {
                 ivPreview.visibility = View.VISIBLE
                 loadPreviewImage(centerNode.imageUrl, ivPreview)
+                applyCaaColorToPreview(viewModel.uiState.value.colorCode, ivPreview)
             }
         }
 
@@ -223,17 +210,7 @@ class TreeGlobalMapDialog : DialogFragment() {
                     if (!imageUrl.isNullOrEmpty()) {
                         ivPreview.visibility = View.VISIBLE
                         loadPreviewImage(imageUrl, ivPreview)
-                        
-                        // Appliquer la bordure colorée CAA à la miniature native
-                        val colorCode = viewModel.uiState.value.colorCode
-                        try {
-                            ivPreview.background = android.graphics.drawable.GradientDrawable().apply {
-                                shape = android.graphics.drawable.GradientDrawable.RECTANGLE
-                                cornerRadius = (12 * resources.displayMetrics.density) // match rounded_bottom_sheet
-                                setColor(android.graphics.Color.parseColor("#F0F0F0"))
-                                setStroke((3 * resources.displayMetrics.density).toInt(), android.graphics.Color.parseColor(colorCode))
-                            }
-                        } catch (e: Exception) {}
+                        applyCaaColorToPreview(viewModel.uiState.value.colorCode, ivPreview)
                     } else {
                         ivPreview.visibility = View.GONE
                     }
@@ -261,7 +238,6 @@ class TreeGlobalMapDialog : DialogFragment() {
             globalSelectedNodeId = selectedNodesPerTree[treeId] ?: ""
 
             // Cacher la miniature si on n'a pas encore de sélection dans cet arbre
-            val ivPreview = root.findViewById<android.widget.ImageView>(R.id.iv_selection_preview)
             if (globalSelectedNodeId.isEmpty()) ivPreview.visibility = View.GONE
 
             lifecycleScope.launch(Dispatchers.IO) {
@@ -270,6 +246,8 @@ class TreeGlobalMapDialog : DialogFragment() {
                         val selectedNodeId = selectedNodesPerTree[treeId] ?: ""
                         val safeJson = android.util.Base64.encodeToString(entity.jsonPayload.toByteArray(), android.util.Base64.NO_WRAP)
                         webView.evaluateJavascript("javascript:renderTreeBase64('$safeJson', '$selectedNodeId', false, $treeId);", null)
+                        // Forcer l'injection du style immédiatement après le rendu
+                        injectCaaStyle(viewModel.uiState.value.colorCode)
                     }
                 }
             }
@@ -343,15 +321,10 @@ class TreeGlobalMapDialog : DialogFragment() {
         }
 
         root.findViewById<View>(R.id.card_back_to_trees).setOnClickListener {
-            // Fermer le dialogue et demander à l'explorer de revenir en arrière
             dismiss()
-            // On peut envoyer un signal via le ViewModel ou simplement laisser l'utilisateur 
-            // cliquer sur le bouton physique retour, mais ici on veut simuler le bouton grille.
-            // Le plus simple est de déclencher une navigation arrière sur le parent.
             (parentFragment as? Fragment)?.findNavController()?.popBackStack()
         }
 
-        // TTS Support
         val fabSpeak = root.findViewById<View>(R.id.fab_speak_dialog)
         fabSpeak.setOnClickListener {
             val phrase = viewModel.phraseList.value
@@ -363,6 +336,33 @@ class TreeGlobalMapDialog : DialogFragment() {
         }
 
         return root
+    }
+
+    private fun injectCaaStyle(color: String) {
+        val css = ".node { border: 3px solid $color !important; } " +
+                 ".node.selected { box-shadow: 0 0 10px $color !important; }"
+        webView.evaluateJavascript("""
+            (function() {
+                var style = document.getElementById('caa-style');
+                if (!style) {
+                    style = document.createElement('style');
+                    style.id = 'caa-style';
+                    document.head.appendChild(style);
+                }
+                style.innerHTML = '$css';
+            })();
+        """.trimIndent(), null)
+    }
+
+    private fun applyCaaColorToPreview(colorCode: String, imageView: ImageView) {
+        try {
+            imageView.background = android.graphics.drawable.GradientDrawable().apply {
+                shape = android.graphics.drawable.GradientDrawable.RECTANGLE
+                cornerRadius = (12 * resources.displayMetrics.density)
+                setColor(android.graphics.Color.parseColor("#F0F0F0"))
+                setStroke((3 * resources.displayMetrics.density).toInt(), android.graphics.Color.parseColor(colorCode))
+            }
+        } catch (e: Exception) {}
     }
 
     private fun loadPreviewImage(url: String, imageView: android.widget.ImageView) {
