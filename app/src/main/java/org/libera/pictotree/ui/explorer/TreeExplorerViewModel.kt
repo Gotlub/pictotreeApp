@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 import org.libera.pictotree.data.database.dao.TreeDao
+import org.libera.pictotree.data.database.dao.ProfileDao
 import java.io.File
 
 /**
@@ -55,12 +56,14 @@ data class HierarchicalUiState(
     val children: List<TreeNode> = emptyList(),
     val focusedNode: TreeNode? = null,
     val isLoading: Boolean = true,
-    val error: String? = null
+    val error: String? = null,
+    val colorCode: String = "#000000"
 )
 
 class TreeExplorerViewModel(
     application: Application,
     private val treeDao: TreeDao,
+    private val profileDao: ProfileDao,
     private val userConfigRepository: org.libera.pictotree.data.repository.UserConfigRepository,
     private val hostUrl: String,
     private val username: String
@@ -85,16 +88,35 @@ class TreeExplorerViewModel(
 
     private var rootNode: TreeNode? = null
     private var currentTreeId: Int = -1
+    private var profileId: Int = -1
     private var profileTreeIds: List<Int> = emptyList()
     private val profileTreeRootsCache = mutableMapOf<Int, TreeNode>()
+    private val profileTreeColorsCache = mutableMapOf<Int, String>()
 
     fun getProfileTreeIds(): IntArray = profileTreeIds.toIntArray()
     fun getCurrentTreeId(): Int = currentTreeId
-    fun setProfileTreeContext(treeIds: List<Int>) { 
+    
+    /**
+     * Met à jour le contexte de l'arbre actuel (ID et Couleur) 
+     * sans recalculer toute la hiérarchie de l'explorateur.
+     */
+    fun updateCurrentTreeContext(treeId: Int) {
+        if (currentTreeId == treeId) return
+        currentTreeId = treeId
+        val newColor = profileTreeColorsCache[treeId] ?: "#000000"
+        _uiState.value = _uiState.value.copy(colorCode = newColor)
+    }
+
+    fun setProfileTreeContext(profileId: Int, treeIds: List<Int>) { 
+        this.profileId = profileId
         this.profileTreeIds = treeIds 
-        // Pré-charger les racines pour la navigation inter-arbres
+        // Pré-charger les racines et les couleurs pour la navigation inter-arbres
         viewModelScope.launch {
             treeIds.forEach { id ->
+                if (!profileTreeColorsCache.containsKey(id)) {
+                    val color = profileDao.getProfileTreeCrossRef(profileId, id)?.colorCode ?: "#000000"
+                    profileTreeColorsCache[id] = color
+                }
                 if (!profileTreeRootsCache.containsKey(id)) {
                     fetchRootNodePreview(id)?.let { profileTreeRootsCache[id] = it }
                 }
@@ -106,6 +128,15 @@ class TreeExplorerViewModel(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             currentTreeId = treeId
+
+            // Récupérer la couleur CAA pour cet arbre (via cache ou DB)
+            val color = profileTreeColorsCache[treeId] ?: if (profileId != -1) {
+                val dbColor = profileDao.getProfileTreeCrossRef(profileId, treeId)?.colorCode ?: "#000000"
+                profileTreeColorsCache[treeId] = dbColor
+                dbColor
+            } else "#000000"
+            _uiState.value = _uiState.value.copy(colorCode = color)
+
             try {
                 treeDao.getTreeById(treeId)?.let { entity ->
                     val rawJson = JSONObject(entity.jsonPayload)
@@ -169,8 +200,13 @@ class TreeExplorerViewModel(
         // S'assurer que les racines sont prêtes pour l'inter-arbre
         val roots = profileTreeIds.mapNotNull { profileTreeRootsCache[it] }
         
+        // Mettre à jour la couleur si on a changé d'arbre (navigation inter-arbres)
+        TreeNode.parseTreeId(node.id)?.let { treeId ->
+            updateCurrentTreeContext(treeId)
+        }
+        
         val newState = TreeNavigator.computeHierarchicalState(node, roots)
-        _uiState.value = HierarchicalUiState(
+        _uiState.value = _uiState.value.copy(
             breadcrumbs = newState.breadcrumbs,
             parent = newState.parent,
             siblings = newState.siblings,
@@ -186,6 +222,12 @@ class TreeExplorerViewModel(
      */
     fun updateFocusWithinSiblings(node: TreeNode) {
         if (_uiState.value.focusedNode?.id == node.id) return
+        
+        // Mettre à jour la couleur si on a changé d'arbre
+        TreeNode.parseTreeId(node.id)?.let { treeId ->
+            updateCurrentTreeContext(treeId)
+        }
+
         _uiState.value = _uiState.value.copy(
             focusedNode = node,
             children = node.children
@@ -229,7 +271,9 @@ class TreeExplorerViewModel(
 
     fun jumpToTreeAndNode(treeId: Int, uniqueId: String, addToBasket: Boolean = false) {
         viewModelScope.launch {
-            if (currentTreeId != treeId) {
+            val loadedTreeId = rootNode?.let { TreeNode.parseTreeId(it.id) } ?: -1
+            if (loadedTreeId != treeId) {
+                // FORCER le reload si l'ID ne match pas la racine physiquement chargée
                 currentTreeId = treeId
                 _uiState.value = _uiState.value.copy(isLoading = true)
                 treeDao.getTreeById(treeId)?.let { entity ->

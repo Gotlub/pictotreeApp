@@ -44,11 +44,26 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="16dp"
+            android:layout_marginEnd="8dp"
             android:textSize="18sp"
             android:textStyle="bold"
             tools:text="Routine Repas"
             app:layout_constraintTop_toTopOf="@id/imageTreeIcon"
             app:layout_constraintStart_toEndOf="@id/imageTreeIcon"
+            app:layout_constraintEnd_toStartOf="@+id/indicator_tree_color"
+            app:layout_constraintBottom_toBottomOf="@id/imageTreeIcon" />
+
+        <View
+            android:id="@+id/indicator_tree_color"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_marginEnd="8dp"
+            android:background="@drawable/shape_circle"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?attr/selectableItemBackgroundBorderless"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toStartOf="@+id/buttonViewTree" />
 
         <ImageButton

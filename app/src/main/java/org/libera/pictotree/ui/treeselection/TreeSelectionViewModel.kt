@@ -7,12 +7,13 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import org.libera.pictotree.data.database.dao.TreeWithColor
 import org.libera.pictotree.data.database.entity.TreeEntity
 import org.libera.pictotree.data.repository.ProfileRepository
 
 sealed class TreeSelectionUiState {
     object Loading : TreeSelectionUiState()
-    data class Success(val trees: List<TreeEntity>) : TreeSelectionUiState()
+    data class Success(val trees: List<TreeWithColor>) : TreeSelectionUiState()
     object Empty : TreeSelectionUiState()
     data class Error(val message: String) : TreeSelectionUiState()
 }
@@ -33,7 +34,7 @@ class TreeSelectionViewModel(
         viewModelScope.launch {
             try {
                 _uiState.value = TreeSelectionUiState.Loading
-                val trees = profileRepository.getTreesForProfileOrdered(profileId)
+                val trees = profileRepository.getTreesWithColorForProfile(profileId)
                 if (trees.isEmpty()) {
                     _uiState.value = TreeSelectionUiState.Empty
                 } else {

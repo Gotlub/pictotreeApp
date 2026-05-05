@@ -151,15 +151,38 @@ class TreeGlobalMapDialog : DialogFragment() {
         // Observe Phrase List (Synchronisé avec les fragments)
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                var lastPhraseSize = 0
-                viewModel.phraseList.collect { phrase ->
-                    if (!isDraggingPhrase) {
-                        phraseAdapter.submitList(phrase)
-                        if (phrase.size > lastPhraseSize) {
-                            rvPhrase.smoothScrollToPosition(phrase.size - 1)
+                launch {
+                    var lastPhraseSize = 0
+                    viewModel.phraseList.collect { phrase ->
+                        if (!isDraggingPhrase) {
+                            phraseAdapter.submitList(phrase)
+                            if (phrase.size > lastPhraseSize) {
+                                rvPhrase.smoothScrollToPosition(phrase.size - 1)
+                            }
                         }
+                        lastPhraseSize = phrase.size
                     }
-                    lastPhraseSize = phrase.size
+                }
+
+                // Etape 3 : Injection CSS pour la couleur CAA dans Treant.js
+                launch {
+                    viewModel.uiState.collect { state ->
+                        val color = state.colorCode
+                        // Injecter le style dans la WebView pour surcharger la bordure
+                        val css = ".node { border: 3px solid $color !important; } " +
+                                 ".node.selected { box-shadow: 0 0 10px $color !important; }"
+                        webView.evaluateJavascript("""
+                            (function() {
+                                var style = document.getElementById('caa-style');
+                                if (!style) {
+                                    style = document.createElement('style');
+                                    style.id = 'caa-style';
+                                    document.head.appendChild(style);
+                                }
+                                style.innerHTML = '$css';
+                            })();
+                        """.trimIndent(), null)
+                    }
                 }
             }
         }
@@ -184,6 +207,9 @@ class TreeGlobalMapDialog : DialogFragment() {
             fun onNodeSelected(prefixedNodeId: String, imageUrl: String?) {
                 val treeId = prefixedNodeId.split("_").firstOrNull()?.toIntOrNull() ?: return
                 
+                // Mettre à jour le contexte couleur CAA dans le ViewModel partagé
+                viewModel.updateCurrentTreeContext(treeId)
+
                 // UNICITÉ GLOBALE : On vide les sélections des autres arbres
                 selectedNodesPerTree.clear()
                 
@@ -197,6 +223,17 @@ class TreeGlobalMapDialog : DialogFragment() {
                     if (!imageUrl.isNullOrEmpty()) {
                         ivPreview.visibility = View.VISIBLE
                         loadPreviewImage(imageUrl, ivPreview)
+                        
+                        // Appliquer la bordure colorée CAA à la miniature native
+                        val colorCode = viewModel.uiState.value.colorCode
+                        try {
+                            ivPreview.background = android.graphics.drawable.GradientDrawable().apply {
+                                shape = android.graphics.drawable.GradientDrawable.RECTANGLE
+                                cornerRadius = (12 * resources.displayMetrics.density) // match rounded_bottom_sheet
+                                setColor(android.graphics.Color.parseColor("#F0F0F0"))
+                                setStroke((3 * resources.displayMetrics.density).toInt(), android.graphics.Color.parseColor(colorCode))
+                            }
+                        } catch (e: Exception) {}
                     } else {
                         ivPreview.visibility = View.GONE
                     }
@@ -217,6 +254,16 @@ class TreeGlobalMapDialog : DialogFragment() {
         fun loadTree(index: Int) {
             if (treeIds.isEmpty() || index !in treeIds.indices) return
             val treeId = treeIds[index]
+            
+            // Mettre à jour la couleur CAA et la cible globale en temps réel
+            viewModel.updateCurrentTreeContext(treeId)
+            globalSelectedTreeId = treeId
+            globalSelectedNodeId = selectedNodesPerTree[treeId] ?: ""
+
+            // Cacher la miniature si on n'a pas encore de sélection dans cet arbre
+            val ivPreview = root.findViewById<android.widget.ImageView>(R.id.iv_selection_preview)
+            if (globalSelectedNodeId.isEmpty()) ivPreview.visibility = View.GONE
+
             lifecycleScope.launch(Dispatchers.IO) {
                 treeDao.getTreeById(treeId)?.let { entity ->
                     withContext(Dispatchers.Main) {
@@ -240,10 +287,16 @@ class TreeGlobalMapDialog : DialogFragment() {
         webView.loadUrl("file:///android_asset/tree_viewer.html")
 
         root.findViewById<ImageButton>(R.id.btn_prev_tree).setOnClickListener {
-            if (currentIndex > 0) { currentIndex--; loadTree(currentIndex) }
+            if (currentIndex > 0) { 
+                currentIndex--
+                loadTree(currentIndex) 
+            }
         }
         root.findViewById<ImageButton>(R.id.btn_next_tree).setOnClickListener {
-            if (currentIndex < treeIds.size - 1) { currentIndex++; loadTree(currentIndex) }
+            if (currentIndex < treeIds.size - 1) { 
+                currentIndex++
+                loadTree(currentIndex) 
+            }
         }
 
         root.findViewById<View>(R.id.btn_add_to_basket).setOnClickListener {
@@ -268,7 +321,8 @@ class TreeGlobalMapDialog : DialogFragment() {
 
         root.findViewById<View>(R.id.btn_back_to_nav).setOnClickListener {
             Log.d(TAG, "VIEW_CHANGE: Returning to Nav. Tree $globalSelectedTreeId, Node $globalSelectedNodeId")
-            if (globalSelectedTreeId != -1 && globalSelectedNodeId.isNotEmpty()) {
+            if (globalSelectedTreeId != -1) {
+                // On déclenche le retour même si nodeId est vide (le ViewModel se rabattra sur la racine)
                 viewModel.jumpToTreeAndNode(globalSelectedTreeId, globalSelectedNodeId)
             }
             dismiss()

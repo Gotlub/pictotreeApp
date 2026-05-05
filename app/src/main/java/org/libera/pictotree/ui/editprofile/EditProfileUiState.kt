@@ -5,7 +5,8 @@ import org.libera.pictotree.data.database.entity.TreeEntity
 
 data class ProfileTreeUiModel(
     val tree: TreeEntity,
-    val localThumbnailPath: String?
+    val localThumbnailPath: String?,
+    val colorCode: String = "#000000"
 )
 
 sealed interface EditProfileUiState {

@@ -118,7 +118,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
                         android:padding="10dp"
-                        android:src="@android:drawable/ic_menu_sort_by_size"
+                        android:src="@drawable/ic_tree_structure"
                         app:tint="#5E35B1" />
                 </com.google.android.material.card.MaterialCardView>
 

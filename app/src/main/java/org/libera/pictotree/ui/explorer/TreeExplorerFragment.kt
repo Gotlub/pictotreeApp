@@ -44,7 +44,7 @@ class TreeExplorerFragment : Fragment() {
     private lateinit var scrollTopIndicator: View
     private lateinit var scrollBottomIndicator: View
     
-    private lateinit var containerParent: View
+    private lateinit var containerParent: com.google.android.material.card.MaterialCardView
     private lateinit var ivParent: ImageView
     private lateinit var tvParentLabel: TextView
     
@@ -299,6 +299,7 @@ class TreeExplorerFragment : Fragment() {
                 return TreeExplorerViewModel(
                     requireActivity().application, 
                     database.treeDao(), 
+                    database.profileDao(),
                     userConfigRepository,
                     org.libera.pictotree.network.RetrofitClient.SERVER_URL, 
                     username
@@ -313,7 +314,7 @@ class TreeExplorerFragment : Fragment() {
         if (profileId != -1) {
             viewLifecycleOwner.lifecycleScope.launch {
                 val trees = database.profileDao().getTreesForProfileOrdered(profileId)
-                viewModel.setProfileTreeContext(trees.map { it.id })
+                viewModel.setProfileTreeContext(profileId, trees.map { it.id })
                 if (targetTreeId != -1) viewModel.loadTree(targetTreeId)
             }
         } else if (targetTreeId != -1) {
@@ -431,6 +432,18 @@ class TreeExplorerFragment : Fragment() {
 
     private fun updateUI(state: HierarchicalUiState) {
         if (state.isLoading) return
+
+        // Mettre à jour la couleur CAA sur les adapters
+        siblingAdapter.setColorCode(state.colorCode)
+        childrenAdapter.setColorCode(state.colorCode)
+        
+        // Mettre à jour la couleur du parent card
+        try {
+            containerParent.strokeColor = android.graphics.Color.parseColor(state.colorCode)
+            containerParent.strokeWidth = (3 * resources.displayMetrics.density).toInt()
+        } catch (e: Exception) {
+            containerParent.strokeColor = android.graphics.Color.BLACK
+        }
 
         // Top Bar: Parent
         if (state.parent != null) {

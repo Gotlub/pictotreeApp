@@ -9,5 +9,6 @@ import androidx.room.Entity
 data class ProfileTreeCrossRef(
     val profileId: Int,
     val treeId: Int,
-    val displayOrder: Int = 0
+    val displayOrder: Int = 0,
+    val colorCode: String = "#000000"
 )

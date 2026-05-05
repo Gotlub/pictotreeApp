@@ -73,6 +73,7 @@ class TreeSelectionFragment : Fragment() {
                 return TreeExplorerViewModel(
                     requireActivity().application,
                     database.treeDao(),
+                    database.profileDao(),
                     userConfigRepository,
                     org.libera.pictotree.network.RetrofitClient.SERVER_URL,
                     username

@@ -43,6 +43,7 @@ class PhraseFullscreenFragment : DialogFragment() {
         val username = SessionManager(requireContext()).getUsername() ?: "dummy"
         val database = AppDatabase.getDatabase(requireContext(), username)
         val treeDao = database.treeDao()
+        val profileDao = database.profileDao()
         val userConfigRepository = org.libera.pictotree.data.repository.UserConfigRepository(database.userConfigDao())
 
         val factory = object : ViewModelProvider.Factory {
@@ -51,6 +52,7 @@ class PhraseFullscreenFragment : DialogFragment() {
                 return TreeExplorerViewModel(
                     requireActivity().application, 
                     treeDao, 
+                    profileDao,
                     userConfigRepository,
                     RetrofitClient.SERVER_URL, 
                     username

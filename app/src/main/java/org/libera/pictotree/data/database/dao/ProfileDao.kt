@@ -46,6 +46,20 @@ interface ProfileDao {
     @Query("SELECT * FROM profiles WHERE id = :profileId")
     suspend fun getProfileById(profileId: Int): Profile?
 
+    @Query("SELECT * FROM profile_tree_cross_ref WHERE profileId = :profileId AND treeId = :treeId")
+    suspend fun getProfileTreeCrossRef(profileId: Int, treeId: Int): ProfileTreeCrossRef?
+
+    @Query("UPDATE profile_tree_cross_ref SET colorCode = :colorCode WHERE profileId = :profileId AND treeId = :treeId")
+    suspend fun updateTreeColor(profileId: Int, treeId: Int, colorCode: String)
+
+    @Query("""
+        SELECT trees.*, profile_tree_cross_ref.colorCode FROM trees 
+        INNER JOIN profile_tree_cross_ref ON trees.id = profile_tree_cross_ref.treeId 
+        WHERE profile_tree_cross_ref.profileId = :profileId 
+        ORDER BY profile_tree_cross_ref.displayOrder ASC
+    """)
+    suspend fun getTreesWithColorForProfile(profileId: Int): List<TreeWithColor>
+
     @Query("""
         SELECT trees.* FROM trees 
         INNER JOIN profile_tree_cross_ref ON trees.id = profile_tree_cross_ref.treeId 
@@ -54,3 +68,8 @@ interface ProfileDao {
     """)
     suspend fun getTreesForProfileOrdered(profileId: Int): List<TreeEntity>
 }
+
+data class TreeWithColor(
+    @Embedded val tree: TreeEntity,
+    val colorCode: String
+)

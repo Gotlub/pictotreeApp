@@ -20,11 +20,17 @@ class NodeAdapter(
 ) : ListAdapter<TreeNode, NodeAdapter.NodeViewHolder>(NodeDiffCallback()) {
 
     private var selectedPosition: Int = -1
+    private var colorCode: String = "#000000"
 
     fun setSelectedPosition(position: Int) {
         val old = selectedPosition
         selectedPosition = position
         if (old != -1) notifyItemChanged(old)
+        if (selectedPosition != -1) notifyItemChanged(selectedPosition)
+    }
+
+    fun setColorCode(color: String) {
+        colorCode = color
         if (selectedPosition != -1) notifyItemChanged(selectedPosition)
     }
 
@@ -34,7 +40,7 @@ class NodeAdapter(
     }
 
     override fun onBindViewHolder(holder: NodeViewHolder, position: Int) {
-        holder.bind(getItem(position), position == selectedPosition)
+        holder.bind(getItem(position), position == selectedPosition, colorCode)
     }
 
     class NodeViewHolder(itemView: View, private val onNodeClick: (TreeNode) -> Unit) : RecyclerView.ViewHolder(itemView) {
@@ -43,7 +49,7 @@ class NodeAdapter(
         private val ivHasChildren: ImageView? = itemView.findViewById(R.id.iv_has_children)
         private val card: com.google.android.material.card.MaterialCardView = itemView as? com.google.android.material.card.MaterialCardView ?: itemView.findViewById(R.id.card_node)
 
-        fun bind(node: TreeNode, isSelected: Boolean) {
+        fun bind(node: TreeNode, isSelected: Boolean, colorCode: String) {
             tvLabel.text = node.label
             
             if (node.id == "MORE_CHILDREN") {
@@ -67,7 +73,11 @@ class NodeAdapter(
             
             if (isSelected) {
                 card.strokeWidth = 6
-                card.strokeColor = androidx.core.content.ContextCompat.getColor(itemView.context, R.color.highlight_stroke)
+                try {
+                    card.strokeColor = android.graphics.Color.parseColor(colorCode)
+                } catch (e: Exception) {
+                    card.strokeColor = android.graphics.Color.BLACK
+                }
             } else {
                 card.strokeWidth = 2
                 card.strokeColor = androidx.core.content.ContextCompat.getColor(itemView.context, com.google.android.material.R.color.material_dynamic_neutral90)

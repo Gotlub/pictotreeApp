@@ -42,11 +42,12 @@ class EditProfileViewModel(
             try {
                 val profile = profileDao.getProfileById(profileId)
                 if (profile != null) {
-                    val trees = profileDao.getTreesForProfileOrdered(profileId)
+                    val treesWithColor = profileDao.getTreesWithColorForProfile(profileId)
                     val sessionManager = SessionManager(getApplication())
                     val username = sessionManager.getUsername()
                     
-                    val uiModels = trees.map { tree ->
+                    val uiModels = treesWithColor.map { item ->
+                        val tree = item.tree
                         var localPath: String? = null
                         try {
                             val url = tree.rootUrl
@@ -63,7 +64,7 @@ class EditProfileViewModel(
                         } catch (e: Exception) {
                             e.printStackTrace()
                         }
-                        ProfileTreeUiModel(tree, localPath)
+                        ProfileTreeUiModel(tree, localPath, item.colorCode)
                     }
                     _uiState.value = EditProfileUiState.Success(profile, uiModels)
                 } else {
@@ -71,6 +72,17 @@ class EditProfileViewModel(
                 }
             } catch(e: Exception) {
                _uiState.value = EditProfileUiState.Error(e.message ?: "Unknown database error loading profile")
+            }
+        }
+    }
+
+    fun updateTreeColor(profileId: Int, treeId: Int, colorCode: String) {
+        viewModelScope.launch {
+            try {
+                profileDao.updateTreeColor(profileId, treeId, colorCode)
+                loadProfile(profileId)
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
         }
     }
@@ -226,11 +238,16 @@ class EditProfileViewModel(
         }
     }
 
-    fun updateTreesOrder(profileId: Int, reorderedTrees: List<TreeEntity>) {
+    fun updateTreesOrder(profileId: Int, reorderedTrees: List<ProfileTreeUiModel>) {
         viewModelScope.launch {
             try {
-                val crossRefs = reorderedTrees.mapIndexed { index, tree ->
-                    ProfileTreeCrossRef(profileId, tree.id, index)
+                val crossRefs = reorderedTrees.mapIndexed { index, model ->
+                    ProfileTreeCrossRef(
+                        profileId = profileId,
+                        treeId = model.tree.id,
+                        displayOrder = index,
+                        colorCode = model.colorCode
+                    )
                 }
                 profileDao.updateProfileTreeCrossRefs(crossRefs)
             } catch (e: Exception) {

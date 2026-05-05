@@ -105,6 +105,7 @@
         android:layout_marginEnd="16dp"
         android:layout_marginBottom="188dp"
         android:src="@android:drawable/ic_btn_speak_now"
+        android:visibility="gone"
         app:elevation="12dp"
         app:pressedTranslationZ="16dp"
         android:contentDescription="Lire la phrase" />

@@ -7,6 +7,8 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.Toast
+import androidx.activity.OnBackPressedCallback
+import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -16,6 +18,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.textfield.TextInputEditText
+import coil.load
 import kotlinx.coroutines.launch
 import org.libera.pictotree.R
 import org.libera.pictotree.data.database.AppDatabase
@@ -25,6 +28,7 @@ import org.libera.pictotree.data.SessionManager
 class EditProfileFragment : Fragment() {
 
     private lateinit var viewModel: EditProfileViewModel
+    private var currentSelectedAvatarUrl: String? = null
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -37,16 +41,49 @@ class EditProfileFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         val editProfileName = view.findViewById<TextInputEditText>(R.id.editProfileName)
+        val ivAvatarPreview = view.findViewById<ImageView>(R.id.ivAvatarPreview)
         val recyclerView = view.findViewById<RecyclerView>(R.id.recyclerViewProfileTrees)
         val fabAddTree = view.findViewById<FloatingActionButton>(R.id.fabAddTree)
         val progressBar = view.findViewById<ProgressBar>(R.id.progressBarSync)
-        val btnSaveProfile = view.findViewById<android.widget.Button>(R.id.btnSaveProfile)
         val btnSearchAvatar = view.findViewById<android.view.View>(R.id.btnSearchAvatar)
 
         val sessionManager = SessionManager(requireContext())
         val isOnline = sessionManager.isOnline()
         val username = sessionManager.getUsername() ?: "default"
         val database = AppDatabase.getDatabase(requireContext(), username)
+
+        // Function to load and display avatar
+        fun loadAvatar(url: String?) {
+            when {
+                url.isNullOrEmpty() -> {
+                    ivAvatarPreview.setImageResource(android.R.drawable.ic_menu_myplaces)
+                    ivAvatarPreview.colorFilter = null
+                }
+                url.startsWith("color:") -> {
+                    val colorHex = url.removePrefix("color:")
+                    ivAvatarPreview.setImageResource(android.R.drawable.presence_online)
+                    try {
+                        ivAvatarPreview.setColorFilter(android.graphics.Color.parseColor(colorHex))
+                    } catch (e: Exception) {
+                        ivAvatarPreview.colorFilter = null
+                    }
+                }
+                url.startsWith("file://") -> {
+                    ivAvatarPreview.colorFilter = null
+                    ivAvatarPreview.load(java.io.File(url.removePrefix("file://"))) {
+                        crossfade(true)
+                        placeholder(android.R.drawable.ic_menu_myplaces)
+                    }
+                }
+                else -> {
+                    ivAvatarPreview.colorFilter = null
+                    ivAvatarPreview.load(url) {
+                        crossfade(true)
+                        placeholder(android.R.drawable.ic_menu_myplaces)
+                    }
+                }
+            }
+        }
         
         val factory = EditProfileViewModelFactory(
             requireActivity().application,
@@ -63,45 +100,27 @@ class EditProfileFragment : Fragment() {
             viewModel.loadProfile(profileId)
         }
 
+        // ================= AUTO-SAVE ON EXIT =================
+        val backCallback = object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                val newName = editProfileName.text?.toString()?.trim() ?: ""
+                if (newName.isNotEmpty() && profileId != -1) {
+                    viewModel.updateProfile(profileId, newName, currentSelectedAvatarUrl)
+                }
+                isEnabled = false
+                requireActivity().onBackPressedDispatcher.onBackPressed()
+            }
+        }
+        requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner, backCallback)
+
         // ================= AVATAR SELECTOR =================
-        var currentSelectedAvatarUrl: String? = null
-        val avatars = listOf(
-            view.findViewById<ImageView>(R.id.edit_avatar_blue) to "#2196F3",
-            view.findViewById<ImageView>(R.id.edit_avatar_pink) to "#E91E63",
-            view.findViewById<ImageView>(R.id.edit_avatar_green) to "#4CAF50",
-            view.findViewById<ImageView>(R.id.edit_avatar_orange) to "#FF9800"
-        )
-
-        fun updateAvatarSelectionUI(selectedUrl: String?) {
-            avatars.forEach { (iv, color) ->
-                val isSelected = selectedUrl == "color:$color"
-                iv.alpha = if (isSelected) 1.0f else 0.4f
-                iv.setBackgroundResource(if (isSelected) android.R.drawable.editbox_dropdown_light_frame else 0)
-            }
-        }
-
-        avatars.forEach { (iv, color) ->
-            iv.setOnClickListener {
-                currentSelectedAvatarUrl = "color:$color"
-                updateAvatarSelectionUI(currentSelectedAvatarUrl)
-            }
-        }
-
         btnSearchAvatar.setOnClickListener {
             val dialog = org.libera.pictotree.ui.common.PictoSearchDialog()
             dialog.onPictoSelected = { searchResult ->
                 currentSelectedAvatarUrl = searchResult.imageUrl
-                updateAvatarSelectionUI(currentSelectedAvatarUrl)
+                loadAvatar(currentSelectedAvatarUrl)
             }
             dialog.show(parentFragmentManager, "AvatarSearch")
-        }
-
-        btnSaveProfile.setOnClickListener {
-            val newName = editProfileName.text?.toString()?.trim() ?: ""
-            if (newName.isNotEmpty() && profileId != -1) {
-                viewModel.updateProfile(profileId, newName, currentSelectedAvatarUrl)
-                Toast.makeText(requireContext(), "Profile updated", Toast.LENGTH_SHORT).show()
-            }
         }
 
         // ================= ADAPTER SETUP =================
@@ -120,6 +139,9 @@ class EditProfileFragment : Fragment() {
                 val intent = android.content.Intent(requireContext(), org.libera.pictotree.ui.visualizer.TreeVisualizerActivity::class.java)
                 intent.putExtra("TREE_ID", tree.id)
                 startActivity(intent)
+            },
+            onColorClick = { tree, currentColor ->
+                showColorPicker(profileId, tree.id, currentColor)
             },
             onStartDrag = { viewHolder: RecyclerView.ViewHolder ->
                 itemTouchHelper?.startDrag(viewHolder)
@@ -197,9 +219,11 @@ class EditProfileFragment : Fragment() {
                             is EditProfileUiState.Loading -> progressBar.visibility = View.VISIBLE
                             is EditProfileUiState.Success -> {
                                 progressBar.visibility = View.GONE
-                                editProfileName.setText(state.profile.name)
+                                if (editProfileName.text.isNullOrEmpty()) {
+                                    editProfileName.setText(state.profile.name)
+                                }
                                 currentSelectedAvatarUrl = state.profile.avatarUrl
-                                updateAvatarSelectionUI(currentSelectedAvatarUrl)
+                                loadAvatar(currentSelectedAvatarUrl)
                                 adapter.submitList(state.trees)
                             }
                             is EditProfileUiState.Error -> {
@@ -211,5 +235,48 @@ class EditProfileFragment : Fragment() {
                 }
             }
         }
+    }
+
+    private fun showColorPicker(profileId: Int, treeId: Int, currentColor: String) {
+        val caaColors = linkedMapOf(
+            "Black (Default)" to "#000000",
+            "Yellow (People)" to "#FFD54F",
+            "Green (Verbs)" to "#81C784",
+            "Orange (Noms)" to "#FFB74D",
+            "Blue (Adjectives)" to "#64B5F6",
+            "Pink (Social)" to "#F06292"
+        )
+        
+        val names = caaColors.keys.toTypedArray()
+        val codes = caaColors.values.toTypedArray()
+        var selectedIdx = codes.indexOf(currentColor)
+        if (selectedIdx == -1) selectedIdx = 0
+
+        val adapter = object : android.widget.ArrayAdapter<String>(requireContext(), android.R.layout.select_dialog_item, names) {
+            override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
+                val view = super.getView(position, convertView, parent) as android.widget.TextView
+                val colorCode = codes[position]
+                
+                // Add colored circle icon
+                val size = (24 * context.resources.displayMetrics.density).toInt()
+                val drawable = android.graphics.drawable.GradientDrawable().apply {
+                    shape = android.graphics.drawable.GradientDrawable.OVAL
+                    setColor(android.graphics.Color.parseColor(colorCode))
+                    setSize(size, size)
+                }
+                view.setCompoundDrawablesWithIntrinsicBounds(drawable, null, null, null)
+                view.compoundDrawablePadding = (16 * context.resources.displayMetrics.density).toInt()
+                return view
+            }
+        }
+
+        AlertDialog.Builder(requireContext())
+            .setTitle("Fitzgerald Key (CAA)")
+            .setAdapter(adapter) { dialog, which ->
+                viewModel.updateTreeColor(profileId, treeId, codes[which])
+                dialog.dismiss()
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
     }
 }

@@ -17,4 +17,6 @@ class ProfileRepository(private val profileDao: ProfileDao) {
     }
 
     suspend fun getTreesForProfileOrdered(profileId: Int) = profileDao.getTreesForProfileOrdered(profileId)
+
+    suspend fun getTreesWithColorForProfile(profileId: Int) = profileDao.getTreesWithColorForProfile(profileId)
 }

@@ -15,8 +15,9 @@ import java.util.Collections
 
 class ProfileTreeAdapter(
     private val onTreeDelete: (TreeEntity) -> Unit,
-    private val onOrderChanged: (List<TreeEntity>) -> Unit,
+    private val onOrderChanged: (List<ProfileTreeUiModel>) -> Unit,
     private val onViewTree: (TreeEntity) -> Unit,
+    private val onColorClick: (TreeEntity, String) -> Unit,
     private val onStartDrag: (RecyclerView.ViewHolder) -> Unit
 ) : RecyclerView.Adapter<ProfileTreeAdapter.TreeViewHolder>() {
 
@@ -48,7 +49,7 @@ class ProfileTreeAdapter(
     }
 
     fun dispatchUpdates() {
-        onOrderChanged(trees.map { it.tree })
+        onOrderChanged(trees)
         notifyDataSetChanged() 
     }
 
@@ -70,6 +71,7 @@ class ProfileTreeAdapter(
         private val deleteButton: ImageButton = itemView.findViewById(R.id.buttonDeleteTree)
         private val viewButton: ImageButton = itemView.findViewById(R.id.buttonViewTree)
         private val imageIcon: ImageView = itemView.findViewById(R.id.imageTreeIcon)
+        private val colorIndicator: View = itemView.findViewById(R.id.indicator_tree_color)
 
         private val dragRunnable = java.lang.Runnable { onStartDrag(this) }
 
@@ -93,6 +95,21 @@ class ProfileTreeAdapter(
             }
             treeName.text = model.tree.name
             
+            // Appliquer la couleur CAA
+            try {
+                val color = android.graphics.Color.parseColor(model.colorCode)
+                val drawable = colorIndicator.background as? android.graphics.drawable.GradientDrawable
+                    ?: android.graphics.drawable.GradientDrawable().apply { shape = android.graphics.drawable.GradientDrawable.OVAL }
+                drawable.setColor(color)
+                colorIndicator.background = drawable
+            } catch (e: Exception) {
+                colorIndicator.setBackgroundColor(android.graphics.Color.BLACK)
+            }
+
+            colorIndicator.setOnClickListener {
+                onColorClick(model.tree, model.colorCode)
+            }
+
             // Sécurité : masquer la suppression si hors-ligne
             deleteButton.visibility = if (isOnlineMode) View.VISIBLE else View.GONE
             

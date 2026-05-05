@@ -1,5 +1,6 @@
 package org.libera.pictotree.ui.treeselection
 
+import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -10,6 +11,7 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import coil.load
 import org.libera.pictotree.R
+import org.libera.pictotree.data.database.dao.TreeWithColor
 import org.libera.pictotree.data.database.entity.TreeEntity
 import java.io.File
 
@@ -17,7 +19,7 @@ class TreeAdapter(
     private val username: String,
     private val hostUrl: String,
     private val onTreeClick: (TreeEntity) -> Unit
-) : ListAdapter<TreeEntity, TreeAdapter.TreeViewHolder>(TreeDiffCallback()) {
+) : ListAdapter<TreeWithColor, TreeAdapter.TreeViewHolder>(TreeDiffCallback()) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TreeViewHolder {
         val view = LayoutInflater.from(parent.context)
@@ -37,10 +39,20 @@ class TreeAdapter(
     ) : RecyclerView.ViewHolder(itemView) {
         private val ivTreeRoot: ImageView = itemView.findViewById(R.id.ivTreeRoot)
         private val tvTreeName: TextView = itemView.findViewById(R.id.tvTreeName)
+        private val cardView: com.google.android.material.card.MaterialCardView = itemView.findViewById(R.id.cardTree)
 
-        fun bind(tree: TreeEntity) {
+        fun bind(item: TreeWithColor) {
+            val tree = item.tree
             tvTreeName.text = tree.name
             
+            // Appliquer la couleur Fitzgerald (CAA)
+            try {
+                val color = if (item.colorCode.isNotEmpty()) Color.parseColor(item.colorCode) else Color.BLACK
+                cardView.strokeColor = color
+            } catch (e: Exception) {
+                cardView.strokeColor = Color.BLACK
+            }
+
             val url = tree.rootUrl ?: ""
             var finalSource: Any = url
 
@@ -73,12 +85,12 @@ class TreeAdapter(
         }
     }
 
-    class TreeDiffCallback : DiffUtil.ItemCallback<TreeEntity>() {
-        override fun areItemsTheSame(oldItem: TreeEntity, newItem: TreeEntity): Boolean {
-            return oldItem.id == newItem.id
+    class TreeDiffCallback : DiffUtil.ItemCallback<TreeWithColor>() {
+        override fun areItemsTheSame(oldItem: TreeWithColor, newItem: TreeWithColor): Boolean {
+            return oldItem.tree.id == newItem.tree.id
         }
 
-        override fun areContentsTheSame(oldItem: TreeEntity, newItem: TreeEntity): Boolean {
+        override fun areContentsTheSame(oldItem: TreeWithColor, newItem: TreeWithColor): Boolean {
             return oldItem == newItem
         }
     }
