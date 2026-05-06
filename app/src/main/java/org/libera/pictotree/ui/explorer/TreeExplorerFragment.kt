@@ -330,10 +330,14 @@ class TreeExplorerFragment : Fragment() {
             }
 
             if (position != -1) { 
-                if (oldSiblings != state.siblings) rvSiblings.scrollToPosition(0)
+                // Afficher l'élément sélectionné (important si index > 2)
+                rvSiblings.scrollToPosition(position)
                 siblingAdapter.setSelectedPosition(position) 
             }
-            else siblingAdapter.setSelectedPosition(-1)
+            else {
+                if (oldSiblings != state.siblings) rvSiblings.scrollToPosition(0)
+                siblingAdapter.setSelectedPosition(-1)
+            }
             
             rvSiblings.post { 
                 if (::siblingsGradLeft.isInitialized && ::siblingsArrowLeft.isInitialized && 
