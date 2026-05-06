@@ -36,8 +36,6 @@ class TreeSelectionFragment : Fragment() {
     private lateinit var rvTrees: RecyclerView
     private lateinit var rvPhrase: RecyclerView
     private lateinit var progressBar: ProgressBar
-    private lateinit var fabSearch: FloatingActionButton
-    private lateinit var fabSpeak: FloatingActionButton
     private lateinit var btnFullscreenPhrase: View
     
     private var isDraggingPhrase = false
@@ -91,8 +89,6 @@ class TreeSelectionFragment : Fragment() {
         rvTrees = view.findViewById(R.id.rvTrees)
         rvPhrase = view.findViewById(R.id.rv_phrase)
         progressBar = view.findViewById(R.id.progressBar)
-        fabSearch = view.findViewById(R.id.fab_search)
-        fabSpeak = view.findViewById(R.id.fab_speak)
         btnFullscreenPhrase = view.findViewById(R.id.btn_fullscreen_phrase)
 
         // Adapter pour les arbres
@@ -104,7 +100,9 @@ class TreeSelectionFragment : Fragment() {
             }
             findNavController().navigate(R.id.action_treeSelectionFragment_to_treeExplorerFragment, bundle)
         }
-        rvTrees.layoutManager = GridLayoutManager(requireContext(), 2)
+        // Nombre de colonnes adaptatif
+        val spanCount = if (resources.configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE) 3 else 2
+        rvTrees.layoutManager = GridLayoutManager(requireContext(), spanCount)
         rvTrees.adapter = adapter
 
         // Adapter pour la phrase
@@ -135,6 +133,7 @@ class TreeSelectionFragment : Fragment() {
             override fun onSelectedChanged(viewHolder: RecyclerView.ViewHolder?, actionState: Int) {
                 super.onSelectedChanged(viewHolder, actionState)
                 if (actionState == androidx.recyclerview.widget.ItemTouchHelper.ACTION_STATE_DRAG) {
+                    isDraggingPhrase = true
                     viewHolder?.itemView?.apply {
                         alpha = 0.8f
                         scaleX = 1.05f
@@ -145,6 +144,7 @@ class TreeSelectionFragment : Fragment() {
 
             override fun clearView(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder) {
                 super.clearView(recyclerView, viewHolder)
+                isDraggingPhrase = false
                 viewHolder.itemView.apply {
                     alpha = 1.0f
                     scaleX = 1.0f
@@ -156,7 +156,8 @@ class TreeSelectionFragment : Fragment() {
         })
         itemTouchHelper.attachToRecyclerView(rvPhrase)
 
-        fabSearch.setOnClickListener {
+        // LISTENERS DU BLOC ACTIONS
+        view.findViewById<View>(R.id.card_search)?.setOnClickListener {
             val dialog = org.libera.pictotree.ui.common.PictoSearchDialog()
             dialog.onPictoSelected = { result ->
                 val searchNode = TreeNode(
@@ -170,16 +171,33 @@ class TreeSelectionFragment : Fragment() {
             dialog.show(childFragmentManager, "PictoSearchDialog")
         }
 
-        fabSpeak.setOnClickListener {
-            val phrase = explorerViewModel.phraseList.value.joinToString(" ") { it.label }
-            if (phrase.isNotEmpty()) {
-                ttsManager.speak(phrase)
+        view.findViewById<View>(R.id.card_speak)?.setOnClickListener {
+            val phraseNodes = explorerViewModel.phraseList.value
+            if (phraseNodes.isNotEmpty()) {
+                ttsManager.stop()
+                phraseNodes.forEachIndexed { index, node ->
+                    ttsManager.speak(node.label, index.toString())
+                }
             }
+        }
+
+        view.findViewById<View>(R.id.card_rotate)?.setOnClickListener {
+            (requireActivity() as? org.libera.pictotree.MainActivity)?.toggleOrientation()
         }
 
         btnFullscreenPhrase.setOnClickListener {
             findNavController().navigate(R.id.phraseFullscreenFragment)
         }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        (requireActivity() as? org.libera.pictotree.MainActivity)?.applyUserOrientation()
+    }
+
+    override fun onStop() {
+        super.onStop()
+        (requireActivity() as? org.libera.pictotree.MainActivity)?.restoreSystemOrientation()
     }
 
     private fun setupObservers() {
@@ -195,11 +213,9 @@ class TreeSelectionFragment : Fragment() {
                             }
                             is TreeSelectionUiState.Empty -> {
                                 progressBar.visibility = View.GONE
-                                // Optionnel: Afficher un message vide
                             }
                             is TreeSelectionUiState.Error -> {
                                 progressBar.visibility = View.GONE
-                                // Optionnel: Afficher une erreur
                             }
                         }
                     }
@@ -225,5 +241,10 @@ class TreeSelectionFragment : Fragment() {
                 }
             }
         }
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        if (::ttsManager.isInitialized) ttsManager.shutdown()
     }
 }

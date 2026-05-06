@@ -10,6 +10,7 @@
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
+        android:clipChildren="false"
         android:paddingBottom="120dp">
 
         <TextView
@@ -17,35 +18,50 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_margin="16dp"
-            android:text="Select a tree"
-            android:textSize="20sp"
+            android:text="Choisissez un arbre"
+            android:textSize="24sp"
             android:textStyle="bold"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintStart_toStartOf="parent" />
 
-        <com.google.android.material.floatingactionbutton.FloatingActionButton
-            android:id="@+id/fab_search"
+        <!-- BLOC ACTIONS DOUBLE COLONNE (DROITE) -->
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/container_actions"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_margin="8dp"
-            app:fabSize="mini"
-            android:src="@android:drawable/ic_menu_search"
-            app:layout_constraintTop_toTopOf="parent"
+            android:layout_marginTop="8dp"
+            android:layout_marginEnd="16dp"
+            android:elevation="10dp"
             app:layout_constraintEnd_toEndOf="parent"
-            android:contentDescription="Search" />
+            app:layout_constraintTop_toTopOf="parent">
+
+            <com.google.android.material.card.MaterialCardView android:id="@+id/card_search" android:layout_width="40dp" android:layout_height="40dp" app:cardCornerRadius="10dp" app:cardBackgroundColor="#EDE7F6" app:cardElevation="2dp"><ImageView android:layout_width="match_parent" android:layout_height="match_parent" android:padding="8dp" android:src="@android:drawable/ic_menu_search" app:tint="#5E35B1" /></com.google.android.material.card.MaterialCardView>
+            <com.google.android.material.card.MaterialCardView android:id="@+id/card_speak" android:layout_width="40dp" android:layout_height="40dp" app:cardCornerRadius="10dp" app:cardBackgroundColor="#E8F5E9" app:cardElevation="2dp"><ImageView android:id="@+id/iv_speak_icon" android:layout_width="match_parent" android:layout_height="match_parent" android:padding="8dp" android:src="@android:drawable/ic_btn_speak_now" app:tint="#2E7D32" /></com.google.android.material.card.MaterialCardView>
+            <com.google.android.material.card.MaterialCardView android:id="@+id/card_rotate" android:layout_width="40dp" android:layout_height="40dp" app:cardCornerRadius="10dp" app:cardBackgroundColor="#FFF3E0" app:cardElevation="2dp"><ImageView android:layout_width="match_parent" android:layout_height="match_parent" android:padding="8dp" android:src="@android:drawable/ic_menu_rotate" app:tint="#E65100" /></com.google.android.material.card.MaterialCardView>
+
+            <androidx.constraintlayout.helper.widget.Flow
+                android:id="@+id/flow_actions_selection"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                app:flow_horizontalGap="8dp"
+                app:constraint_referenced_ids="card_search,card_speak,card_rotate"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintEnd_toEndOf="parent" />
+        </androidx.constraintlayout.widget.ConstraintLayout>
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/rvTrees"
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_marginTop="4dp"
+            android:layout_marginTop="8dp"
             android:padding="8dp"
             android:clipToPadding="false"
             app:layout_constraintTop_toBottomOf="@id/tvTitle"
             app:layout_constraintBottom_toBottomOf="parent"
+            tools:listitem="@layout/item_tree_card"
             app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
-            app:spanCount="3"
-            tools:listitem="@layout/item_tree_card" />
+            app:spanCount="3" />
 
         <ProgressBar
             android:id="@+id/progressBar"
@@ -59,7 +75,7 @@
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-    <!-- BANDEAU DE PHRASE FIXE (Panier) -->
+    <!-- BANDEAU DE PHRASE FIXE -->
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/panel_phrase"
         android:layout_width="match_parent"
@@ -67,42 +83,8 @@
         android:layout_gravity="bottom"
         android:background="@drawable/rounded_bottom_sheet"
         android:elevation="16dp">
-
-        <ImageButton
-            android:id="@+id/btn_fullscreen_phrase"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:layout_margin="4dp"
-            android:padding="8dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@android:drawable/ic_menu_zoom"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintEnd_toEndOf="parent" />
-
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/rv_phrase"
-            android:layout_width="0dp"
-            android:layout_height="0dp"
-            android:layout_marginTop="4dp"
-            android:layout_marginBottom="4dp"
-            android:clipToPadding="false"
-            android:paddingHorizontal="16dp"
-            android:orientation="horizontal"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            tools:listitem="@layout/item_phrase_picto" />
+        <ImageButton android:id="@+id/btn_fullscreen_phrase" android:layout_width="40dp" android:layout_height="40dp" android:layout_margin="4dp" android:padding="8dp" android:background="?attr/selectableItemBackgroundBorderless" android:src="@android:drawable/ic_menu_zoom" android:elevation="20dp" app:layout_constraintTop_toTopOf="parent" app:layout_constraintEnd_toEndOf="parent" />
+        <androidx.recyclerview.widget.RecyclerView android:id="@+id/rv_phrase" android:layout_width="0dp" android:layout_height="0dp" android:layout_marginTop="4dp" android:layout_marginBottom="4dp" android:clipToPadding="false" android:paddingHorizontal="16dp" android:orientation="horizontal" app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent" tools:listitem="@layout/item_phrase_picto" />
     </androidx.constraintlayout.widget.ConstraintLayout>
-
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/fab_speak"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom|end"
-        android:layout_marginEnd="16dp"
-        android:layout_marginBottom="128dp"
-        android:src="@android:drawable/ic_btn_speak_now"
-        android:visibility="gone" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

@@ -9,6 +9,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.findNavController
 import kotlinx.coroutines.launch
+import android.content.pm.ActivityInfo
 import org.libera.pictotree.data.SessionManager
 import org.libera.pictotree.network.RetrofitClient
 import org.libera.pictotree.utils.AuthEvents
@@ -19,6 +20,10 @@ class MainActivity : AppCompatActivity() {
         
         // Initialiser Retrofit avec les providers du SessionManager
         val sessionManager = SessionManager(this)
+        
+        // On ne force plus l'orientation au démarrage global pour laisser le Login/Profil libres
+        // requestedOrientation = sessionManager.getPreferredOrientation()
+
         RetrofitClient.init(
             tokenProvider = { sessionManager.getToken() },
             refreshTokenProvider = { sessionManager.getRefreshToken() },
@@ -76,5 +81,28 @@ class MainActivity : AppCompatActivity() {
         } catch (e: Exception) {
             // Si on est déjà au login ou ailleurs
         }
+    }
+
+    fun applyUserOrientation() {
+        val sessionManager = SessionManager(this)
+        val username = sessionManager.getUsername() ?: return
+        requestedOrientation = sessionManager.getPreferredOrientation(username)
+    }
+
+    fun restoreSystemOrientation() {
+        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+    }
+
+    fun toggleOrientation() {
+        val sessionManager = SessionManager(this)
+        val username = sessionManager.getUsername() ?: return
+        val current = sessionManager.getPreferredOrientation(username)
+        val next = if (current == ActivityInfo.SCREEN_ORIENTATION_PORTRAIT) {
+            ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+        } else {
+            ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        }
+        sessionManager.setPreferredOrientation(username, next)
+        requestedOrientation = next
     }
 }

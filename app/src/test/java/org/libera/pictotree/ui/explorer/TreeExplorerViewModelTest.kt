@@ -14,6 +14,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Test
 import org.libera.pictotree.data.database.dao.TreeDao
+import org.libera.pictotree.data.database.dao.ProfileDao
 import org.libera.pictotree.data.repository.UserConfigRepository
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -22,6 +23,7 @@ class TreeExplorerViewModelTest {
     private lateinit var viewModel: TreeExplorerViewModel
     private val application = mockk<Application>(relaxed = true)
     private val treeDao = mockk<TreeDao>()
+    private val profileDao = mockk<ProfileDao>()
     private val userConfigRepository = mockk<UserConfigRepository>()
     private val testDispatcher = UnconfinedTestDispatcher()
 
@@ -33,6 +35,7 @@ class TreeExplorerViewModelTest {
         viewModel = TreeExplorerViewModel(
             application,
             treeDao,
+            profileDao,
             userConfigRepository,
             "http://localhost",
             "testuser"
@@ -51,7 +54,8 @@ class TreeExplorerViewModelTest {
         viewModel.addToPhrase(node)
         
         assertEquals(1, viewModel.phraseList.value.size)
-        assertEquals(node, viewModel.phraseList.value[0])
+        // Note: l'ID sera transformé pour être unique (timestamp ajouté)
+        assertEquals(node.label, viewModel.phraseList.value[0].label)
     }
 
     @Test
@@ -63,8 +67,8 @@ class TreeExplorerViewModelTest {
         
         viewModel.moveItemInPhrase(0, 1)
         
-        assertEquals(node2, viewModel.phraseList.value[0])
-        assertEquals(node1, viewModel.phraseList.value[1])
+        assertEquals(node2.label, viewModel.phraseList.value[0].label)
+        assertEquals(node1.label, viewModel.phraseList.value[1].label)
     }
 
     @Test
@@ -77,7 +81,7 @@ class TreeExplorerViewModelTest {
         viewModel.removeItemFromPhrase(0)
         
         assertEquals(1, viewModel.phraseList.value.size)
-        assertEquals(node2, viewModel.phraseList.value[0])
+        assertEquals(node2.label, viewModel.phraseList.value[0].label)
     }
 
     @Test

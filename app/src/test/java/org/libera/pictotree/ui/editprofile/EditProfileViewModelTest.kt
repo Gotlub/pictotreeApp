@@ -70,7 +70,7 @@ class EditProfileViewModelTest {
         // Construct fake physically written image in the temp sandbox
         val userFilesDir = File(tempFilesDir, "test_user")
         val fakeStorageImage = File(userFilesDir, "images/target.png")
-        fakeStorageImage.parentFile.mkdirs()
+        fakeStorageImage.parentFile?.mkdirs()
         fakeStorageImage.writeText("fake imageData stream block...")
 
         // Initialiser une UiState.Success parfaite

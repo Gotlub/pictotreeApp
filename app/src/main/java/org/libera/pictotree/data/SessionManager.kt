@@ -60,6 +60,14 @@ class SessionManager(context: Context) {
             .apply()
     }
 
+    fun setPreferredOrientation(username: String, orientation: Int) {
+        prefs.edit().putInt("ORIENTATION_$username", orientation).apply()
+    }
+
+    fun getPreferredOrientation(username: String): Int {
+        return prefs.getInt("ORIENTATION_$username", android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT)
+    }
+
     fun switchToOfflineMode() {
         prefs.edit()
             .remove("USER_TOKEN")

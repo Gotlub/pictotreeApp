@@ -69,6 +69,16 @@ class TreeExplorerFragment : Fragment() {
         return inflater.inflate(R.layout.fragment_tree_explorer, container, false)
     }
 
+    override fun onStart() {
+        super.onStart()
+        (requireActivity() as? org.libera.pictotree.MainActivity)?.applyUserOrientation()
+    }
+
+    override fun onStop() {
+        super.onStop()
+        (requireActivity() as? org.libera.pictotree.MainActivity)?.restoreSystemOrientation()
+    }
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         
@@ -118,7 +128,9 @@ class TreeExplorerFragment : Fragment() {
         
         rvBreadcrumbs.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
-                updateVerticalScrollIndicators(recyclerView, scrollTopIndicator, scrollBottomIndicator)
+                if (::scrollTopIndicator.isInitialized && ::scrollBottomIndicator.isInitialized) {
+                    updateVerticalScrollIndicators(recyclerView, scrollTopIndicator, scrollBottomIndicator)
+                }
             }
         })
 
@@ -126,7 +138,6 @@ class TreeExplorerFragment : Fragment() {
         siblingAdapter = NodeAdapter(R.layout.item_sibling_node) { node ->
             val position = siblingAdapter.currentList.indexOf(node)
             if (position != -1) {
-                // On ne scrolle pas forcément à 0 ici pour laisser l'utilisateur voir ce qu'il a cliqué
                 siblingAdapter.setSelectedPosition(position)
                 viewModel.updateFocusWithinSiblings(node)
             }
@@ -142,8 +153,11 @@ class TreeExplorerFragment : Fragment() {
                 if (newState == RecyclerView.SCROLL_STATE_IDLE) updateFocusFromFirstVisible()
             }
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
-                positionChildrenArrow() // Positionnement dynamique de la flèche
-                updateHorizontalScrollIndicators(recyclerView, siblingsGradLeft, siblingsArrowLeft, siblingsGradRight, siblingsArrowRight)
+                positionChildrenArrow() 
+                if (::siblingsGradLeft.isInitialized && ::siblingsArrowLeft.isInitialized && 
+                    ::siblingsGradRight.isInitialized && ::siblingsArrowRight.isInitialized) {
+                    updateHorizontalScrollIndicators(recyclerView, siblingsGradLeft, siblingsArrowLeft, siblingsGradRight, siblingsArrowRight)
+                }
             }
         })
 
@@ -155,7 +169,10 @@ class TreeExplorerFragment : Fragment() {
         rvChildren.adapter = childrenAdapter
         rvChildren.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
-                updateHorizontalScrollIndicators(recyclerView, childrenGradLeft, childrenArrowLeft, childrenGradRight, childrenArrowRight)
+                if (::childrenGradLeft.isInitialized && ::childrenArrowLeft.isInitialized && 
+                    ::childrenGradRight.isInitialized && ::childrenArrowRight.isInitialized) {
+                    updateHorizontalScrollIndicators(recyclerView, childrenGradLeft, childrenArrowLeft, childrenGradRight, childrenArrowRight)
+                }
             }
         })
 
@@ -184,22 +201,26 @@ class TreeExplorerFragment : Fragment() {
     private fun positionChildrenArrow() {
         if (!::ivArrowToChildren.isInitialized || !::rvSiblings.isInitialized) return
         
-        val focusedNodeId = viewModel.uiState.value.focusedNode?.id ?: return
-        val layoutManager = rvSiblings.layoutManager as LinearLayoutManager
-        val position = siblingAdapter.currentList.indexOfFirst { it.id == focusedNodeId }
+        val state = viewModel.uiState.value
+        val focusedNode = state.focusedNode ?: return
+        
+        // Trouver la position du sibling qui possède les enfants affichés
+        var position = siblingAdapter.currentList.indexOfFirst { it.id == focusedNode.id }
+        if (position == -1) {
+            // Si le focus est un enfant, on cherche son parent dans les siblings
+            position = siblingAdapter.currentList.indexOfFirst { it.id == focusedNode.parent?.id }
+        }
         
         if (position != -1) {
-            val view = layoutManager.findViewByPosition(position)
+            val view = (rvSiblings.layoutManager as LinearLayoutManager).findViewByPosition(position)
             if (view != null) {
-                // On ne montre la flèche que si le nœud a des enfants
-                val hasChildren = viewModel.uiState.value.children.isNotEmpty()
+                // On montre la flèche si on a des enfants à afficher (venant du sibling identifié)
+                val hasChildren = state.children.isNotEmpty()
                 ivArrowToChildren.visibility = if (hasChildren) View.VISIBLE else View.INVISIBLE
                 
                 val viewCenter = (view.left + view.right) / 2
-                // L'arrow est centrée horizontalement dans le parent XML, on applique la translation
                 ivArrowToChildren.translationX = (viewCenter - rvSiblings.width / 2).toFloat()
             } else {
-                // Le nœud sélectionné est hors écran (scrollé)
                 ivArrowToChildren.visibility = View.INVISIBLE
             }
         } else {
@@ -260,6 +281,11 @@ class TreeExplorerFragment : Fragment() {
             if (phrase.isNotEmpty()) { ttsManager.stop(); phrase.forEachIndexed { index, node -> ttsManager.speak(node.label, index.toString()) } }
         }
         view.findViewById<View>(R.id.card_back_to_trees)?.setOnClickListener { findNavController().popBackStack() }
+
+        view.findViewById<View>(R.id.card_rotate)?.setOnClickListener {
+            (requireActivity() as? org.libera.pictotree.MainActivity)?.toggleOrientation()
+        }
+
         btnAddToPhrase.setOnClickListener { viewModel.addToPhrase() }
         view.findViewById<View>(R.id.btn_fullscreen_phrase)?.setOnClickListener { findNavController().navigate(R.id.action_treeExplorerFragment_to_phraseFullscreenFragment) }
         containerParent.setOnClickListener { viewModel.uiState.value.parent?.let { viewModel.focusOnNode(it) } }
@@ -268,7 +294,11 @@ class TreeExplorerFragment : Fragment() {
     private fun setupObservers() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                launch { viewModel.uiState.collect { state -> updateUI(state); rvBreadcrumbs.post { updateVerticalScrollIndicators(rvBreadcrumbs, scrollTopIndicator, scrollBottomIndicator) } } }
+                launch { viewModel.uiState.collect { state -> updateUI(state); rvBreadcrumbs.post { 
+                    if (::scrollTopIndicator.isInitialized && ::scrollBottomIndicator.isInitialized) {
+                        updateVerticalScrollIndicators(rvBreadcrumbs, scrollTopIndicator, scrollBottomIndicator)
+                    }
+                } } }
                 launch { var lastPhraseSize = 0; viewModel.phraseList.collect { phrase -> if (!isDraggingPhrase) { phraseAdapter.submitList(phrase); if (phrase.size > lastPhraseSize) rvPhrase.smoothScrollToPosition(phrase.size - 1) }; lastPhraseSize = phrase.size } }
                 launch { viewModel.userConfig.collect { config -> config?.let { ttsManager.setLanguage(it.locale) } } }
             }
@@ -282,32 +312,54 @@ class TreeExplorerFragment : Fragment() {
         try { containerParent.strokeColor = android.graphics.Color.parseColor(state.colorCode); containerParent.strokeWidth = (3 * resources.displayMetrics.density).toInt() } catch (e: Exception) { containerParent.strokeColor = android.graphics.Color.BLACK }
         if (state.parent != null) { containerParent.visibility = View.VISIBLE; tvParentLabel.text = state.parent.label; ivParent.load(state.parent.imageUrl) { placeholder(R.drawable.ic_launcher_background); diskCachePolicy(coil.request.CachePolicy.ENABLED) } }
         else containerParent.visibility = View.INVISIBLE
+        
         breadcrumbAdapter.submitList(state.breadcrumbs) { 
             rvBreadcrumbs.post { 
                 if (state.breadcrumbs.isNotEmpty()) rvBreadcrumbs.scrollToPosition(state.breadcrumbs.size - 1)
-                updateVerticalScrollIndicators(rvBreadcrumbs, scrollTopIndicator, scrollBottomIndicator) 
+                if (::scrollTopIndicator.isInitialized && ::scrollBottomIndicator.isInitialized) {
+                    updateVerticalScrollIndicators(rvBreadcrumbs, scrollTopIndicator, scrollBottomIndicator) 
+                }
             } 
         }
+        
         val oldSiblings = siblingAdapter.currentList
         siblingAdapter.submitList(state.siblings) {
-            val position = state.siblings.indexOfFirst { it.id == state.focusedNode?.id }
+            var position = state.siblings.indexOfFirst { it.id == state.focusedNode?.id }
+            if (position == -1) {
+                position = state.siblings.indexOfFirst { it.id == state.focusedNode?.parent?.id }
+            }
+
             if (position != -1) { 
                 if (oldSiblings != state.siblings) rvSiblings.scrollToPosition(0)
                 siblingAdapter.setSelectedPosition(position) 
             }
             else siblingAdapter.setSelectedPosition(-1)
+            
             rvSiblings.post { 
-                updateHorizontalScrollIndicators(rvSiblings, siblingsGradLeft, siblingsArrowLeft, siblingsGradRight, siblingsArrowRight)
-                positionChildrenArrow() // Aligner la flèche sous le nouveau focus
+                if (::siblingsGradLeft.isInitialized && ::siblingsArrowLeft.isInitialized && 
+                    ::siblingsGradRight.isInitialized && ::siblingsArrowRight.isInitialized) {
+                    updateHorizontalScrollIndicators(rvSiblings, siblingsGradLeft, siblingsArrowLeft, siblingsGradRight, siblingsArrowRight)
+                }
+                positionChildrenArrow() 
             }
         }
+        
         if (::ivArrowToSiblings.isInitialized) ivArrowToSiblings.visibility = if (state.parent != null) View.VISIBLE else View.INVISIBLE
         
         state.focusedNode?.let { node -> ivSelectedLarge.load(node.imageUrl) { placeholder(R.drawable.ic_launcher_foreground); diskCachePolicy(coil.request.CachePolicy.ENABLED) } }
+        
+        val oldChildren = childrenAdapter.currentList
         childrenAdapter.submitList(state.children) {
-            rvChildren.scrollToPosition(0)
+            if (oldChildren != state.children) {
+                rvChildren.scrollToPosition(0)
+            }
             childrenAdapter.setSelectedPosition(state.children.indexOfFirst { it.id == state.focusedNode?.id })
-            rvChildren.post { updateHorizontalScrollIndicators(rvChildren, childrenGradLeft, childrenArrowLeft, childrenGradRight, childrenArrowRight) }
+            rvChildren.post { 
+                if (::childrenGradLeft.isInitialized && ::childrenArrowLeft.isInitialized && 
+                    ::childrenGradRight.isInitialized && ::childrenArrowRight.isInitialized) {
+                    updateHorizontalScrollIndicators(rvChildren, childrenGradLeft, childrenArrowLeft, childrenGradRight, childrenArrowRight)
+                }
+            }
         }
     }
 

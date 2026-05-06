@@ -72,6 +72,11 @@ class TreeGlobalMapDialog : DialogFragment() {
         Log.d(TAG, "VIEW_CHANGE: Treant Dialog Dismissed")
     }
 
+    override fun onStart() {
+        super.onStart()
+        (requireActivity() as? org.libera.pictotree.MainActivity)?.applyUserOrientation()
+    }
+
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         val root = inflater.inflate(R.layout.dialog_tree_global_map, container, false)
@@ -328,6 +333,10 @@ class TreeGlobalMapDialog : DialogFragment() {
             phrase.forEachIndexed { index, node ->
                 ttsManager.speak(node.label, index.toString())
             }
+        }
+
+        root.findViewById<View>(R.id.card_rotate).setOnClickListener {
+            (requireActivity() as? org.libera.pictotree.MainActivity)?.toggleOrientation()
         }
 
         root.findViewById<View>(R.id.card_back_to_trees).setOnClickListener {
