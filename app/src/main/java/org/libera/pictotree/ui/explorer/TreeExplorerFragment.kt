@@ -111,7 +111,7 @@ class TreeExplorerFragment : Fragment() {
     }
 
     private fun setupAdapters() {
-        // Breadcrumbs (Désormais VERTICAL à droite du parent)
+        // Breadcrumbs (VERTICAL à droite du parent)
         breadcrumbAdapter = NodeAdapter(R.layout.item_breadcrumb) { node -> viewModel.focusOnNode(node) }
         rvBreadcrumbs.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.VERTICAL, false)
         rvBreadcrumbs.adapter = breadcrumbAdapter
@@ -126,7 +126,7 @@ class TreeExplorerFragment : Fragment() {
         siblingAdapter = NodeAdapter(R.layout.item_sibling_node) { node ->
             val position = siblingAdapter.currentList.indexOf(node)
             if (position != -1) {
-                rvSiblings.smoothScrollToPosition(position)
+                // On ne scrolle pas forcément à 0 ici pour laisser l'utilisateur voir ce qu'il a cliqué
                 siblingAdapter.setSelectedPosition(position)
                 viewModel.updateFocusWithinSiblings(node)
             }
@@ -135,19 +135,14 @@ class TreeExplorerFragment : Fragment() {
         rvSiblings.adapter = siblingAdapter
         rvSiblings.clipToPadding = false
         val density = resources.displayMetrics.density
-        rvSiblings.setPadding((160 * density).toInt(), 0, (120 * density).toInt(), 0)
+        rvSiblings.setPadding((16 * density).toInt(), 0, (120 * density).toInt(), 0)
         
         rvSiblings.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
                 if (newState == RecyclerView.SCROLL_STATE_IDLE) updateFocusFromFirstVisible()
             }
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
-                val layoutManager = rvSiblings.layoutManager as LinearLayoutManager
-                val firstView = layoutManager.findViewByPosition(layoutManager.findFirstVisibleItemPosition())
-                firstView?.let { view ->
-                    val viewCenter = (view.left + view.right) / 2
-                    if (::ivArrowToChildren.isInitialized) ivArrowToChildren.translationX = (viewCenter - rvSiblings.width / 2).toFloat()
-                }
+                positionChildrenArrow() // Positionnement dynamique de la flèche
                 updateHorizontalScrollIndicators(recyclerView, siblingsGradLeft, siblingsArrowLeft, siblingsGradRight, siblingsArrowRight)
             }
         })
@@ -184,6 +179,32 @@ class TreeExplorerFragment : Fragment() {
             }
         })
         itemTouchHelper.attachToRecyclerView(rvPhrase)
+    }
+
+    private fun positionChildrenArrow() {
+        if (!::ivArrowToChildren.isInitialized || !::rvSiblings.isInitialized) return
+        
+        val focusedNodeId = viewModel.uiState.value.focusedNode?.id ?: return
+        val layoutManager = rvSiblings.layoutManager as LinearLayoutManager
+        val position = siblingAdapter.currentList.indexOfFirst { it.id == focusedNodeId }
+        
+        if (position != -1) {
+            val view = layoutManager.findViewByPosition(position)
+            if (view != null) {
+                // On ne montre la flèche que si le nœud a des enfants
+                val hasChildren = viewModel.uiState.value.children.isNotEmpty()
+                ivArrowToChildren.visibility = if (hasChildren) View.VISIBLE else View.INVISIBLE
+                
+                val viewCenter = (view.left + view.right) / 2
+                // L'arrow est centrée horizontalement dans le parent XML, on applique la translation
+                ivArrowToChildren.translationX = (viewCenter - rvSiblings.width / 2).toFloat()
+            } else {
+                // Le nœud sélectionné est hors écran (scrollé)
+                ivArrowToChildren.visibility = View.INVISIBLE
+            }
+        } else {
+            ivArrowToChildren.visibility = View.INVISIBLE
+        }
     }
 
     private fun updateHorizontalScrollIndicators(rv: RecyclerView, gradL: View?, arrowL: View?, gradR: View?, arrowR: View?) {
@@ -263,23 +284,28 @@ class TreeExplorerFragment : Fragment() {
         else containerParent.visibility = View.INVISIBLE
         breadcrumbAdapter.submitList(state.breadcrumbs) { 
             rvBreadcrumbs.post { 
-                if (state.breadcrumbs.isNotEmpty()) {
-                    rvBreadcrumbs.scrollToPosition(state.breadcrumbs.size - 1)
-                }
+                if (state.breadcrumbs.isNotEmpty()) rvBreadcrumbs.scrollToPosition(state.breadcrumbs.size - 1)
                 updateVerticalScrollIndicators(rvBreadcrumbs, scrollTopIndicator, scrollBottomIndicator) 
             } 
         }
         val oldSiblings = siblingAdapter.currentList
         siblingAdapter.submitList(state.siblings) {
             val position = state.siblings.indexOfFirst { it.id == state.focusedNode?.id }
-            if (position != -1) { if (oldSiblings != state.siblings) rvSiblings.scrollToPosition(0); siblingAdapter.setSelectedPosition(position) }
+            if (position != -1) { 
+                if (oldSiblings != state.siblings) rvSiblings.scrollToPosition(0)
+                siblingAdapter.setSelectedPosition(position) 
+            }
             else siblingAdapter.setSelectedPosition(-1)
-            rvSiblings.post { updateHorizontalScrollIndicators(rvSiblings, siblingsGradLeft, siblingsArrowLeft, siblingsGradRight, siblingsArrowRight) }
+            rvSiblings.post { 
+                updateHorizontalScrollIndicators(rvSiblings, siblingsGradLeft, siblingsArrowLeft, siblingsGradRight, siblingsArrowRight)
+                positionChildrenArrow() // Aligner la flèche sous le nouveau focus
+            }
         }
-        if (::ivArrowToChildren.isInitialized) ivArrowToChildren.visibility = if (state.children.isNotEmpty()) View.VISIBLE else View.INVISIBLE
         if (::ivArrowToSiblings.isInitialized) ivArrowToSiblings.visibility = if (state.parent != null) View.VISIBLE else View.INVISIBLE
+        
         state.focusedNode?.let { node -> ivSelectedLarge.load(node.imageUrl) { placeholder(R.drawable.ic_launcher_foreground); diskCachePolicy(coil.request.CachePolicy.ENABLED) } }
         childrenAdapter.submitList(state.children) {
+            rvChildren.scrollToPosition(0)
             childrenAdapter.setSelectedPosition(state.children.indexOfFirst { it.id == state.focusedNode?.id })
             rvChildren.post { updateHorizontalScrollIndicators(rvChildren, childrenGradLeft, childrenArrowLeft, childrenGradRight, childrenArrowRight) }
         }

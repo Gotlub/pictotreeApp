@@ -17,12 +17,14 @@
         <androidx.constraintlayout.widget.Guideline android:id="@+id/gl_middle_zone" android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="horizontal" app:layout_constraintGuide_percent="0.66" />
 
         <!-- 1. NAVIGATION LAYERS (Arrière-plan) -->
+        
+        <!-- Zone des Frères - ALIGNÉE GAUCHE (Padding 16dp) -->
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/rv_siblings"
             android:layout_width="0dp"
             android:layout_height="180dp"
             android:clipToPadding="false"
-            android:paddingStart="160dp" 
+            android:paddingStart="16dp" 
             android:paddingEnd="120dp"
             android:orientation="horizontal"
             app:layout_constraintTop_toBottomOf="@id/gl_top_zone"
@@ -31,6 +33,7 @@
             app:layout_constraintEnd_toEndOf="parent"
             tools:listitem="@layout/item_sibling_node" />
 
+        <!-- Zone des Enfants - ALIGNÉE GAUCHE (Padding 16dp) -->
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/bottom_nav_zone"
             android:layout_width="0dp"
@@ -48,7 +51,7 @@
 
         <!-- 2. PANNEAUX FIXES (Milieu) -->
         
-        <!-- Parent Card (GAUCHE) -->
+        <!-- Carte Parent (Fixe à Gauche) -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/container_parent"
             android:layout_width="140dp"
@@ -77,16 +80,7 @@
             android:elevation="10dp"
             app:layout_constraintStart_toEndOf="@id/container_parent"
             app:layout_constraintTop_toTopOf="parent">
-
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/rv_breadcrumbs"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:orientation="vertical"
-                android:clipToPadding="false"
-                tools:listitem="@layout/item_breadcrumb" />
-
-            <!-- Indicateurs de scroll Verticaux -->
+            <androidx.recyclerview.widget.RecyclerView android:id="@+id/rv_breadcrumbs" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:clipToPadding="false" tools:listitem="@layout/item_breadcrumb" />
             <View android:id="@+id/breadcrumb_scroll_top" android:layout_width="match_parent" android:layout_height="30dp" android:background="@drawable/scroll_gradient_top" android:visibility="invisible" app:layout_constraintTop_toTopOf="parent" />
             <View android:id="@+id/breadcrumb_scroll_bottom" android:layout_width="match_parent" android:layout_height="30dp" android:background="@drawable/scroll_gradient_bottom" android:visibility="invisible" app:layout_constraintBottom_toBottomOf="parent" />
         </androidx.constraintlayout.widget.ConstraintLayout>
@@ -117,7 +111,6 @@
         <ImageView android:id="@+id/iv_arrow_to_siblings" android:layout_width="32dp" android:layout_height="32dp" android:src="@android:drawable/arrow_down_float" app:tint="@color/primary_color" android:elevation="15dp" app:layout_constraintTop_toBottomOf="@id/container_parent" app:layout_constraintBottom_toTopOf="@id/rv_siblings" app:layout_constraintStart_toStartOf="@id/container_parent" app:layout_constraintEnd_toEndOf="@id/container_parent" />
         <ImageView android:id="@+id/iv_arrow_to_children" android:layout_width="32dp" android:layout_height="32dp" android:src="@android:drawable/arrow_down_float" android:visibility="invisible" app:tint="@color/primary_color" android:elevation="15dp" app:layout_constraintTop_toBottomOf="@id/gl_middle_zone" app:layout_constraintBottom_toTopOf="@id/gl_middle_zone" app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent" />
 
-        <!-- Indicateurs scroll SIBLINGS -->
         <View android:id="@+id/siblings_gradient_left" android:layout_width="60dp" android:layout_height="0dp" android:background="@drawable/scroll_gradient_left" android:visibility="invisible" android:elevation="16dp" app:layout_constraintStart_toStartOf="parent" app:layout_constraintTop_toBottomOf="@id/gl_top_zone" app:layout_constraintBottom_toTopOf="@id/gl_middle_zone" />
         <View android:id="@+id/siblings_gradient_right" android:layout_width="60dp" android:layout_height="0dp" android:background="@drawable/scroll_gradient_right" android:visibility="invisible" android:elevation="16dp" app:layout_constraintEnd_toEndOf="parent" app:layout_constraintTop_toBottomOf="@id/gl_top_zone" app:layout_constraintBottom_toTopOf="@id/gl_middle_zone" />
         <ImageView android:id="@+id/iv_siblings_arrow_left" android:layout_width="24dp" android:layout_height="24dp" android:src="@android:drawable/ic_media_previous" android:alpha="0.5" android:visibility="invisible" android:elevation="17dp" app:layout_constraintStart_toStartOf="parent" app:layout_constraintTop_toBottomOf="@id/gl_top_zone" app:layout_constraintBottom_toTopOf="@id/gl_middle_zone" />
