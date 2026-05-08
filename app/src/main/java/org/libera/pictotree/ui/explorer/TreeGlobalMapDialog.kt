@@ -237,9 +237,8 @@ class TreeGlobalMapDialog : DialogFragment() {
             if (treeIds.isEmpty() || index !in treeIds.indices) return
             val treeId = treeIds[index]
             
-            // Déterminer l'orientation pour Treant.js
-            val isLandscape = resources.configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
-            val orientation = if (isLandscape) "WEST" else "NORTH"
+            // On reste en NORTH (Haut vers Bas) même en paysage car nos arbres sont "larges" (mandat utilisateur)
+            val orientation = "NORTH"
             
             // Mettre à jour la couleur CAA et la cible globale en temps réel
             viewModel.updateCurrentTreeContext(treeId)

@@ -10,54 +10,58 @@
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:paddingBottom="120dp"
+        android:paddingBottom="110dp"
         android:clipChildren="false">
 
-        <!-- STRUCTURE EN COLONNES (Optimisation Paysage) -->
-        <androidx.constraintlayout.widget.Guideline android:id="@+id/gl_v1" android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="vertical" app:layout_constraintGuide_percent="0.28" />
-        <androidx.constraintlayout.widget.Guideline android:id="@+id/gl_v2" android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="vertical" app:layout_constraintGuide_percent="0.60" />
-        <androidx.constraintlayout.widget.Guideline android:id="@+id/gl_v3" android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="vertical" app:layout_constraintGuide_percent="0.90" />
+        <!-- EXPERT GUIDELINES (Structure en 4 colonnes équilibrées) -->
+        <androidx.constraintlayout.widget.Guideline android:id="@+id/gl_v1" android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="vertical" app:layout_constraintGuide_percent="0.22" />
+        <androidx.constraintlayout.widget.Guideline android:id="@+id/gl_v2" android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="vertical" app:layout_constraintGuide_percent="0.46" />
+        <androidx.constraintlayout.widget.Guideline android:id="@+id/gl_v3" android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="vertical" app:layout_constraintGuide_percent="0.70" />
 
-        <!-- COLONNE 1 : CONTEXTE (Parent + Ariane) -->
+        <!-- 1. COLONNE GAUCHE FIXE : CONTEXTE (Parent + Ariane) -->
         <androidx.constraintlayout.widget.ConstraintLayout
-            android:id="@+id/col1_context"
+            android:id="@+id/panel_left_fixed"
             android:layout_width="0dp"
             android:layout_height="match_parent"
+            android:elevation="10dp"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toStartOf="@id/gl_v1"
             app:layout_constraintTop_toTopOf="parent">
 
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/container_parent"
-                android:layout_width="100dp"
-                android:layout_height="100dp"
+                android:layout_width="120dp"
+                android:layout_height="120dp"
                 android:layout_marginTop="8dp"
-                app:cardCornerRadius="12dp"
-                app:strokeWidth="2dp"
+                app:cardCornerRadius="16dp"
+                app:strokeWidth="3dp"
                 app:strokeColor="@color/material_dynamic_neutral90"
                 app:layout_constraintTop_toTopOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent">
                 <androidx.constraintlayout.widget.ConstraintLayout android:layout_width="match_parent" android:layout_height="match_parent" android:padding="4dp">
                     <ImageView android:id="@+id/iv_parent" android:layout_width="match_parent" android:layout_height="0dp" android:scaleType="centerInside" app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toTopOf="@id/tv_parent_label" />
-                    <TextView android:id="@+id/tv_parent_label" android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:textSize="10sp" android:textStyle="bold" app:layout_constraintBottom_toBottomOf="parent" />
+                    <TextView android:id="@+id/tv_parent_label" android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center" android:textSize="10sp" android:textStyle="bold" android:maxLines="1" app:layout_constraintBottom_toBottomOf="parent" />
                 </androidx.constraintlayout.widget.ConstraintLayout>
             </com.google.android.material.card.MaterialCardView>
 
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:id="@+id/container_breadcrumbs"
-                android:layout_width="match_parent"
+                android:layout_width="66dp"
                 android:layout_height="0dp"
                 android:layout_marginTop="8dp"
+                android:elevation="14dp"
                 app:layout_constraintTop_toBottomOf="@id/container_parent"
-                app:layout_constraintBottom_toBottomOf="parent">
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent">
                 <androidx.recyclerview.widget.RecyclerView android:id="@+id/rv_breadcrumbs" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:clipToPadding="false" />
                 <View android:id="@+id/breadcrumb_scroll_top" android:layout_width="match_parent" android:layout_height="20dp" android:background="@drawable/scroll_gradient_top" android:visibility="invisible" app:layout_constraintTop_toTopOf="parent" />
                 <View android:id="@+id/breadcrumb_scroll_bottom" android:layout_width="match_parent" android:layout_height="20dp" android:background="@drawable/scroll_gradient_bottom" android:visibility="invisible" app:layout_constraintBottom_toBottomOf="parent" />
             </androidx.constraintlayout.widget.ConstraintLayout>
         </androidx.constraintlayout.widget.ConstraintLayout>
 
-        <!-- COLONNE 2 : LES FRÈRES (Vertical) -->
+        <!-- 2. COLONNE MILIEU-GAUCHE : LES FRÈRES -->
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/rv_siblings"
             android:layout_width="0dp"
@@ -67,26 +71,64 @@
             app:layout_constraintStart_toEndOf="@id/gl_v1"
             app:layout_constraintEnd_toStartOf="@id/gl_v2"
             app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent" />
+            app:layout_constraintBottom_toBottomOf="parent"
+            tools:listitem="@layout/item_sibling_node" />
 
-        <!-- COLONNE 3 : LES ENFANTS + AJOUTER -->
-        <androidx.constraintlayout.widget.ConstraintLayout
-            android:id="@+id/col3_children"
+        <!-- 3. COLONNE MILIEU-DROITE : LES ENFANTS -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rv_children_preview"
             android:layout_width="0dp"
             android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:paddingVertical="8dp"
             app:layout_constraintStart_toEndOf="@id/gl_v2"
             app:layout_constraintEnd_toStartOf="@id/gl_v3"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            tools:listitem="@layout/item_sibling_node" />
+
+        <!-- 4. COLONNE DROITE FIXE : ACTIONS + AJOUTER -->
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/panel_right_fixed"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:elevation="10dp"
+            app:layout_constraintStart_toEndOf="@id/gl_v3"
+            app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent">
 
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/rv_children_preview"
-                android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:clipToPadding="false"
-                android:paddingVertical="8dp"
+            <!-- BLOC ACTIONS DOUBLE BARRE HORIZONTALE (En haut avec marge de sécurité) -->
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:id="@+id/container_actions"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:layout_marginEnd="16dp"
                 app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintBottom_toTopOf="@id/layout_action" />
+                app:layout_constraintEnd_toEndOf="parent">
 
+                <com.google.android.material.card.MaterialCardView android:id="@+id/card_search" android:layout_width="44dp" android:layout_height="44dp" app:cardCornerRadius="10dp" app:cardBackgroundColor="#EDE7F6" app:cardElevation="2dp"><ImageView android:layout_width="match_parent" android:layout_height="match_parent" android:padding="10dp" android:src="@android:drawable/ic_menu_search" app:tint="#5E35B1" /></com.google.android.material.card.MaterialCardView>
+                <com.google.android.material.card.MaterialCardView android:id="@+id/card_speak" android:layout_width="44dp" android:layout_height="44dp" app:cardCornerRadius="10dp" app:cardBackgroundColor="#E8F5E9" app:cardElevation="2dp"><ImageView android:id="@+id/iv_speak_icon" android:layout_width="match_parent" android:layout_height="match_parent" android:padding="10dp" android:src="@android:drawable/ic_btn_speak_now" app:tint="#2E7D32" /></com.google.android.material.card.MaterialCardView>
+                <com.google.android.material.card.MaterialCardView android:id="@+id/card_rotate" android:layout_width="44dp" android:layout_height="44dp" app:cardCornerRadius="10dp" app:cardBackgroundColor="#FFF3E0" app:cardElevation="2dp"><ImageView android:layout_width="match_parent" android:layout_height="match_parent" android:padding="10dp" android:src="@android:drawable/ic_menu_rotate" app:tint="#E65100" /></com.google.android.material.card.MaterialCardView>
+                
+                <com.google.android.material.card.MaterialCardView android:id="@+id/card_back_to_trees" android:layout_width="44dp" android:layout_height="44dp" app:cardCornerRadius="10dp" app:cardBackgroundColor="#EDE7F6" app:cardElevation="2dp"><ImageView android:layout_width="match_parent" android:layout_height="match_parent" android:padding="10dp" android:src="@android:drawable/ic_dialog_dialer" app:tint="#5E35B1" /></com.google.android.material.card.MaterialCardView>
+                <com.google.android.material.card.MaterialCardView android:id="@+id/card_eye" android:layout_width="44dp" android:layout_height="44dp" app:cardCornerRadius="10dp" app:cardBackgroundColor="#EDE7F6" app:cardElevation="2dp"><ImageView android:id="@+id/iv_eye" android:layout_width="match_parent" android:layout_height="match_parent" android:padding="10dp" android:src="@drawable/ic_tree_structure" app:tint="#5E35B1" /></com.google.android.material.card.MaterialCardView>
+
+                <!-- Flow Horizontal pour regrouper proprement sur 2 lignes si besoin -->
+                <androidx.constraintlayout.helper.widget.Flow
+                    android:id="@+id/flow_actions_land"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    app:flow_wrapMode="aligned"
+                    app:flow_maxElementsWrap="3"
+                    app:flow_horizontalGap="8dp"
+                    app:flow_verticalGap="8dp"
+                    app:constraint_referenced_ids="card_search,card_speak,card_rotate,card_back_to_trees,card_eye"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent" />
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+            <!-- BLOC AJOUTER (En bas de la colonne droite) -->
             <LinearLayout
                 android:id="@+id/layout_action"
                 android:layout_width="wrap_content"
@@ -97,62 +139,34 @@
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent">
-                <ImageView android:id="@+id/iv_selected_large" android:layout_width="60dp" android:layout_height="60dp" android:background="@drawable/rounded_bottom_sheet" android:backgroundTint="#F0F0F0" android:padding="4dp" android:scaleType="centerInside" />
-                <com.google.android.material.button.MaterialButton android:id="@+id/btn_add_to_phrase" android:layout_width="wrap_content" android:layout_height="36dp" android:layout_marginTop="4dp" android:text="Ajouter" android:textSize="10sp" android:textAllCaps="false" app:cornerRadius="18dp" />
+                <ImageView android:id="@+id/iv_selected_large" android:layout_width="70dp" android:layout_height="70dp" android:background="@drawable/rounded_bottom_sheet" android:backgroundTint="#F0F0F0" android:padding="4dp" android:scaleType="centerInside" />
+                <com.google.android.material.button.MaterialButton android:id="@+id/btn_add_to_phrase" android:layout_width="wrap_content" android:layout_height="40dp" android:layout_marginTop="4dp" android:text="Ajouter" android:textSize="11sp" android:textAllCaps="false" app:cornerRadius="20dp" />
             </LinearLayout>
-        </androidx.constraintlayout.widget.ConstraintLayout>
-
-        <!-- COLONNE 4 : ACTIONS (Outils + Nav) -->
-        <androidx.constraintlayout.widget.ConstraintLayout
-            android:id="@+id/container_actions"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            app:layout_constraintStart_toEndOf="@id/gl_v3"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent">
-
-            <com.google.android.material.card.MaterialCardView android:id="@+id/card_search" android:layout_width="40dp" android:layout_height="40dp" app:cardCornerRadius="10dp" app:cardBackgroundColor="#EDE7F6" app:cardElevation="2dp"><ImageView android:layout_width="match_parent" android:layout_height="match_parent" android:padding="8dp" android:src="@android:drawable/ic_menu_search" app:tint="#5E35B1" /></com.google.android.material.card.MaterialCardView>
-            <com.google.android.material.card.MaterialCardView android:id="@+id/card_speak" android:layout_width="40dp" android:layout_height="40dp" app:cardCornerRadius="10dp" app:cardBackgroundColor="#E8F5E9" app:cardElevation="2dp"><ImageView android:id="@+id/iv_speak_icon" android:layout_width="match_parent" android:layout_height="match_parent" android:padding="8dp" android:src="@android:drawable/ic_btn_speak_now" app:tint="#2E7D32" /></com.google.android.material.card.MaterialCardView>
-            <com.google.android.material.card.MaterialCardView android:id="@+id/card_rotate" android:layout_width="40dp" android:layout_height="40dp" app:cardCornerRadius="10dp" app:cardBackgroundColor="#FFF3E0" app:cardElevation="2dp"><ImageView android:id="@+id/iv_speak_rotate" android:layout_width="match_parent" android:layout_height="match_parent" android:padding="8dp" android:src="@android:drawable/ic_menu_rotate" app:tint="#E65100" /></com.google.android.material.card.MaterialCardView>
-            <com.google.android.material.card.MaterialCardView android:id="@+id/card_back_to_trees" android:layout_width="40dp" android:layout_height="40dp" app:cardCornerRadius="10dp" app:cardBackgroundColor="#EDE7F6" app:cardElevation="2dp"><ImageView android:id="@+id/iv_grid" android:layout_width="match_parent" android:layout_height="match_parent" android:padding="8dp" android:src="@android:drawable/ic_dialog_dialer" app:tint="#5E35B1" /></com.google.android.material.card.MaterialCardView>
-            <com.google.android.material.card.MaterialCardView android:id="@+id/card_eye" android:layout_width="40dp" android:layout_height="40dp" app:cardCornerRadius="10dp" app:cardBackgroundColor="#EDE7F6" app:cardElevation="2dp"><ImageView android:id="@+id/iv_eye" android:layout_width="match_parent" android:layout_height="match_parent" android:padding="8dp" android:src="@drawable/ic_tree_structure" app:tint="#5E35B1" /></com.google.android.material.card.MaterialCardView>
-
-            <androidx.constraintlayout.helper.widget.Flow
-                android:id="@+id/flow_actions_land"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                app:flow_verticalGap="8dp"
-                app:constraint_referenced_ids="card_search,card_speak,card_rotate,card_back_to_trees,card_eye"
-                app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent" />
         </androidx.constraintlayout.widget.ConstraintLayout>
 
         <!-- FLÈCHES HIÉRARCHIQUES (Désormais HORIZONTALES) -->
         <ImageView android:id="@+id/iv_arrow_to_siblings" android:layout_width="24dp" android:layout_height="24dp" android:src="@android:drawable/ic_media_next" app:tint="@color/primary_color" android:elevation="15dp" app:layout_constraintTop_toTopOf="@id/container_parent" app:layout_constraintBottom_toBottomOf="@id/container_parent" app:layout_constraintStart_toEndOf="@id/container_parent" />
-        <ImageView android:id="@+id/iv_arrow_to_children" android:layout_width="24dp" android:layout_height="24dp" android:src="@android:drawable/ic_media_next" android:visibility="invisible" app:tint="@color/primary_color" android:elevation="15dp" app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintEnd_toStartOf="@id/col3_children" />
+        <ImageView android:id="@+id/iv_arrow_to_children" android:layout_width="24dp" android:layout_height="24dp" android:src="@android:drawable/ic_media_next" android:visibility="invisible" app:tint="@color/primary_color" android:elevation="15dp" app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintEnd_toStartOf="@id/gl_v2" />
 
-        <!-- Indicateurs scroll SIBLINGS (Verticaux en Land) -->
-        <View android:id="@+id/siblings_gradient_left" android:layout_width="match_parent" android:layout_height="20dp" android:background="@drawable/scroll_gradient_top" android:visibility="invisible" android:elevation="16dp" app:layout_constraintTop_toTopOf="@id/rv_siblings" />
-        <View android:id="@+id/siblings_gradient_right" android:layout_width="match_parent" android:layout_height="20dp" android:background="@drawable/scroll_gradient_bottom" android:visibility="invisible" android:elevation="16dp" app:layout_constraintBottom_toBottomOf="@id/rv_siblings" />
+        <!-- Indicateurs de scroll (Adaptés à la verticale en Land) -->
+        <View android:id="@+id/siblings_gradient_left" android:layout_width="match_parent" android:layout_height="20dp" android:background="@drawable/scroll_gradient_top" android:visibility="invisible" android:elevation="16dp" app:layout_constraintTop_toTopOf="@id/rv_siblings" app:layout_constraintStart_toEndOf="@id/gl_v1" app:layout_constraintEnd_toStartOf="@id/gl_v2" />
+        <View android:id="@+id/siblings_gradient_right" android:layout_width="match_parent" android:layout_height="20dp" android:background="@drawable/scroll_gradient_bottom" android:visibility="invisible" android:elevation="16dp" app:layout_constraintBottom_toBottomOf="@id/rv_siblings" app:layout_constraintStart_toEndOf="@id/gl_v1" app:layout_constraintEnd_toStartOf="@id/gl_v2" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-    <!-- BANDEAU DE PHRASE -->
+    <!-- BANDEAU DE PHRASE COMPACT (110dp) -->
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/panel_phrase"
         android:layout_width="match_parent"
-        android:layout_height="120dp"
+        android:layout_height="110dp"
         android:layout_gravity="bottom"
         android:background="@drawable/rounded_bottom_sheet"
         android:elevation="20dp">
         <ImageButton android:id="@+id/btn_fullscreen_phrase" android:layout_width="40dp" android:layout_height="40dp" android:layout_margin="4dp" android:background="?attr/selectableItemBackgroundBorderless" android:src="@android:drawable/ic_menu_zoom" app:layout_constraintTop_toTopOf="parent" app:layout_constraintEnd_toEndOf="parent" />
-        <androidx.recyclerview.widget.RecyclerView android:id="@+id/rv_phrase" android:layout_width="0dp" android:layout_height="0dp" android:layout_marginTop="4dp" android:layout_marginBottom="4dp" android:clipToPadding="false" android:paddingHorizontal="16dp" android:orientation="horizontal" app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent" tools:listitem="@layout/item_phrase_picto" />
+        <androidx.recyclerview.widget.RecyclerView android:id="@+id/rv_phrase" android:layout_width="0dp" android:layout_height="match_parent" android:layout_marginTop="4dp" android:layout_marginBottom="4dp" android:clipToPadding="false" android:paddingHorizontal="24dp" android:orientation="horizontal" app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent" tools:listitem="@layout/item_phrase_picto" />
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-    <!-- Éléments fantômes -->
+    <!-- Compatibilité IDs Kotlin -->
     <View android:id="@+id/fab_speak" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone" />
     <View android:id="@+id/iv_siblings_arrow_left" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone" />
     <View android:id="@+id/iv_siblings_arrow_right" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone" />
