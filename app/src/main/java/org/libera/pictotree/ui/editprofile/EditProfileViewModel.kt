@@ -52,8 +52,15 @@ class EditProfileViewModel(
                         try {
                             val url = tree.rootUrl
                             if (!url.isNullOrEmpty()) {
-                                // Rechercher l'Image téléchargée en associant l'URL distante
-                                val imageEntity = imageDao.getImageByRemotePath(url)
+                                // 1. Normaliser l'URL (Absolue + Host Correct)
+                                val hostUrl = org.libera.pictotree.network.RetrofitClient.SERVER_URL
+                                val normalizedUrl = org.libera.pictotree.utils.FileUtils.normalizeUrl(url, hostUrl)
+                                
+                                // 2. Nettoyer (Supprimer cache-buster)
+                                val cleanUrl = org.libera.pictotree.utils.FileUtils.getCleanUrl(normalizedUrl)
+                                
+                                // 3. Rechercher l'Image téléchargée en associant l'URL distante NETTOYÉE
+                                val imageEntity = imageDao.getImageByRemotePath(cleanUrl)
                                 if (imageEntity != null && username != null) {
                                     val file = java.io.File(getApplication<Application>().filesDir, "$username/${imageEntity.localPath}")
                                     if (file.exists()) {
@@ -161,6 +168,7 @@ class EditProfileViewModel(
     fun synchronizeAndImportTree(treeId: Int, profileId: Int, username: String) {
         val sessionManager = SessionManager(getApplication())
         val authToken = sessionManager.getToken() ?: ""
+        val hostUrl = org.libera.pictotree.network.RetrofitClient.SERVER_URL
 
         viewModelScope.launch {
             try {
@@ -171,18 +179,25 @@ class EditProfileViewModel(
                     
                     // Étape 2 : Insérer l'Entité de Base
                     val jsonPayload = Gson().toJson(fullTree)
+                    
+                    val rawRootUrl = fullTree.rootNode?.imageUrl ?: ""
+                    val cleanRootUrl = if (rawRootUrl.isNotEmpty()) {
+                        val normalized = org.libera.pictotree.utils.FileUtils.normalizeUrl(rawRootUrl, hostUrl)
+                        org.libera.pictotree.utils.FileUtils.getCleanUrl(normalized)
+                    } else null
+
                     val treeEntity = TreeEntity(
                         id = fullTree.treeId,
                         name = fullTree.name,
                         jsonPayload = jsonPayload,
                         isPublic = false,
                         lastSync = System.currentTimeMillis(),
-                        rootUrl = fullTree.rootNode?.imageUrl
+                        rootUrl = cleanRootUrl
                     )
                     treeDao.insertTree(treeEntity)
-                    
-                    // Étape 3 : Engine d'Importation (On garde authToken ici car ImageSyncEngine utilise HttpURLConnection manuel)
-                    val engine = ImageSyncEngine(getApplication(), imageDao, username, authToken)
+
+                    // Étape 3 : Engine d'Importation
+                    val engine = ImageSyncEngine(getApplication(), imageDao, username, hostUrl, authToken)
                     fullTree.rootNode?.let { engine.syncImagesFromNode(it, fullTree.treeId) }
                     
                     // Étape 4 : Lier à ce Profil
@@ -262,12 +277,13 @@ class EditProfileViewModel(
                 val sessionManager = SessionManager(getApplication())
                 val username = sessionManager.getUsername() ?: "default"
                 val token = sessionManager.getToken() ?: ""
+                val hostUrl = org.libera.pictotree.network.RetrofitClient.SERVER_URL
                 
                 var finalAvatarUrl = avatarUrl
                 
                 // Si c'est une image distante (Base ou Arasaac), on la télécharge en local
                 if (avatarUrl != null && (avatarUrl.startsWith("http") || avatarUrl.contains("/api/v1/mobile/"))) {
-                    val engine = ImageSyncEngine(getApplication(), imageDao, username, token)
+                    val engine = ImageSyncEngine(getApplication(), imageDao, username, hostUrl, token)
                     val localUrl = engine.downloadSingleImage(avatarUrl)
                     if (localUrl != null) {
                         finalAvatarUrl = localUrl

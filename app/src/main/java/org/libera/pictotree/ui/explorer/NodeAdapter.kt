@@ -15,7 +15,9 @@ import org.libera.pictotree.R
  * Adaptateur polyvalent pour afficher des TreeNode dans les différentes zones (Frères, Enfants, Breadcrumbs).
  */
 class NodeAdapter(
+    private val username: String, // Nouveau : Indispensable pour le mapping local
     private val layoutId: Int = R.layout.item_phrase_picto,
+    private val allowNetwork: Boolean = false,
     private val onNodeClick: (TreeNode) -> Unit
 ) : ListAdapter<TreeNode, NodeAdapter.NodeViewHolder>(NodeDiffCallback()) {
 
@@ -36,14 +38,19 @@ class NodeAdapter(
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): NodeViewHolder {
         val view = LayoutInflater.from(parent.context).inflate(layoutId, parent, false)
-        return NodeViewHolder(view, onNodeClick)
+        return NodeViewHolder(view, username, allowNetwork, onNodeClick)
     }
 
     override fun onBindViewHolder(holder: NodeViewHolder, position: Int) {
         holder.bind(getItem(position), position == selectedPosition, colorCode)
     }
 
-    class NodeViewHolder(itemView: View, private val onNodeClick: (TreeNode) -> Unit) : RecyclerView.ViewHolder(itemView) {
+    class NodeViewHolder(
+        itemView: View, 
+        private val username: String,
+        private val allowNetwork: Boolean,
+        private val onNodeClick: (TreeNode) -> Unit
+    ) : RecyclerView.ViewHolder(itemView) {
         private val ivPicto: ImageView = itemView.findViewById(R.id.iv_picto)
         private val tvLabel: TextView = itemView.findViewById(R.id.tv_label)
         private val ivHasChildren: ImageView? = itemView.findViewById(R.id.iv_has_children)
@@ -58,12 +65,38 @@ class NodeAdapter(
                 ivHasChildren?.visibility = View.GONE
             } else {
                 if (node.imageUrl.isNotEmpty()) {
-                    ivPicto.load(node.imageUrl) {
+                    // MAPPING LOCAL MANUEL (Priorité absolue)
+                    val cleanUrl = org.libera.pictotree.utils.FileUtils.getCleanUrl(node.imageUrl)
+                    val fileName = org.libera.pictotree.utils.FileUtils.getLocalFileNameFromUrl(cleanUrl)
+                    val localFile = java.io.File(itemView.context.filesDir, "$username/images/$fileName")
+                    
+                    var finalSource: Any = if (localFile.exists()) localFile else node.imageUrl
+                    
+                    // Normalisation si c'est un chemin relatif (fallback)
+                    if (finalSource is String && !finalSource.startsWith("http") && !finalSource.startsWith("file")) {
+                        val hostUrl = org.libera.pictotree.network.RetrofitClient.SERVER_URL
+                        finalSource = "${hostUrl.removeSuffix("/")}/${finalSource.removePrefix("/")}"
+                    }
+
+                    ivPicto.load(finalSource) {
                         crossfade(true)
                         placeholder(R.drawable.ic_launcher_foreground)
                         error(R.drawable.ic_launcher_foreground)
-                        // Forcer l'utilisation du cache disque pour le mode offline
+                        
+                        // Injecter le token si on doit aller sur le réseau
+                        if (finalSource is String && (finalSource.contains("/api/v1/mobile/") || finalSource.contains("/pictograms/"))) {
+                            val sessionManager = org.libera.pictotree.data.SessionManager(itemView.context)
+                            val token = sessionManager.getToken()
+                            if (!token.isNullOrEmpty()) {
+                                addHeader("Authorization", "Bearer $token")
+                            }
+                        }
+
+                        // GESTION DU MODE OFFLINE STRICT
                         diskCachePolicy(coil.request.CachePolicy.ENABLED)
+                        if (!allowNetwork) {
+                            networkCachePolicy(coil.request.CachePolicy.DISABLED)
+                        }
                     }
                 } else {
                     ivPicto.setImageResource(R.drawable.ic_launcher_foreground)

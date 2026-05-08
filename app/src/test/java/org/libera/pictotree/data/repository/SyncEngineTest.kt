@@ -70,6 +70,7 @@ class SyncEngineTest {
             context = mockContext,
             imageDao = mockImageDao,
             username = "test_user",
+            hostUrl = "http://localhost",
             authToken = "fake_jwt_token"
         )
         

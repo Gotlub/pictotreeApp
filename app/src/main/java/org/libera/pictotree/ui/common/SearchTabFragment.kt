@@ -1,10 +1,12 @@
 package org.libera.pictotree.ui.common
 
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
+import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
@@ -32,6 +34,10 @@ class SearchTabFragment : Fragment() {
     private var type: Int = TYPE_LOCAL
     private lateinit var viewModel: PictoSearchViewModel
     private lateinit var adapter: SearchResultAdapter
+    
+    private lateinit var recyclerView: RecyclerView
+    private lateinit var progressBar: ProgressBar
+    private lateinit var tvEmpty: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -41,24 +47,24 @@ class SearchTabFragment : Fragment() {
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
-        val root = RecyclerView(requireContext()).apply {
-            layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
-            setPadding(16, 16, 16, 16)
-            clipToPadding = false
-        }
+        val root = inflater.inflate(R.layout.fragment_search_tab, container, false)
+        
+        recyclerView = root.findViewById(R.id.rvResults)
+        progressBar = root.findViewById(R.id.progressBar)
+        tvEmpty = root.findViewById(R.id.tvEmpty)
         
         adapter = SearchResultAdapter { selected ->
             (parentFragment as? PictoSearchDialog)?.onPictoSelected?.invoke(selected)
             (parentFragment as? PictoSearchDialog)?.dismiss()
         }
         
-        // Calcul dynamique du nombre de colonnes en fonction de la largeur disponible
+        // Calcul dynamique du nombre de colonnes
         val displayMetrics = resources.displayMetrics
         val screenWidthDp = displayMetrics.widthPixels / displayMetrics.density
-        val spanCount = (screenWidthDp / 120).toInt().coerceAtLeast(3) // Environ 120dp par picto
+        val spanCount = (screenWidthDp / 120).toInt().coerceAtLeast(3)
         
-        root.layoutManager = GridLayoutManager(requireContext(), spanCount)
-        root.adapter = adapter
+        recyclerView.layoutManager = GridLayoutManager(requireContext(), spanCount)
+        recyclerView.adapter = adapter
 
         observeViewModel()
         
@@ -74,9 +80,30 @@ class SearchTabFragment : Fragment() {
 
         viewLifecycleOwner.lifecycleScope.launch {
             resultsFlow.collect { state ->
+                android.util.Log.d("PictoSearch", "Tab $type received state: ${state::class.simpleName}")
                 when(state) {
-                    is SearchUiState.Success -> adapter.submitList(state.results)
-                    else -> adapter.submitList(emptyList())
+                    is SearchUiState.Loading -> {
+                        progressBar.visibility = View.VISIBLE
+                        tvEmpty.visibility = View.GONE
+                        adapter.submitList(emptyList())
+                    }
+                    is SearchUiState.Success -> {
+                        progressBar.visibility = View.GONE
+                        android.util.Log.d("PictoSearch", "Tab $type Success: ${state.results.size} items")
+                        adapter.submitList(state.results)
+                        tvEmpty.visibility = if (state.results.isEmpty()) View.VISIBLE else View.GONE
+                    }
+                    is SearchUiState.Error -> {
+                        progressBar.visibility = View.GONE
+                        tvEmpty.text = state.message
+                        tvEmpty.visibility = View.VISIBLE
+                        adapter.submitList(emptyList())
+                    }
+                    is SearchUiState.Idle -> {
+                        progressBar.visibility = View.GONE
+                        tvEmpty.visibility = View.GONE
+                        adapter.submitList(emptyList())
+                    }
                 }
             }
         }
@@ -105,9 +132,23 @@ class SearchResultAdapter(private val onClick: (PictoSearchResultDTO) -> Unit) :
 
         fun bind(item: PictoSearchResultDTO) {
             tv.text = item.name
-            iv.load(item.imageUrl) {
+            
+            // On affiche la miniature dans la grille si elle existe, sinon l'image pleine
+            val displayUrl = item.thumbnailUrl ?: item.imageUrl
+            val hostUrl = org.libera.pictotree.network.RetrofitClient.SERVER_URL
+            
+            // 1. Normalisation de l'URL (Absolue + Host Correct)
+            var finalUrl = if (displayUrl.startsWith("http") || displayUrl.startsWith("file")) displayUrl
+                          else "${hostUrl.removeSuffix("/")}/${displayUrl.removePrefix("/")}"
+            
+            finalUrl = org.libera.pictotree.utils.FileUtils.normalizeServerAddress(finalUrl)
+
+            val imageLoader = org.libera.pictotree.network.RetrofitClient.getImageLoader(iv.context)
+            iv.load(finalUrl, imageLoader) {
                 crossfade(true)
                 placeholder(R.drawable.ic_launcher_foreground)
+                error(R.drawable.ic_launcher_foreground)
+                Log.d("searchTabFragment getImageLoader", "Loading image from $finalUrl")
             }
             itemView.setOnClickListener { onClick(item) }
         }

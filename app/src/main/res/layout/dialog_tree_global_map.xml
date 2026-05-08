@@ -16,7 +16,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <!-- BLOC ACTIONS DOUBLE COLONNE (DROITE) -->
+    <!-- BLOC ACTIONS DOUBLE COLONNE (Optimisé Paysage/Portrait) -->
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/container_actions"
         android:layout_width="wrap_content"
@@ -30,12 +30,12 @@
         <!-- BOUTONS -->
         <com.google.android.material.card.MaterialCardView android:id="@+id/card_search" android:layout_width="48dp" android:layout_height="48dp" app:cardCornerRadius="12dp" app:cardBackgroundColor="#EDE7F6" app:cardElevation="2dp"><ImageView android:layout_width="match_parent" android:layout_height="match_parent" android:padding="10dp" android:src="@android:drawable/ic_menu_search" app:tint="#5E35B1" /></com.google.android.material.card.MaterialCardView>
         <com.google.android.material.card.MaterialCardView android:id="@+id/card_speak" android:layout_width="48dp" android:layout_height="48dp" app:cardCornerRadius="12dp" app:cardBackgroundColor="#E8F5E9" app:cardElevation="2dp"><ImageView android:id="@+id/iv_speak_icon" android:layout_width="match_parent" android:layout_height="match_parent" android:padding="10dp" android:src="@android:drawable/ic_btn_speak_now" app:tint="#2E7D32" /></com.google.android.material.card.MaterialCardView>
-        <com.google.android.material.card.MaterialCardView android:id="@+id/card_rotate" android:layout_width="48dp" android:layout_height="48dp" app:cardCornerRadius="12dp" app:cardBackgroundColor="#FFF3E0" app:cardElevation="2dp"><ImageView android:layout_width="match_parent" android:layout_height="match_parent" android:padding="10dp" android:src="@android:drawable/ic_menu_rotate" app:tint="#E65100" /></com.google.android.material.card.MaterialCardView>
+        <com.google.android.material.card.MaterialCardView android:id="@+id/card_rotate" android:layout_width="48dp" android:layout_height="48dp" app:cardCornerRadius="12dp" app:cardBackgroundColor="#FFF3E0" app:cardElevation="2dp"><ImageView android:id="@+id/iv_menu_rotate" android:layout_width="match_parent" android:layout_height="match_parent" android:padding="10dp" android:src="@android:drawable/ic_menu_rotate" app:tint="#E65100" /></com.google.android.material.card.MaterialCardView>
         
         <com.google.android.material.card.MaterialCardView android:id="@+id/card_back_to_trees" android:layout_width="48dp" android:layout_height="48dp" app:cardCornerRadius="12dp" app:cardBackgroundColor="#EDE7F6" app:cardElevation="2dp"><ImageView android:layout_width="match_parent" android:layout_height="match_parent" android:padding="10dp" android:src="@android:drawable/ic_dialog_dialer" app:tint="#5E35B1" /></com.google.android.material.card.MaterialCardView>
-        <com.google.android.material.card.MaterialCardView android:id="@+id/btn_back_to_nav" android:layout_width="48dp" android:layout_height="48dp" app:cardCornerRadius="12dp" app:cardBackgroundColor="#EDE7F6" app:cardElevation="2dp"><ImageView android:id="@+id/iv_eye" android:layout_width="match_parent" android:layout_height="match_parent" android:padding="10dp" android:src="@android:drawable/ic_menu_sort_by_size" app:tint="#5E35B1" /></com.google.android.material.card.MaterialCardView>
+        <com.google.android.material.card.MaterialCardView android:id="@+id/btn_back_to_nav" android:layout_width="48dp" android:layout_height="48dp" app:cardCornerRadius="12dp" app:cardBackgroundColor="#EDE7F6" app:cardElevation="2dp"><ImageView android:id="@+id/iv_eye_nav" android:layout_width="match_parent" android:layout_height="match_parent" android:padding="10dp" android:src="@android:drawable/ic_menu_sort_by_size" app:tint="#5E35B1" /></com.google.android.material.card.MaterialCardView>
 
-        <!-- COLONNE DROITE (Navigation : Grille > Vue) -->
+        <!-- COLONNE DROITE (Navigation) -->
         <androidx.constraintlayout.helper.widget.Flow
             android:id="@+id/flow_actions_right_treant"
             android:layout_width="wrap_content"
@@ -46,7 +46,7 @@
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintEnd_toEndOf="parent" />
 
-        <!-- COLONNE GAUCHE (Outils : Loupe > Micro > Rotation) -->
+        <!-- COLONNE GAUCHE (Outils) -->
         <androidx.constraintlayout.helper.widget.Flow
             android:id="@+id/flow_actions_left_treant"
             android:layout_width="wrap_content"

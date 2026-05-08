@@ -53,6 +53,7 @@ class PhraseFullscreenFragment : DialogFragment() {
                     requireActivity().application, 
                     treeDao, 
                     profileDao,
+                    database.imageDao(), // Ajouté
                     userConfigRepository,
                     RetrofitClient.SERVER_URL, 
                     username
@@ -84,7 +85,8 @@ class PhraseFullscreenFragment : DialogFragment() {
         val btnClose = root.findViewById<ImageButton>(R.id.btn_close_fullscreen)
         val fabSpeak = root.findViewById<FloatingActionButton>(R.id.fab_speak_fullscreen)
 
-        adapter = PhraseAdapter(R.layout.item_phrase_picto_fullscreen)
+        val username = SessionManager(requireContext()).getUsername() ?: "default"
+        adapter = PhraseAdapter(username, R.layout.item_phrase_picto_fullscreen)
         rv.adapter = adapter
         rv.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
 

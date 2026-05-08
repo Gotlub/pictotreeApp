@@ -5,6 +5,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.TextView
+import android.util.Log
 import androidx.recyclerview.widget.RecyclerView
 import coil.load
 import org.libera.pictotree.R
@@ -45,16 +46,30 @@ class RemoteTreeAdapter(
             val visibility = if (tree.isPublic) "Public" else "Private"
             ownerText.text = "Owner: ${tree.owner} ($visibility)"
             
-            if (!tree.rootImageUrl.isNullOrEmpty()) {
-                imageView.load(tree.rootImageUrl) {
+            // Priorité à la miniature pour l'affichage de la liste
+            val url = tree.rootThumbnailUrl ?: tree.rootImageUrl
+            if (!url.isNullOrEmpty()) {
+                val hostUrl = org.libera.pictotree.network.RetrofitClient.SERVER_URL
+                
+                // Normalisation : S'assurer que l'URL est absolue et corriger l'adresse si besoin
+                var finalUrl = if (url.startsWith("http") || url.startsWith("file")) url
+                              else "${hostUrl.removeSuffix("/")}/${url.removePrefix("/")}"
+                
+                finalUrl = org.libera.pictotree.utils.FileUtils.normalizeServerAddress(finalUrl)
+
+                val imageLoader = org.libera.pictotree.network.RetrofitClient.getImageLoader(imageView.context)
+                imageView.load(finalUrl, imageLoader) {
                     crossfade(true)
                     placeholder(android.R.drawable.ic_menu_gallery)
                     error(android.R.drawable.ic_menu_gallery)
-                    // Inject Authorization Header natively for local Backend Thumbnails
-                    val token = org.libera.pictotree.data.SessionManager(imageView.context).getToken()
-                    if (!token.isNullOrEmpty() && tree.rootImageUrl.contains("/api/v1/mobile/")) {
-                        addHeader("Authorization", "Bearer ${token}")
-                    }
+                    Log.d("remotetreeAdapter getImageLoader", "Loading image from $finalUrl")
+                    listener(
+                        onError = { request, result ->
+                            // Ce bloc s'exécute UNIQUEMENT si Coil abandonne le chargement.
+                            // result.throwable contient l'exception exacte qui a causé le blocage.
+                            Log.e("CoilDebug", "Échec critique pour : $finalUrl", result.throwable)
+                        }
+                    )
                 }
             } else {
                 imageView.setImageResource(android.R.drawable.ic_menu_gallery)

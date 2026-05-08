@@ -72,6 +72,7 @@ class TreeSelectionFragment : Fragment() {
                     requireActivity().application,
                     database.treeDao(),
                     database.profileDao(),
+                    database.imageDao(), // Ajouté
                     userConfigRepository,
                     org.libera.pictotree.network.RetrofitClient.SERVER_URL,
                     username
@@ -93,7 +94,7 @@ class TreeSelectionFragment : Fragment() {
 
         // Adapter pour les arbres
         val hostUrl = org.libera.pictotree.network.RetrofitClient.SERVER_URL
-        adapter = TreeAdapter(username, hostUrl) { tree ->
+        adapter = TreeAdapter(username, hostUrl, allowNetwork = false) { tree ->
             val bundle = Bundle().apply {
                 putInt("treeId", tree.id)
                 putInt("profileId", arguments?.getInt("profileId", -1) ?: -1)
@@ -107,6 +108,7 @@ class TreeSelectionFragment : Fragment() {
 
         // Adapter pour la phrase
         phraseAdapter = PhraseAdapter(
+            username = username,
             onItemClick = { node -> ttsManager.speak(node.label) }
         )
         rvPhrase.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)

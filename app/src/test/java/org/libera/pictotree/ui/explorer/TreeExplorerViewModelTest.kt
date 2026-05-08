@@ -15,6 +15,7 @@ import org.junit.Before
 import org.junit.Test
 import org.libera.pictotree.data.database.dao.TreeDao
 import org.libera.pictotree.data.database.dao.ProfileDao
+import org.libera.pictotree.data.database.dao.ImageDao
 import org.libera.pictotree.data.repository.UserConfigRepository
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -24,6 +25,7 @@ class TreeExplorerViewModelTest {
     private val application = mockk<Application>(relaxed = true)
     private val treeDao = mockk<TreeDao>()
     private val profileDao = mockk<ProfileDao>()
+    private val imageDao = mockk<ImageDao>()
     private val userConfigRepository = mockk<UserConfigRepository>()
     private val testDispatcher = UnconfinedTestDispatcher()
 
@@ -36,6 +38,7 @@ class TreeExplorerViewModelTest {
             application,
             treeDao,
             profileDao,
+            imageDao, // Ajouté
             userConfigRepository,
             "http://localhost",
             "testuser"

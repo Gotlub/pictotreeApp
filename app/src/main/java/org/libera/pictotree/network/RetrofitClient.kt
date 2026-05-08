@@ -30,7 +30,7 @@ object RetrofitClient {
     }
 
     private val loggingInterceptor = HttpLoggingInterceptor().apply {
-        level = if (BuildConfig.DEBUG) HttpLoggingInterceptor.Level.BODY else HttpLoggingInterceptor.Level.NONE
+        level = if (BuildConfig.DEBUG) HttpLoggingInterceptor.Level.NONE else HttpLoggingInterceptor.Level.NONE
     }
 
     // Intercepteur pour injecter le token
@@ -106,11 +106,35 @@ object RetrofitClient {
         return result
     }
 
-    private val okHttpClient = OkHttpClient.Builder()
+    val networkFixInterceptor = Interceptor { chain ->
+        val request = chain.request().newBuilder()
+            .header("Connection", "close") // Évite de réutiliser un vieux tuyau cassé
+            .header("Accept-Encoding", "identity") // Refuse la compression Gzip
+            .build()
+        chain.proceed(request)
+    }
+
+    val okHttpClient = OkHttpClient.Builder()
         .addInterceptor(authInterceptor)
-        .addInterceptor(loggingInterceptor)
+        //.addInterceptor(loggingInterceptor)
+        .addInterceptor(networkFixInterceptor)
         .authenticator(authenticator)
         .build()
+
+    private var imageLoader: coil.ImageLoader? = null
+
+    /**
+     * Fournit un ImageLoader Coil unique configuré avec notre OkHttpClient authentifié.
+     */
+    fun getImageLoader(context: android.content.Context): coil.ImageLoader {
+        if (imageLoader == null) {
+            imageLoader = coil.ImageLoader.Builder(context.applicationContext)
+                .okHttpClient(okHttpClient)
+                .crossfade(true)
+                .build()
+        }
+        return imageLoader!!
+    }
 
     private val retrofit: Retrofit by lazy {
         Retrofit.Builder()

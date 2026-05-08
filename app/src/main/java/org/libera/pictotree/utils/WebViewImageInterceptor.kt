@@ -16,7 +16,10 @@ import java.io.FileInputStream
 object WebViewImageInterceptor {
     private const val TAG = "PictoTreeNav"
 
-    fun intercept(context: Context, username: String, imageDao: ImageDao, url: Uri?): WebResourceResponse? {
+    /**
+     * @param strictOffline Si true, bloque tout accès réseau si l'image n'est pas trouvée localement.
+     */
+    fun intercept(context: Context, username: String, imageDao: ImageDao, url: Uri?, strictOffline: Boolean = false): WebResourceResponse? {
         val urlString = url?.toString() ?: return null
         
         // On n'intercepte que les requêtes vers notre API de pictos ou les images distantes
@@ -24,19 +27,18 @@ object WebViewImageInterceptor {
             return null
         }
 
-        // 1. Nettoyage de l'URL (cache-buster et query params)
-        var cleanUrl = urlString.substringBefore("?")
-        // Gérer le cas où le cache-buster est collé à l'extension sans '?'
-        cleanUrl = cleanUrl.replace(Regex("(\\.(jpg|jpeg|png|gif))\\d+$", RegexOption.IGNORE_CASE), "$1")
+        // 1. Nettoyage de l'URL (cache-buster et query params) pour la recherche en BDD
+        val cleanUrl = FileUtils.getCleanUrl(urlString)
         
-        // 2. Extraire la partie stable (ex: gotlub/unnamed.jpg)
+        // 2. Extraire la partie stable relative (ex: gotlub/unnamed.jpg)
         val relativePart = cleanUrl.substringAfter("/api/v1/mobile/pictograms/", "")
             .substringAfter("/pictograms/", "")
 
         return runBlocking {
-            // Recherche par URL exacte ou relative (robuste aux changements de host)
+            // Recherche par URL nettoyée (clé stable en BDD désormais)
             val entity = imageDao.getImageByRemotePath(cleanUrl)
                 ?: if (relativePart.isNotEmpty()) {
+                    // Fallback sur chemin relatif propre si le host a changé
                     imageDao.getImageByRemotePath("/api/v1/mobile/pictograms/$relativePart")
                         ?: imageDao.getImageByRemotePath(relativePart)
                 } else null
@@ -46,14 +48,27 @@ object WebViewImageInterceptor {
                 if (localFile.exists()) {
                     try {
                         val stream = FileInputStream(localFile)
-                        val mimeType = if (localFile.name.endsWith(".png", true)) "image/png" else "image/jpeg"
+                        val extension = localFile.extension.lowercase()
+                        val mimeType = if (extension == "png") "image/png" 
+                                      else if (extension == "gif") "image/gif"
+                                      else "image/jpeg"
+                        
                         Log.d(TAG, "WebView Intercepted: $cleanUrl -> local cache")
                         return@runBlocking WebResourceResponse(mimeType, "UTF-8", stream)
                     } catch (e: Exception) {
                         Log.e(TAG, "Error reading intercepted file", e)
                     }
+                } else {
+                    Log.w(TAG, "WebView Intercepted: Entity found but file MISSING at ${localFile.absolutePath}")
                 }
             }
+
+            if (strictOffline) {
+                Log.w(TAG, "WebView BLOCKING Network request (Strict Offline): $urlString")
+                // Retourner une réponse vide (404-like) pour bloquer la requête réseau
+                return@runBlocking WebResourceResponse("image/png", "UTF-8", null)
+            }
+            
             null
         }
     }

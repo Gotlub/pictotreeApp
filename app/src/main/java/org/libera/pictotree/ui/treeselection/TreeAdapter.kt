@@ -18,13 +18,14 @@ import java.io.File
 class TreeAdapter(
     private val username: String,
     private val hostUrl: String,
+    private val allowNetwork: Boolean = false,
     private val onTreeClick: (TreeEntity) -> Unit
 ) : ListAdapter<TreeWithColor, TreeAdapter.TreeViewHolder>(TreeDiffCallback()) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TreeViewHolder {
         val view = LayoutInflater.from(parent.context)
             .inflate(R.layout.item_tree_card, parent, false)
-        return TreeViewHolder(view, username, hostUrl, onTreeClick)
+        return TreeViewHolder(view, username, hostUrl, allowNetwork, onTreeClick)
     }
 
     override fun onBindViewHolder(holder: TreeViewHolder, position: Int) {
@@ -35,6 +36,7 @@ class TreeAdapter(
         itemView: View,
         private val username: String,
         private val hostUrl: String,
+        private val allowNetwork: Boolean,
         private val onTreeClick: (TreeEntity) -> Unit
     ) : RecyclerView.ViewHolder(itemView) {
         private val ivTreeRoot: ImageView = itemView.findViewById(R.id.ivTreeRoot)
@@ -56,16 +58,18 @@ class TreeAdapter(
             val url = tree.rootUrl ?: ""
             var finalSource: Any = url
 
-            // 1. Chercher d'abord en local via le hash de l'URL
+            // 1. Chercher d'abord en local via le hash de l'URL propre
             if (url.isNotEmpty()) {
-                val fileName = org.libera.pictotree.utils.FileUtils.getLocalFileNameFromUrl(url)
+                val cleanUrl = org.libera.pictotree.utils.FileUtils.getCleanUrl(url)
+                val fileName = org.libera.pictotree.utils.FileUtils.getLocalFileNameFromUrl(cleanUrl)
                 val localFile = java.io.File(itemView.context.filesDir, "$username/images/$fileName")
                 if (localFile.exists()) {
                     finalSource = localFile
                 } else if (!url.startsWith("http") && !url.startsWith("file")) {
-                    // Si c'est un chemin relatif et pas de fichier local, on normalise pour Coil (fallback)
-                    val normPath = url.replace("^/+".toRegex(), "").replace("^(pictograms/|images/)".toRegex(), "")
-                    finalSource = "$hostUrl/api/v1/mobile/pictograms/$normPath"
+                    // Normalisation : URL absolue pour Coil si c'est un chemin relatif
+                    val hostUrlNormalized = hostUrl.removeSuffix("/")
+                    val pathNormalized = url.removePrefix("/")
+                    finalSource = "$hostUrlNormalized/$pathNormalized"
                 }
             }
 
@@ -75,7 +79,19 @@ class TreeAdapter(
                     placeholder(R.drawable.ic_launcher_background)
                     error(R.drawable.ic_launcher_background)
                     diskCachePolicy(coil.request.CachePolicy.ENABLED)
-                    memoryCachePolicy(coil.request.CachePolicy.ENABLED)
+                    
+                    // Injecter le token si on doit aller sur le réseau (chemin backend)
+                    if (finalSource is String && (finalSource.contains("/api/v1/mobile/") || finalSource.contains("/pictograms/"))) {
+                        val sessionManager = org.libera.pictotree.data.SessionManager(itemView.context)
+                        val token = sessionManager.getToken()
+                        if (!token.isNullOrEmpty()) {
+                            addHeader("Authorization", "Bearer $token")
+                        }
+                    }
+
+                    if (!allowNetwork) {
+                        networkCachePolicy(coil.request.CachePolicy.DISABLED)
+                    }
                 }
             } else {
                 ivTreeRoot.setImageResource(R.drawable.ic_launcher_background)

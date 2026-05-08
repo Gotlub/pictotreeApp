@@ -105,7 +105,7 @@ class TreeGlobalMapDialog : DialogFragment() {
 
         // Setup Phrase Bar (RecyclerView)
         val rvPhrase = root.findViewById<RecyclerView>(R.id.rv_phrase)
-        val phraseAdapter = PhraseAdapter()
+        val phraseAdapter = PhraseAdapter(username = username)
         rvPhrase.adapter = phraseAdapter
         rvPhrase.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
 
@@ -237,6 +237,10 @@ class TreeGlobalMapDialog : DialogFragment() {
             if (treeIds.isEmpty() || index !in treeIds.indices) return
             val treeId = treeIds[index]
             
+            // Déterminer l'orientation pour Treant.js
+            val isLandscape = resources.configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
+            val orientation = if (isLandscape) "WEST" else "NORTH"
+            
             // Mettre à jour la couleur CAA et la cible globale en temps réel
             viewModel.updateCurrentTreeContext(treeId)
             globalSelectedTreeId = treeId
@@ -250,7 +254,7 @@ class TreeGlobalMapDialog : DialogFragment() {
                     withContext(Dispatchers.Main) {
                         val selectedNodeId = selectedNodesPerTree[treeId] ?: ""
                         val safeJson = android.util.Base64.encodeToString(entity.jsonPayload.toByteArray(), android.util.Base64.NO_WRAP)
-                        webView.evaluateJavascript("javascript:renderTreeBase64('$safeJson', '$selectedNodeId', false, $treeId);", null)
+                        webView.evaluateJavascript("javascript:renderTreeBase64('$safeJson', '$selectedNodeId', false, $treeId, '$orientation');", null)
                         // Forcer l'injection du style immédiatement après le rendu
                         injectCaaStyle(viewModel.uiState.value.colorCode)
                     }
@@ -263,7 +267,8 @@ class TreeGlobalMapDialog : DialogFragment() {
                 if (currentIndex != -1) loadTree(currentIndex)
             }
             override fun shouldInterceptRequest(view: WebView?, request: WebResourceRequest?): WebResourceResponse? {
-                return WebViewImageInterceptor.intercept(requireContext(), username, imageDao, request?.url)
+                // ACTIVATION DU MODE OFFLINE STRICT : Treant.js ne doit JAMAIS aller sur internet
+                return WebViewImageInterceptor.intercept(requireContext(), username, imageDao, request?.url, strictOffline = true)
             }
         }
 
@@ -383,6 +388,11 @@ class TreeGlobalMapDialog : DialogFragment() {
             crossfade(true)
             placeholder(R.drawable.ic_launcher_foreground)
             error(R.drawable.ic_launcher_foreground)
+            // GESTION DU MODE OFFLINE STRICT
+            diskCachePolicy(coil.request.CachePolicy.ENABLED)
+            if (!url.startsWith("file")) {
+                networkCachePolicy(coil.request.CachePolicy.DISABLED)
+            }
         }
     }
 

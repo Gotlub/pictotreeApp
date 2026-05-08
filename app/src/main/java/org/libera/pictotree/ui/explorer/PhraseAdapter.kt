@@ -10,7 +10,9 @@ import coil.load
 import org.libera.pictotree.R
 
 class PhraseAdapter(
+    private val username: String, // Nouveau : Indispensable pour le mapping local
     private val layoutId: Int = R.layout.item_phrase_picto,
+    private val allowNetwork: Boolean = false,
     private val onItemClick: ((TreeNode) -> Unit)? = null
 ) : RecyclerView.Adapter<PhraseAdapter.PhraseViewHolder>() {
 
@@ -58,7 +60,7 @@ class PhraseAdapter(
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PhraseViewHolder {
         val view = LayoutInflater.from(parent.context).inflate(layoutId, parent, false)
-        return PhraseViewHolder(view, onItemClick)
+        return PhraseViewHolder(view, username, allowNetwork, onItemClick)
     }
 
     override fun onBindViewHolder(holder: PhraseViewHolder, position: Int) {
@@ -67,6 +69,8 @@ class PhraseAdapter(
 
     class PhraseViewHolder(
         itemView: View,
+        private val username: String,
+        private val allowNetwork: Boolean,
         private val onItemClick: ((TreeNode) -> Unit)? = null
     ) : RecyclerView.ViewHolder(itemView) {
         private val ivPicto: ImageView = itemView.findViewById(R.id.iv_picto)
@@ -87,12 +91,37 @@ class PhraseAdapter(
             }
 
             if (node.imageUrl.isNotEmpty()) {
-                ivPicto.load(node.imageUrl) {
+                // MAPPING LOCAL MANUEL
+                val cleanUrl = org.libera.pictotree.utils.FileUtils.getCleanUrl(node.imageUrl)
+                val fileName = org.libera.pictotree.utils.FileUtils.getLocalFileNameFromUrl(cleanUrl)
+                val localFile = java.io.File(itemView.context.filesDir, "$username/images/$fileName")
+                
+                var finalSource: Any = if (localFile.exists()) localFile else node.imageUrl
+                
+                // Normalisation chemin relatif (fallback)
+                if (finalSource is String && !finalSource.startsWith("http") && !finalSource.startsWith("file")) {
+                    val hostUrl = org.libera.pictotree.network.RetrofitClient.SERVER_URL
+                    finalSource = "${hostUrl.removeSuffix("/")}/${finalSource.removePrefix("/")}"
+                }
+
+                ivPicto.load(finalSource) {
                     crossfade(true)
                     placeholder(R.drawable.ic_launcher_foreground)
                     error(R.drawable.ic_launcher_foreground)
+
+                    // Injecter le token si on doit aller sur le réseau
+                    if (finalSource is String && (finalSource.contains("/api/v1/mobile/") || finalSource.contains("/pictograms/"))) {
+                        val sessionManager = org.libera.pictotree.data.SessionManager(itemView.context)
+                        val token = sessionManager.getToken()
+                        if (!token.isNullOrEmpty()) {
+                            addHeader("Authorization", "Bearer $token")
+                        }
+                    }
+
                     diskCachePolicy(coil.request.CachePolicy.ENABLED)
-                    memoryCachePolicy(coil.request.CachePolicy.ENABLED)
+                    if (!allowNetwork) {
+                        networkCachePolicy(coil.request.CachePolicy.DISABLED)
+                    }
                 }
             } else {
                 ivPicto.setImageResource(R.drawable.ic_launcher_foreground)

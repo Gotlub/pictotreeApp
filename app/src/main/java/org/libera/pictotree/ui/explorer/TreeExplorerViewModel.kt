@@ -64,6 +64,7 @@ class TreeExplorerViewModel(
     application: Application,
     private val treeDao: TreeDao,
     private val profileDao: ProfileDao,
+    private val imageDao: org.libera.pictotree.data.database.dao.ImageDao,
     private val userConfigRepository: org.libera.pictotree.data.repository.UserConfigRepository,
     private val hostUrl: String,
     private val username: String
@@ -250,10 +251,25 @@ class TreeExplorerViewModel(
 
     fun addToPhrase(externalNode: TreeNode? = null) {
         val nodeToAdd = externalNode ?: _uiState.value.focusedNode ?: return
+        
         // On crée une copie avec un ID d'instance unique (doublons autorisés mais distincts techniquement)
         val uniqueInstanceNode = nodeToAdd.copy(
             id = "${nodeToAdd.id}_${System.currentTimeMillis()}_${(0..999).random()}"
         )
+        
+        // Si c'est une image distante (ex: recherche), on lance le téléchargement en arrière-plan
+        // pour qu'elle devienne accessible offline dans le bandeau.
+        if (nodeToAdd.imageUrl.startsWith("http") || nodeToAdd.imageUrl.contains("/api/v1/mobile/")) {
+            viewModelScope.launch {
+                val sessionManager = org.libera.pictotree.data.SessionManager(getApplication())
+                val token = sessionManager.getToken()
+                val engine = org.libera.pictotree.data.repository.ImageSyncEngine(getApplication(), imageDao, username, hostUrl, token)
+                engine.downloadSingleImage(nodeToAdd.imageUrl, nodeToAdd.label)
+                
+                // Note: L'UI se rafraîchira au prochain bind de l'adapter car le fichier existera sur disque.
+            }
+        }
+
         _phraseList.value = _phraseList.value + uniqueInstanceNode
     }
 

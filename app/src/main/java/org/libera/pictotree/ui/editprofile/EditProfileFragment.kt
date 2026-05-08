@@ -25,10 +25,14 @@ import org.libera.pictotree.data.database.AppDatabase
 import org.libera.pictotree.network.RetrofitClient
 import org.libera.pictotree.data.SessionManager
 
+import androidx.core.widget.doAfterTextChanged
+import kotlinx.coroutines.delay
+
 class EditProfileFragment : Fragment() {
 
     private lateinit var viewModel: EditProfileViewModel
     private var currentSelectedAvatarUrl: String? = null
+    private var nameSaveJob: kotlinx.coroutines.Job? = null
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -113,12 +117,30 @@ class EditProfileFragment : Fragment() {
         }
         requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner, backCallback)
 
+        // ================= AUTO-SAVE NAME (DEBOUNCE) =================
+        editProfileName.doAfterTextChanged { text ->
+            nameSaveJob?.cancel()
+            nameSaveJob = viewLifecycleOwner.lifecycleScope.launch {
+                delay(2000) // Sauvegarde auto après 2 secondes d'inactivité
+                val newName = text?.toString()?.trim() ?: ""
+                if (newName.isNotEmpty() && profileId != -1) {
+                    viewModel.updateProfile(profileId, newName, currentSelectedAvatarUrl)
+                }
+            }
+        }
+
         // ================= AVATAR SELECTOR =================
         btnSearchAvatar.setOnClickListener {
             val dialog = org.libera.pictotree.ui.common.PictoSearchDialog()
             dialog.onPictoSelected = { searchResult ->
                 currentSelectedAvatarUrl = searchResult.imageUrl
                 loadAvatar(currentSelectedAvatarUrl)
+                
+                // SAUVEGARDE INSTANTANÉE de l'avatar
+                val name = editProfileName.text?.toString()?.trim() ?: ""
+                if (profileId != -1) {
+                    viewModel.updateProfile(profileId, name, currentSelectedAvatarUrl)
+                }
             }
             dialog.show(parentFragmentManager, "AvatarSearch")
         }

@@ -80,7 +80,7 @@
         let currentTreeId = -1;
 
         // Fonction appelée depuis Kotlin via WebView.evaluateJavascript
-        function renderTreeBase64(base64Payload, selectedNodeId, readOnly, treeId) {
+        function renderTreeBase64(base64Payload, selectedNodeId, readOnly, treeId, orientation) {
             try {
                 isReadOnlyMode = !!readOnly;
                 currentTreeId = treeId || -1;
@@ -93,6 +93,7 @@
                 var chart_config = {
                     chart: {
                         container: "#tree-container",
+                        rootOrientation: orientation || "NORTH", // Injection de l'orientation
                         levelSeparation: 45,
                         siblingSeparation: 30,
                         subTeeSeparation: 30,

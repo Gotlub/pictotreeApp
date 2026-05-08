@@ -11,11 +11,26 @@ import org.libera.pictotree.data.database.entity.ImageEntity
 import org.libera.pictotree.network.dto.TreeNodeDTO
 
 class ImageSyncEngine(
-        private val context: Context,
-        private val imageDao: ImageDao,
-        private val username: String, // Isoler hermétiquement le stockage par utilisateur
-        private val authToken: String? = null // Conservé pour compatibilité URL manuelle mais optionnel
+    private val context: Context,
+    private val imageDao: ImageDao,
+    private val username: String,
+    private val hostUrl: String, // Nouveau : Nécessaire pour normaliser les URLs relatives
+    private val authToken: String? = null
 ) {
+    /**
+     * Nettoie l'URL pour servir de clé stable dans la base de données.
+     */
+    private fun getCleanUrl(url: String): String {
+        return org.libera.pictotree.utils.FileUtils.getCleanUrl(url)
+    }
+
+    /**
+     * Assure que l'URL est absolue et pointe sur le bon host (émulateur).
+     */
+    private fun normalizeUrl(url: String): String {
+        return org.libera.pictotree.utils.FileUtils.normalizeUrl(url, hostUrl)
+    }
+
     suspend fun syncImagesFromNode(node: TreeNodeDTO, treeId: Int) {
         if (node.imageUrl.isNotBlank()) {
             downloadAndHashImage(node.imageUrl, treeId)
@@ -31,25 +46,27 @@ class ImageSyncEngine(
                 if (remoteUrl.startsWith("file://") || remoteUrl.startsWith("color:"))
                         return@withContext remoteUrl
 
-                val fileName =
-                        org.libera.pictotree.utils.FileUtils.getLocalFileNameFromUrl(remoteUrl)
+                val absoluteUrl = normalizeUrl(remoteUrl)
+                val cleanUrl = getCleanUrl(absoluteUrl)
+
+                val fileName = org.libera.pictotree.utils.FileUtils.getLocalFileNameFromUrl(cleanUrl)
                 val userImagesDir = File(context.filesDir, "$username/images")
                 if (!userImagesDir.exists()) userImagesDir.mkdirs()
                 val file = File(userImagesDir, fileName)
                 val localUrl = "file://${file.absolutePath}"
 
-                val existing = imageDao.getImageByRemotePath(remoteUrl)
+                // Recherche par URL nettoyée
+                val existing = imageDao.getImageByRemotePath(cleanUrl)
                 if (existing != null && file.exists()) {
                     return@withContext localUrl
                 }
 
                 try {
-                    val connection = URL(remoteUrl).openConnection() as java.net.HttpURLConnection
+                    // Pour la connexion, on utilise l'URL d'origine (avec cache-buster si présent)
+                    val connection = URL(absoluteUrl).openConnection() as java.net.HttpURLConnection
                     connection.setRequestProperty("User-Agent", "Mozilla/5.0")
                     
-                    // Note: Si on utilise HttpURLConnection au lieu de Retrofit, l'intercepteur global ne s'applique pas.
-                    // On garde donc la logique manuelle ici pour les téléchargements directs de fichiers.
-                    if (remoteUrl.contains("/api/v1/mobile/") && authToken != null) {
+                    if (absoluteUrl.contains("/api/v1/mobile/") && !authToken.isNullOrBlank()) {
                         connection.setRequestProperty("Authorization", "Bearer $authToken")
                     }
                     connection.connect()
@@ -66,7 +83,7 @@ class ImageSyncEngine(
                                 e.printStackTrace()
                             }
                         } else {
-                            finalName = ExternalImageMetadataFetcher.fetchRealName(context, username, remoteUrl, finalName)
+                            finalName = ExternalImageMetadataFetcher.fetchRealName(context, username, cleanUrl, finalName)
                         }
 
                         connection.inputStream.use { input ->
@@ -75,7 +92,7 @@ class ImageSyncEngine(
 
                         imageDao.insertImage(
                                 ImageEntity(
-                                        remotePath = remoteUrl,
+                                        remotePath = cleanUrl, // On stocke l'URL PROPRE
                                         localPath = "images/$fileName",
                                         name = finalName
                                 )
@@ -92,38 +109,40 @@ class ImageSyncEngine(
 
     private suspend fun downloadAndHashImage(remoteUrl: String, treeId: Int) =
             withContext(Dispatchers.IO) {
-                val fileName =
-                        org.libera.pictotree.utils.FileUtils.getLocalFileNameFromUrl(remoteUrl)
-
-                val existing = imageDao.getImageByRemotePath(remoteUrl)
-                if (existing != null) {
-                    imageDao.insertTreeImageCrossRef(
-                            org.libera.pictotree.data.database.entity.TreeImageCrossRef(
-                                    treeId,
-                                    existing.id
-                            )
-                    )
-                    return@withContext
-                }
-
+                val absoluteUrl = normalizeUrl(remoteUrl)
+                val cleanUrl = getCleanUrl(absoluteUrl)
+                
+                val fileName = org.libera.pictotree.utils.FileUtils.getLocalFileNameFromUrl(cleanUrl)
                 val userImagesDir = File(context.filesDir, "$username/images")
                 if (!userImagesDir.exists()) userImagesDir.mkdirs()
 
                 val file = File(userImagesDir, fileName)
                 val localPath = "images/$fileName"
 
+                // 1. Check if already known in DB
+                val existing = imageDao.getImageByRemotePath(cleanUrl)
+                if (existing != null) {
+                    // IF ALREADY LINKED AND FILE EXISTS, WE ARE DONE
+                    if (file.exists()) {
+                        imageDao.insertTreeImageCrossRef(
+                            org.libera.pictotree.data.database.entity.TreeImageCrossRef(treeId, existing.id)
+                        )
+                        return@withContext
+                    }
+                    // IF FILE MISSING, WE CONTINUE TO DOWNLOAD BELOW
+                }
+
                 var finalName = fileName
 
                 if (!file.exists()) {
                     try {
-                        val connection =
-                                URL(remoteUrl).openConnection() as java.net.HttpURLConnection
+                        val connection = URL(absoluteUrl).openConnection() as java.net.HttpURLConnection
                         connection.setRequestProperty(
                                 "User-Agent",
                                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
                         )
 
-                        if (remoteUrl.contains("/api/v1/mobile/") && authToken != null) {
+                        if (absoluteUrl.contains("/api/v1/mobile/") && !authToken.isNullOrBlank()) {
                             connection.setRequestProperty("Authorization", "Bearer $authToken")
                         }
 
@@ -143,7 +162,7 @@ class ImageSyncEngine(
                                 e.printStackTrace()
                             }
                         } else {
-                            finalName = ExternalImageMetadataFetcher.fetchRealName(context, username, remoteUrl, finalName)
+                            finalName = ExternalImageMetadataFetcher.fetchRealName(context, username, cleanUrl, finalName)
                         }
 
                         if (connection.responseCode in 200..299) {
@@ -162,7 +181,7 @@ class ImageSyncEngine(
                 val newImageId =
                         imageDao.insertImage(
                                 ImageEntity(
-                                        remotePath = remoteUrl,
+                                        remotePath = cleanUrl, // On stocke l'URL PROPRE
                                         localPath = localPath,
                                         name = finalName
                                 )

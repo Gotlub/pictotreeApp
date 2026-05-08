@@ -121,8 +121,12 @@ class TreeExplorerFragment : Fragment() {
     }
 
     private fun setupAdapters() {
-        // Breadcrumbs (VERTICAL à droite du parent)
-        breadcrumbAdapter = NodeAdapter(R.layout.item_breadcrumb) { node -> viewModel.focusOnNode(node) }
+        val isLandscape = resources.configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
+
+        val username = org.libera.pictotree.data.SessionManager(requireContext()).getUsername() ?: "default"
+
+        // Breadcrumbs
+        breadcrumbAdapter = NodeAdapter(username, R.layout.item_breadcrumb) { node -> viewModel.focusOnNode(node) }
         rvBreadcrumbs.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.VERTICAL, false)
         rvBreadcrumbs.adapter = breadcrumbAdapter
         
@@ -135,49 +139,65 @@ class TreeExplorerFragment : Fragment() {
         })
 
         // Siblings
-        siblingAdapter = NodeAdapter(R.layout.item_sibling_node) { node ->
+        siblingAdapter = NodeAdapter(username, R.layout.item_sibling_node) { node ->
             val position = siblingAdapter.currentList.indexOf(node)
             if (position != -1) {
                 siblingAdapter.setSelectedPosition(position)
                 viewModel.updateFocusWithinSiblings(node)
             }
         }
-        rvSiblings.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
+        val siblingOrientation = if (isLandscape) LinearLayoutManager.VERTICAL else LinearLayoutManager.HORIZONTAL
+        rvSiblings.layoutManager = LinearLayoutManager(requireContext(), siblingOrientation, false)
         rvSiblings.adapter = siblingAdapter
         rvSiblings.clipToPadding = false
         val density = resources.displayMetrics.density
-        rvSiblings.setPadding((16 * density).toInt(), 0, (120 * density).toInt(), 0)
+        
+        if (isLandscape) {
+            rvSiblings.setPadding(0, (16 * density).toInt(), 0, (16 * density).toInt())
+        } else {
+            rvSiblings.setPadding((16 * density).toInt(), 0, (120 * density).toInt(), 0)
+        }
         
         rvSiblings.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
                 if (newState == RecyclerView.SCROLL_STATE_IDLE) updateFocusFromFirstVisible()
             }
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
-                positionChildrenArrow() 
+                if (!isLandscape) positionChildrenArrow() 
+                
                 if (::siblingsGradLeft.isInitialized && ::siblingsArrowLeft.isInitialized && 
                     ::siblingsGradRight.isInitialized && ::siblingsArrowRight.isInitialized) {
-                    updateHorizontalScrollIndicators(recyclerView, siblingsGradLeft, siblingsArrowLeft, siblingsGradRight, siblingsArrowRight)
+                    if (isLandscape) {
+                        updateVerticalScrollIndicators(recyclerView, siblingsGradLeft, siblingsGradRight)
+                    } else {
+                        updateHorizontalScrollIndicators(recyclerView, siblingsGradLeft, siblingsArrowLeft, siblingsGradRight, siblingsArrowRight)
+                    }
                 }
             }
         })
 
         // Children Preview
-        childrenAdapter = NodeAdapter(R.layout.item_sibling_node) { node ->
+        childrenAdapter = NodeAdapter(username, R.layout.item_sibling_node) { node ->
             if (node.children.isNotEmpty()) viewModel.focusOnNode(node) else viewModel.selectNodeWithoutNavigating(node)
         }
-        rvChildren.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
+        val childrenOrientation = if (isLandscape) LinearLayoutManager.VERTICAL else LinearLayoutManager.HORIZONTAL
+        rvChildren.layoutManager = LinearLayoutManager(requireContext(), childrenOrientation, false)
         rvChildren.adapter = childrenAdapter
         rvChildren.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
                 if (::childrenGradLeft.isInitialized && ::childrenArrowLeft.isInitialized && 
                     ::childrenGradRight.isInitialized && ::childrenArrowRight.isInitialized) {
-                    updateHorizontalScrollIndicators(recyclerView, childrenGradLeft, childrenArrowLeft, childrenGradRight, childrenArrowRight)
+                    if (isLandscape) {
+                        // En Land, on n'a plus forcément de dégradés pour les enfants car ils sont dans une colonne contrainte
+                    } else {
+                        updateHorizontalScrollIndicators(recyclerView, childrenGradLeft, childrenArrowLeft, childrenGradRight, childrenArrowRight)
+                    }
                 }
             }
         })
 
         // Phrase Band
-        phraseAdapter = PhraseAdapter(onItemClick = { node -> ttsManager.speak(node.label) })
+        phraseAdapter = PhraseAdapter(username, onItemClick = { node -> ttsManager.speak(node.label) })
         rvPhrase.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
         rvPhrase.adapter = phraseAdapter
 
@@ -257,7 +277,8 @@ class TreeExplorerFragment : Fragment() {
         val userConfigRepository = org.libera.pictotree.data.repository.UserConfigRepository(database.userConfigDao())
         ttsManager = TTSManager(requireContext())
         val factory = object : ViewModelProvider.Factory {
-            override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T = TreeExplorerViewModel(requireActivity().application, database.treeDao(), database.profileDao(), userConfigRepository, org.libera.pictotree.network.RetrofitClient.SERVER_URL, username) as T
+            @Suppress("UNCHECKED_CAST")
+            override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T = TreeExplorerViewModel(requireActivity().application, database.treeDao(), database.profileDao(), database.imageDao(), userConfigRepository, org.libera.pictotree.network.RetrofitClient.SERVER_URL, username) as T
         }
         viewModel = ViewModelProvider(requireActivity(), factory)[TreeExplorerViewModel::class.java]
         val targetTreeId = arguments?.getInt("treeId", -1) ?: -1
@@ -308,9 +329,38 @@ class TreeExplorerFragment : Fragment() {
 
     private fun updateUI(state: HierarchicalUiState) {
         if (state.isLoading) return
+        val isLandscape = resources.configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
+
         siblingAdapter.setColorCode(state.colorCode); childrenAdapter.setColorCode(state.colorCode)
+        
         try { containerParent.strokeColor = android.graphics.Color.parseColor(state.colorCode); containerParent.strokeWidth = (3 * resources.displayMetrics.density).toInt() } catch (e: Exception) { containerParent.strokeColor = android.graphics.Color.BLACK }
-        if (state.parent != null) { containerParent.visibility = View.VISIBLE; tvParentLabel.text = state.parent.label; ivParent.load(state.parent.imageUrl) { placeholder(R.drawable.ic_launcher_background); diskCachePolicy(coil.request.CachePolicy.ENABLED) } }
+        if (state.parent != null) { 
+            containerParent.visibility = View.VISIBLE
+            tvParentLabel.text = state.parent.label
+            
+            val cleanUrl = org.libera.pictotree.utils.FileUtils.getCleanUrl(state.parent.imageUrl)
+            val fileName = org.libera.pictotree.utils.FileUtils.getLocalFileNameFromUrl(cleanUrl)
+            val username = org.libera.pictotree.data.SessionManager(requireContext()).getUsername() ?: "default"
+            val localFile = java.io.File(requireContext().filesDir, "$username/images/$fileName")
+            
+            var finalSource: Any = if (localFile.exists()) localFile else state.parent.imageUrl
+            if (finalSource is String && !finalSource.startsWith("http") && !finalSource.startsWith("file")) {
+                val hostUrl = org.libera.pictotree.network.RetrofitClient.SERVER_URL
+                finalSource = "${hostUrl.removeSuffix("/")}/${finalSource.removePrefix("/")}"
+            }
+
+            ivParent.load(finalSource) { 
+                placeholder(R.drawable.ic_launcher_background) 
+                error(R.drawable.ic_launcher_background)
+                diskCachePolicy(coil.request.CachePolicy.ENABLED)
+                networkCachePolicy(coil.request.CachePolicy.DISABLED)
+                
+                if (finalSource is String && (finalSource.contains("/api/v1/mobile/") || finalSource.contains("/pictograms/"))) {
+                    val token = org.libera.pictotree.data.SessionManager(requireContext()).getToken()
+                    if (!token.isNullOrEmpty()) addHeader("Authorization", "Bearer $token")
+                }
+            } 
+        }
         else containerParent.visibility = View.INVISIBLE
         
         breadcrumbAdapter.submitList(state.breadcrumbs) { 
@@ -330,7 +380,6 @@ class TreeExplorerFragment : Fragment() {
             }
 
             if (position != -1) { 
-                // Afficher l'élément sélectionné (important si index > 2)
                 rvSiblings.scrollToPosition(position)
                 siblingAdapter.setSelectedPosition(position) 
             }
@@ -342,15 +391,45 @@ class TreeExplorerFragment : Fragment() {
             rvSiblings.post { 
                 if (::siblingsGradLeft.isInitialized && ::siblingsArrowLeft.isInitialized && 
                     ::siblingsGradRight.isInitialized && ::siblingsArrowRight.isInitialized) {
-                    updateHorizontalScrollIndicators(rvSiblings, siblingsGradLeft, siblingsArrowLeft, siblingsGradRight, siblingsArrowRight)
+                    if (isLandscape) {
+                        updateVerticalScrollIndicators(rvSiblings, siblingsGradLeft, siblingsGradRight)
+                    } else {
+                        updateHorizontalScrollIndicators(rvSiblings, siblingsGradLeft, siblingsArrowLeft, siblingsGradRight, siblingsArrowRight)
+                    }
                 }
-                positionChildrenArrow() 
+                if (!isLandscape) positionChildrenArrow() 
             }
         }
         
         if (::ivArrowToSiblings.isInitialized) ivArrowToSiblings.visibility = if (state.parent != null) View.VISIBLE else View.INVISIBLE
+        if (::ivArrowToChildren.isInitialized && isLandscape) {
+            ivArrowToChildren.visibility = if (state.children.isNotEmpty()) View.VISIBLE else View.INVISIBLE
+        }
         
-        state.focusedNode?.let { node -> ivSelectedLarge.load(node.imageUrl) { placeholder(R.drawable.ic_launcher_foreground); diskCachePolicy(coil.request.CachePolicy.ENABLED) } }
+        state.focusedNode?.let { node -> 
+            val cleanUrl = org.libera.pictotree.utils.FileUtils.getCleanUrl(node.imageUrl)
+            val fileName = org.libera.pictotree.utils.FileUtils.getLocalFileNameFromUrl(cleanUrl)
+            val username = org.libera.pictotree.data.SessionManager(requireContext()).getUsername() ?: "default"
+            val localFile = java.io.File(requireContext().filesDir, "$username/images/$fileName")
+            
+            var finalSource: Any = if (localFile.exists()) localFile else node.imageUrl
+            if (finalSource is String && !finalSource.startsWith("http") && !finalSource.startsWith("file")) {
+                val hostUrl = org.libera.pictotree.network.RetrofitClient.SERVER_URL
+                finalSource = "${hostUrl.removeSuffix("/")}/${finalSource.removePrefix("/")}"
+            }
+
+            ivSelectedLarge.load(finalSource) { 
+                placeholder(R.drawable.ic_launcher_foreground) 
+                error(R.drawable.ic_launcher_foreground)
+                diskCachePolicy(coil.request.CachePolicy.ENABLED)
+                networkCachePolicy(coil.request.CachePolicy.DISABLED)
+                
+                if (finalSource is String && (finalSource.contains("/api/v1/mobile/") || finalSource.contains("/pictograms/"))) {
+                    val token = org.libera.pictotree.data.SessionManager(requireContext()).getToken()
+                    if (!token.isNullOrEmpty()) addHeader("Authorization", "Bearer $token")
+                }
+            } 
+        }
         
         val oldChildren = childrenAdapter.currentList
         childrenAdapter.submitList(state.children) {
@@ -361,7 +440,11 @@ class TreeExplorerFragment : Fragment() {
             rvChildren.post { 
                 if (::childrenGradLeft.isInitialized && ::childrenArrowLeft.isInitialized && 
                     ::childrenGradRight.isInitialized && ::childrenArrowRight.isInitialized) {
-                    updateHorizontalScrollIndicators(rvChildren, childrenGradLeft, childrenArrowLeft, childrenGradRight, childrenArrowRight)
+                    if (isLandscape) {
+                        // Pas de dégradés spécifiques en Land pour les enfants
+                    } else {
+                        updateHorizontalScrollIndicators(rvChildren, childrenGradLeft, childrenArrowLeft, childrenGradRight, childrenArrowRight)
+                    }
                 }
             }
         }
