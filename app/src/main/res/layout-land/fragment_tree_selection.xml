@@ -13,52 +13,52 @@
         android:clipChildren="false"
         android:paddingBottom="110dp">
 
-        <!-- HEADER AREA (Title + Actions) -->
+        <!-- HEADER AREA (Compact en paysage) -->
         <TextView
             android:id="@+id/tvTitle"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="24dp"
-            android:layout_marginTop="16dp"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="8dp"
             android:text="Choisissez un arbre"
-            android:textSize="22sp"
+            android:textSize="18sp"
             android:textStyle="bold"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintEnd_toStartOf="@id/container_actions" />
 
-        <!-- BLOC ACTIONS HORIZONTAL (En haut à droite avec marge de sécurité) -->
+        <!-- BLOC ACTIONS HORIZONTAL (En haut à droite) -->
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/container_actions"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
+            android:layout_marginTop="4dp"
             android:layout_marginEnd="40dp" 
             android:elevation="10dp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent">
 
-            <com.google.android.material.card.MaterialCardView android:id="@+id/card_search" android:layout_width="48dp" android:layout_height="48dp" app:cardCornerRadius="12dp" app:cardBackgroundColor="#EDE7F6" app:cardElevation="2dp"><ImageView android:layout_width="match_parent" android:layout_height="match_parent" android:padding="12dp" android:src="@android:drawable/ic_menu_search" app:tint="#5E35B1" /></com.google.android.material.card.MaterialCardView>
-            <com.google.android.material.card.MaterialCardView android:id="@+id/card_speak" android:layout_width="48dp" android:layout_height="48dp" app:cardCornerRadius="12dp" app:cardBackgroundColor="#E8F5E9" app:cardElevation="2dp"><ImageView android:id="@+id/iv_speak_icon" android:layout_width="match_parent" android:layout_height="match_parent" android:padding="12dp" android:src="@android:drawable/ic_btn_speak_now" app:tint="#2E7D32" /></com.google.android.material.card.MaterialCardView>
-            <com.google.android.material.card.MaterialCardView android:id="@+id/card_rotate" android:layout_width="48dp" android:layout_height="48dp" app:cardCornerRadius="12dp" app:cardBackgroundColor="#FFF3E0" app:cardElevation="2dp"><ImageView android:layout_width="match_parent" android:layout_height="match_parent" android:padding="12dp" android:src="@android:drawable/ic_menu_rotate" app:tint="#E65100" /></com.google.android.material.card.MaterialCardView>
+            <com.google.android.material.card.MaterialCardView android:id="@+id/card_search" android:layout_width="40dp" android:layout_height="40dp" app:cardCornerRadius="10dp" app:cardBackgroundColor="#EDE7F6" app:cardElevation="2dp"><ImageView android:layout_width="match_parent" android:layout_height="match_parent" android:padding="10dp" android:src="@android:drawable/ic_menu_search" app:tint="#5E35B1" /></com.google.android.material.card.MaterialCardView>
+            <com.google.android.material.card.MaterialCardView android:id="@+id/card_speak" android:layout_width="40dp" android:layout_height="40dp" app:cardCornerRadius="10dp" app:cardBackgroundColor="#E8F5E9" app:cardElevation="2dp"><ImageView android:id="@+id/iv_speak_icon" android:layout_width="match_parent" android:layout_height="match_parent" android:padding="10dp" android:src="@android:drawable/ic_btn_speak_now" app:tint="#2E7D32" /></com.google.android.material.card.MaterialCardView>
+            <com.google.android.material.card.MaterialCardView android:id="@+id/card_rotate" android:layout_width="40dp" android:layout_height="40dp" app:cardCornerRadius="10dp" app:cardBackgroundColor="#FFF3E0" app:cardElevation="2dp"><ImageView android:layout_width="match_parent" android:layout_height="match_parent" android:padding="10dp" android:src="@android:drawable/ic_menu_rotate" app:tint="#E65100" /></com.google.android.material.card.MaterialCardView>
 
             <androidx.constraintlayout.helper.widget.Flow
                 android:id="@+id/flow_actions_selection"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                app:flow_horizontalGap="12dp"
+                app:flow_horizontalGap="8dp"
                 app:constraint_referenced_ids="card_search,card_speak,card_rotate"
                 app:layout_constraintTop_toTopOf="parent"
                 app:layout_constraintEnd_toEndOf="parent" />
         </androidx.constraintlayout.widget.ConstraintLayout>
 
-        <!-- MAIN GRID (4 colonnes en paysage) -->
+        <!-- MAIN GRID (Passage à 6 colonnes via Kotlin) -->
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/rvTrees"
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_marginTop="16dp"
+            android:layout_marginTop="8dp"
             android:layout_marginStart="8dp"
             android:layout_marginEnd="8dp"
             android:clipToPadding="false"
@@ -66,7 +66,7 @@
             app:layout_constraintBottom_toBottomOf="parent"
             tools:listitem="@layout/item_tree_card"
             app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
-            app:spanCount="4" />
+            app:spanCount="6" />
 
         <ProgressBar
             android:id="@+id/progressBar"

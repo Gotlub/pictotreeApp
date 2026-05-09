@@ -2,15 +2,26 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=10, minimum-scale=0.01, user-scalable=yes">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=10, minimum-scale=0.1, user-scalable=yes">
     <link rel="stylesheet" href="Treant.css">
     <style>
         body, html { margin: 0; padding: 0; height: 100%; width: 100%; overflow: auto; background-color: #fafafa; }
         #tree-container { 
-            width: 100%; 
-            height: 100%;
+            display: inline-block;
+            min-width: 100%;
+            min-height: 100%;
+            overflow: auto;
         }
-        /* Style inspiré du site web */
+
+        .Treant {
+            /* On force les marges EXTERNES de l'arbre généré.
+               Le !important empêche le JS de Treant d'écraser notre règle */
+            margin-bottom: 150px !important; /* Espace pour tes boutons en bas */
+            margin-top: 150px !important;     /* Espace en haut */
+            margin-left: 100px !important;    /* Espace à gauche */
+            margin-right: 100px !important;   /* Espace à droite */
+            position: relative;
+        }
         .nodeExample1 {
             padding: 8px;
             border-radius: 8px;
@@ -18,12 +29,12 @@
             border: 2px solid #6200EE;
             text-align: center;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            width: 100px; /* Force width */
+            width: 100px;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            box-sizing: border-box; /* Includes padding in the width calculation to be safe */
+            box-sizing: border-box;
             transition: all 0.2s ease-in-out;
         }
         .nodeExample1 img {
@@ -32,8 +43,7 @@
             object-fit: cover;
             border-radius: 4px;
             margin-bottom: 4px;
-            float: none !important; /* Override Treant.css float */
-            transition: transform 0.2s ease-in-out;
+            float: none !important;
         }
         .nodeExample1 p {
             font-family: sans-serif;
@@ -43,20 +53,13 @@
             color: #333;
             width: 100%;
             word-wrap: break-word;
-            overflow-wrap: break-word; /* Ensure large unbroken text wraps */
-            white-space: normal;
         }
-        
-        /* Style pour le noeud sélectionné */
         .nodeExample1.node-selected {
             border: 4px solid #000000 !important;
             background-color: #FFF3E0 !important;
             box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
             transform: scale(1.05);
             z-index: 10;
-        }
-        .nodeExample1.node-selected img {
-            transform: scale(1.15);
         }
     </style>
 </head>
@@ -66,25 +69,17 @@
     <script src="raphael.js"></script>
     <script src="Treant.js"></script>
     <script>
-        // Désactiver le menu contextuel natif pour les futurs appuis longs
-        window.oncontextmenu = function(event) {
-            event.preventDefault();
-            event.stopPropagation();
-            return false;
-        };
+        window.oncontextmenu = function(event) { event.preventDefault(); return false; };
 
-        // Variables globales
         let isListenerAttached = false;
         let globalSelectedNodeId = null;
         let isReadOnlyMode = false;
         let currentTreeId = -1;
 
-        // Fonction appelée depuis Kotlin via WebView.evaluateJavascript
         function renderTreeBase64(base64Payload, selectedNodeId, readOnly, treeId, orientation) {
             try {
                 isReadOnlyMode = !!readOnly;
                 currentTreeId = treeId || -1;
-                // On réinitialise systématiquement pour éviter de garder une sélection d'un arbre précédent
                 globalSelectedNodeId = selectedNodeId || null; 
                 
                 const jsonString = decodeURIComponent(escape(window.atob(base64Payload)));
@@ -93,96 +88,69 @@
                 var chart_config = {
                     chart: {
                         container: "#tree-container",
-                        rootOrientation: orientation || "NORTH", // Injection de l'orientation
+                        rootOrientation: orientation || "NORTH",
                         levelSeparation: 45,
                         siblingSeparation: 30,
                         subTeeSeparation: 30,
                         nodeAlign: "BOTTOM",
-                        padding: 100, // Ajoute de l'espace blanc tout autour de l'arbre
-                        connectors: {
-                            type: "step",
-                            style: {
-                                "stroke-width": 2,
-                                "stroke": "#999"
-                            }
-                        }
+                        // PADDING NORMALISÉ : Réduit par 3 pour éviter les bords inutiles
+                        padding: 40,
+                        connectors: { type: "step", style: { "stroke-width": 2, "stroke": "#999" } }
                     },
                     nodeStructure: buildTreantNode(rootData.root_node || (rootData.roots ? rootData.roots[0] : rootData), "r")
                 };
                 
-                document.getElementById("tree-container").innerHTML = ""; // Clean before re-render
+                document.getElementById("tree-container").innerHTML = ""; 
                 new Treant(chart_config);
                 
-                // Nettoyage systématique des anciennes sélections visuelles au chargement
+                // Centrage rapide
                 setTimeout(() => {
-                    $('.node-selected').removeClass('node-selected');
-                    
                     if (globalSelectedNodeId) {
-                        let nodeToSelect = document.getElementById('node-' + globalSelectedNodeId);
-                        if (nodeToSelect) {
-                            $(nodeToSelect).addClass('node-selected');
-                            // Centrer la vue sur le noeud
-                            nodeToSelect.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+                        let node = document.getElementById('node-' + globalSelectedNodeId);
+                        if (node) {
+                            $(node).addClass('node-selected');
+                            node.scrollIntoView({ behavior: 'auto', block: 'center', inline: 'center' });
+                            return;
                         }
                     }
-                }, 300); // Petit délai pour laisser Treant placer les divs
+                    let allNodes = document.querySelectorAll('.nodeExample1');
+                    if (allNodes.length > 0) {
+                        allNodes[0].scrollIntoView({ behavior: 'auto', block: 'center', inline: 'center' });
+                    }
+                }, 150);
 
                 if (!isListenerAttached) {
-                    // Active le pont Javascript-Kotlin pour la navigation
                     document.addEventListener('click', function(e) {
                         if (isReadOnlyMode) return;
                         let target = e.target.closest('.nodeExample1');
                         if (target && target.id && target.id.startsWith('node-')) {
                             let uniqueId = target.id.replace('node-', '');
                             globalSelectedNodeId = uniqueId;
-
-                            // Nettoyer TOUTES les sélections précédentes
                             $('.node-selected').removeClass('node-selected');
-                            
-                            // Appliquer la nouvelle sélection locale
                             $(target).addClass('node-selected');
-
-                            // Extraire l'URL de l'image si elle existe
                             let imgElement = target.querySelector('img');
-                            let imageUrl = imgElement ? imgElement.src : null;
-
-                            // Appeler Kotlin avec l'ID et l'URL
-                            if (window.AndroidBridge && typeof window.AndroidBridge.onNodeSelected === 'function') {
-                                window.AndroidBridge.onNodeSelected(uniqueId, imageUrl);
-                            }
+                            if (window.AndroidBridge) window.AndroidBridge.onNodeSelected(uniqueId, imgElement ? imgElement.src : null);
                         }
                     });
                     isListenerAttached = true;
                 }
-            } catch (e) {
-                console.error("Erreur de parsing de l'arbre", e);
-                document.getElementById('tree-container').innerHTML = "<h2>Erreur de Chargement</h2><p>" + e + "</p>";
-            }
+            } catch (e) { console.error(e); }
         }
         
         function buildTreantNode(node, path) {
             if (!node) return null;
-            
-            // Chemin par défaut pour la racine
             let currentPath = path || "r";
-            
             let rawId = node.node_id || node.id || 'unsaved';
             let uniqueId = currentTreeId + "_" + rawId + "_" + currentPath;
-            
             let treantNode = {
                 HTMLclass: 'nodeExample1',
                 HTMLid: 'node-' + uniqueId,
                 text: { name: node.label || node.text || node.name || '---' }
             };
-            
-            if (node.image_url || node.image || node.url) {
-                treantNode.image = node.image_url || node.image || node.url;
-            }
-            
+            if (node.image_url || node.image || node.url) treantNode.image = node.image_url || node.image || node.url;
             if (node.children && node.children.length > 0) {
                 treantNode.children = node.children.map((child, i) => buildTreantNode(child, currentPath + "_" + i)).filter(c => c != null);
             }
-            
             return treantNode;
         }
     </script>

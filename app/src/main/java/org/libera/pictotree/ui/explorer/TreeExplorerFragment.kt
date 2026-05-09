@@ -146,32 +146,25 @@ class TreeExplorerFragment : Fragment() {
                 viewModel.updateFocusWithinSiblings(node)
             }
         }
-        val siblingOrientation = if (isLandscape) LinearLayoutManager.VERTICAL else LinearLayoutManager.HORIZONTAL
-        rvSiblings.layoutManager = LinearLayoutManager(requireContext(), siblingOrientation, false)
+        // Restaurer l'orientation HORIZONTALE même en Land (Mandat utilisateur)
+        rvSiblings.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
         rvSiblings.adapter = siblingAdapter
         rvSiblings.clipToPadding = false
         val density = resources.displayMetrics.density
         
-        if (isLandscape) {
-            rvSiblings.setPadding(0, (16 * density).toInt(), 0, (16 * density).toInt())
-        } else {
-            rvSiblings.setPadding((16 * density).toInt(), 0, (120 * density).toInt(), 0)
-        }
+        // Padding standard horizontal pour toutes les orientations
+        rvSiblings.setPadding((16 * density).toInt(), 0, (120 * density).toInt(), 0)
         
         rvSiblings.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
                 if (newState == RecyclerView.SCROLL_STATE_IDLE) updateFocusFromFirstVisible()
             }
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
-                if (!isLandscape) positionChildrenArrow() 
+                positionChildrenArrow() 
                 
                 if (::siblingsGradLeft.isInitialized && ::siblingsArrowLeft.isInitialized && 
                     ::siblingsGradRight.isInitialized && ::siblingsArrowRight.isInitialized) {
-                    if (isLandscape) {
-                        updateVerticalScrollIndicators(recyclerView, siblingsGradLeft, siblingsGradRight)
-                    } else {
-                        updateHorizontalScrollIndicators(recyclerView, siblingsGradLeft, siblingsArrowLeft, siblingsGradRight, siblingsArrowRight)
-                    }
+                    updateHorizontalScrollIndicators(recyclerView, siblingsGradLeft, siblingsArrowLeft, siblingsGradRight, siblingsArrowRight)
                 }
             }
         })
@@ -180,18 +173,13 @@ class TreeExplorerFragment : Fragment() {
         childrenAdapter = NodeAdapter(username, R.layout.item_sibling_node) { node ->
             if (node.children.isNotEmpty()) viewModel.focusOnNode(node) else viewModel.selectNodeWithoutNavigating(node)
         }
-        val childrenOrientation = if (isLandscape) LinearLayoutManager.VERTICAL else LinearLayoutManager.HORIZONTAL
-        rvChildren.layoutManager = LinearLayoutManager(requireContext(), childrenOrientation, false)
+        rvChildren.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
         rvChildren.adapter = childrenAdapter
         rvChildren.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
                 if (::childrenGradLeft.isInitialized && ::childrenArrowLeft.isInitialized && 
                     ::childrenGradRight.isInitialized && ::childrenArrowRight.isInitialized) {
-                    if (isLandscape) {
-                        // En Land, on n'a plus forcément de dégradés pour les enfants car ils sont dans une colonne contrainte
-                    } else {
-                        updateHorizontalScrollIndicators(recyclerView, childrenGradLeft, childrenArrowLeft, childrenGradRight, childrenArrowRight)
-                    }
+                    updateHorizontalScrollIndicators(recyclerView, childrenGradLeft, childrenArrowLeft, childrenGradRight, childrenArrowRight)
                 }
             }
         })
@@ -391,18 +379,14 @@ class TreeExplorerFragment : Fragment() {
             rvSiblings.post { 
                 if (::siblingsGradLeft.isInitialized && ::siblingsArrowLeft.isInitialized && 
                     ::siblingsGradRight.isInitialized && ::siblingsArrowRight.isInitialized) {
-                    if (isLandscape) {
-                        updateVerticalScrollIndicators(rvSiblings, siblingsGradLeft, siblingsGradRight)
-                    } else {
-                        updateHorizontalScrollIndicators(rvSiblings, siblingsGradLeft, siblingsArrowLeft, siblingsGradRight, siblingsArrowRight)
-                    }
+                    updateHorizontalScrollIndicators(rvSiblings, siblingsGradLeft, siblingsArrowLeft, siblingsGradRight, siblingsArrowRight)
                 }
-                if (!isLandscape) positionChildrenArrow() 
+                positionChildrenArrow() 
             }
         }
         
         if (::ivArrowToSiblings.isInitialized) ivArrowToSiblings.visibility = if (state.parent != null) View.VISIBLE else View.INVISIBLE
-        if (::ivArrowToChildren.isInitialized && isLandscape) {
+        if (::ivArrowToChildren.isInitialized) {
             ivArrowToChildren.visibility = if (state.children.isNotEmpty()) View.VISIBLE else View.INVISIBLE
         }
         
@@ -440,11 +424,7 @@ class TreeExplorerFragment : Fragment() {
             rvChildren.post { 
                 if (::childrenGradLeft.isInitialized && ::childrenArrowLeft.isInitialized && 
                     ::childrenGradRight.isInitialized && ::childrenArrowRight.isInitialized) {
-                    if (isLandscape) {
-                        // Pas de dégradés spécifiques en Land pour les enfants
-                    } else {
-                        updateHorizontalScrollIndicators(rvChildren, childrenGradLeft, childrenArrowLeft, childrenGradRight, childrenArrowRight)
-                    }
+                    updateHorizontalScrollIndicators(rvChildren, childrenGradLeft, childrenArrowLeft, childrenGradRight, childrenArrowRight)
                 }
             }
         }

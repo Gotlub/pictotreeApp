@@ -101,8 +101,8 @@ class TreeSelectionFragment : Fragment() {
             }
             findNavController().navigate(R.id.action_treeSelectionFragment_to_treeExplorerFragment, bundle)
         }
-        // Nombre de colonnes adaptatif
-        val spanCount = if (resources.configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE) 3 else 2
+        // Nombre de colonnes adaptatif (Passage à 6 en paysage pour des miniatures compactes)
+        val spanCount = if (resources.configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE) 6 else 2
         rvTrees.layoutManager = GridLayoutManager(requireContext(), spanCount)
         rvTrees.adapter = adapter
 
