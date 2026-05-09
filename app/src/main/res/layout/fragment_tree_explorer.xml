@@ -42,8 +42,8 @@
             <androidx.recyclerview.widget.RecyclerView android:id="@+id/rv_children_preview" android:layout_width="match_parent" android:layout_height="180dp" android:clipToPadding="false" android:paddingStart="16dp" android:paddingEnd="160dp" android:orientation="horizontal" app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent" tools:listitem="@layout/item_sibling_node" />
             <View android:id="@+id/children_gradient_left" android:layout_width="60dp" android:layout_height="match_parent" android:background="@drawable/scroll_gradient_left" android:visibility="invisible" app:layout_constraintStart_toStartOf="parent" />
             <View android:id="@+id/children_gradient_right" android:layout_width="60dp" android:layout_height="match_parent" android:background="@drawable/scroll_gradient_right" android:visibility="invisible" app:layout_constraintEnd_toEndOf="parent" />
-            <ImageView android:id="@+id/iv_children_arrow_left" android:layout_width="24dp" android:layout_height="24dp" android:src="@android:drawable/ic_media_previous" android:alpha="0.5" android:visibility="invisible" app:layout_constraintStart_toStartOf="parent" app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent" />
-            <ImageView android:id="@+id/iv_children_arrow_right" android:layout_width="24dp" android:layout_height="24dp" android:src="@android:drawable/ic_media_next" android:alpha="0.5" android:visibility="invisible" app:layout_constraintEnd_toEndOf="parent" app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent" />
+            <ImageView android:id="@+id/iv_children_arrow_left" android:layout_width="24dp" android:layout_height="24dp" android:src="@android:drawable/ic_media_previous" android:alpha="0.5" android:visibility="invisible" app:layout_constraintStart_toStartOf="parent" android:elevation="20dp" app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent" />
+            <ImageView android:id="@+id/iv_children_arrow_right" android:layout_width="24dp" android:layout_height="24dp" android:src="@android:drawable/ic_media_next" android:alpha="0.5" android:visibility="invisible" android:elevation="20dp" app:layout_constraintEnd_toEndOf="parent" app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent" />
         </androidx.constraintlayout.widget.ConstraintLayout>
 
         <!-- 2. PANNEAUX FIXES (Milieu) -->
@@ -152,8 +152,46 @@
         android:layout_gravity="bottom"
         android:background="@drawable/rounded_bottom_sheet"
         android:elevation="20dp">
-        <ImageButton android:id="@+id/btn_fullscreen_phrase" android:layout_width="48dp" android:layout_height="48dp" android:layout_margin="4dp" android:background="?attr/selectableItemBackgroundBorderless" android:src="@android:drawable/ic_menu_zoom" app:layout_constraintTop_toTopOf="parent" app:layout_constraintEnd_toEndOf="parent" />
-        <androidx.recyclerview.widget.RecyclerView android:id="@+id/rv_phrase" android:layout_width="0dp" android:layout_height="0dp" android:layout_marginTop="8dp" android:layout_marginBottom="8dp" android:clipToPadding="false" android:paddingHorizontal="16dp" android:orientation="horizontal" app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent" app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent" tools:listitem="@layout/item_phrase_picto" />
+        
+        <!-- RecyclerView en premier -->
+        <androidx.recyclerview.widget.RecyclerView 
+            android:id="@+id/rv_phrase" 
+            android:layout_width="0dp" 
+            android:layout_height="0dp" 
+            android:layout_marginTop="8dp" 
+            android:layout_marginBottom="8dp" 
+            android:clipToPadding="false" 
+            android:paddingHorizontal="16dp" 
+            android:orientation="horizontal" 
+            app:layout_constraintTop_toTopOf="parent" 
+            app:layout_constraintBottom_toBottomOf="parent" 
+            app:layout_constraintStart_toStartOf="parent" 
+            app:layout_constraintEnd_toEndOf="parent" 
+            tools:listitem="@layout/item_phrase_picto" />
+
+        <!-- Boutons en dernier avec haute elevation -->
+        <ImageButton 
+            android:id="@+id/btn_fullscreen_phrase" 
+            android:layout_width="48dp" 
+            android:layout_height="48dp" 
+            android:layout_margin="4dp" 
+            android:background="?attr/selectableItemBackgroundBorderless" 
+            android:src="@android:drawable/ic_menu_zoom" 
+            android:elevation="25dp" 
+            app:layout_constraintTop_toTopOf="parent" 
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <ImageButton 
+            android:id="@+id/btn_clear_phrase" 
+            android:layout_width="48dp" 
+            android:layout_height="48dp" 
+            android:layout_margin="4dp" 
+            android:background="?attr/selectableItemBackgroundBorderless" 
+            android:src="@android:drawable/ic_menu_delete" 
+            android:elevation="25dp" 
+            app:layout_constraintTop_toBottomOf="@id/btn_fullscreen_phrase" 
+            app:layout_constraintEnd_toEndOf="parent" />
+
     </androidx.constraintlayout.widget.ConstraintLayout>
 
     <View android:id="@+id/fab_speak" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone" />

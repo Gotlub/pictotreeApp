@@ -10,10 +10,13 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import org.libera.pictotree.data.database.dao.TreeDao
 import org.libera.pictotree.data.database.dao.ProfileDao
 import java.io.File
+import com.google.gson.Gson
 
 /**
  * Représente un noeud de l'arbre avec un ID unique au monde (treeId_nodeId_path).
@@ -39,9 +42,6 @@ class TreeNode(
         children: List<TreeNode> = this.children, parent: TreeNode? = this.parent
     ): TreeNode = TreeNode(id, label, imageUrl, children, parent)
 
-    /**
-     * Extrait les composants de l'ID unique (treeId_nodeId_path)
-     */
     companion object {
         fun parseTreeId(uniqueId: String): Int? = uniqueId.split("_").firstOrNull()?.toIntOrNull()
         fun parseNodeId(uniqueId: String): String? = uniqueId.split("_").getOrNull(1)
@@ -54,7 +54,11 @@ data class HierarchicalUiState(
     val parent: TreeNode? = null,
     val siblings: List<TreeNode> = emptyList(),
     val children: List<TreeNode> = emptyList(),
-    val focusedNode: TreeNode? = null,
+    
+    // NAVIGATION vs PREVIEW
+    val navigationNode: TreeNode? = null, // Le noeud autour duquel on navigue
+    val previewNode: TreeNode? = null,    // Le noeud affiché dans la preview "Ajouter"
+    
     val isLoading: Boolean = true,
     val error: String? = null,
     val colorCode: String = "#000000"
@@ -80,7 +84,6 @@ class TreeExplorerViewModel(
     private val _phraseList = MutableStateFlow<List<TreeNode>>(emptyList())
     val phraseList: StateFlow<List<TreeNode>> = _phraseList.asStateFlow()
 
-    // Configuration réactive (locale, pin, etc.)
     val userConfig = userConfigRepository.userConfig.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
@@ -97,10 +100,6 @@ class TreeExplorerViewModel(
     fun getProfileTreeIds(): IntArray = profileTreeIds.toIntArray()
     fun getCurrentTreeId(): Int = currentTreeId
     
-    /**
-     * Met à jour le contexte de l'arbre actuel (ID et Couleur) 
-     * sans recalculer toute la hiérarchie de l'explorateur.
-     */
     fun updateCurrentTreeContext(treeId: Int) {
         if (currentTreeId == treeId) return
         currentTreeId = treeId
@@ -111,7 +110,6 @@ class TreeExplorerViewModel(
     fun setProfileTreeContext(profileId: Int, treeIds: List<Int>) { 
         this.profileId = profileId
         this.profileTreeIds = treeIds 
-        // Pré-charger les racines et les couleurs pour la navigation inter-arbres
         viewModelScope.launch {
             treeIds.forEach { id ->
                 if (!profileTreeColorsCache.containsKey(id)) {
@@ -125,12 +123,20 @@ class TreeExplorerViewModel(
         }
     }
 
+    /**
+     * Charge un arbre. 
+     * SI l'arbre est déjà chargé (ex: rotation), on ignore pour garder l'état.
+     */
     fun loadTree(treeId: Int) {
+        if (currentTreeId == treeId && rootNode != null) {
+            Log.d(TAG, "LOAD_TREE: Already loaded Tree $treeId, skipping reset (Survive Rotation)")
+            return 
+        }
+
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             currentTreeId = treeId
 
-            // Récupérer la couleur CAA pour cet arbre (via cache ou DB)
             val color = profileTreeColorsCache[treeId] ?: if (profileId != -1) {
                 val dbColor = profileDao.getProfileTreeCrossRef(profileId, treeId)?.colorCode ?: "#000000"
                 profileTreeColorsCache[treeId] = dbColor
@@ -146,17 +152,20 @@ class TreeExplorerViewModel(
                         rootNode = parsedRoot
                         profileTreeRootsCache[treeId] = parsedRoot
                         
-                        // Logique demandée : focus sur le premier enfant du root pour que le root soit le "parent"
                         val firstChild = parsedRoot.children.firstOrNull()
-                        if (firstChild != null) {
-                            focusOnNode(firstChild)
+                        val startNode = firstChild ?: parsedRoot
+                        
+                        // Si on n'a pas de sélection (ex: retour de l'inventaire), 
+                        // on initialise la preview sur le point d'entrée
+                        if (_uiState.value.previewNode == null) {
+                            focusOnNode(startNode, updatePreview = true)
                         } else {
-                            focusOnNode(parsedRoot)
+                            focusOnNode(startNode, updatePreview = false)
                         }
-                    } ?: run { _uiState.value = HierarchicalUiState(isLoading = false, error = "Format invalide.") }
-                } ?: run { _uiState.value = HierarchicalUiState(isLoading = false, error = "Arbre introuvable.") }
+                    } ?: run { _uiState.value = _uiState.value.copy(isLoading = false, error = "Format invalide.") }
+                } ?: run { _uiState.value = _uiState.value.copy(isLoading = false, error = "Arbre introuvable.") }
             } catch (e: Exception) {
-                _uiState.value = HierarchicalUiState(isLoading = false, error = e.localizedMessage)
+                _uiState.value = _uiState.value.copy(isLoading = false, error = e.localizedMessage)
             }
         }
     }
@@ -195,13 +204,13 @@ class TreeExplorerViewModel(
         return node
     }
 
-    fun focusOnNode(node: TreeNode) {
-        Log.d(TAG, "NAV_MOVE: ${node.id} (${node.label})")
-        
-        // S'assurer que les racines sont prêtes pour l'inter-arbre
+    /**
+     * @param updatePreview Si true, ce noeud devient la nouvelle sélection pour le panier.
+     */
+    fun focusOnNode(node: TreeNode, updatePreview: Boolean = true) {
+        Log.d(TAG, "NAV_MOVE: ${node.id} (UpdatePreview: $updatePreview)")
         val roots = profileTreeIds.mapNotNull { profileTreeRootsCache[it] }
         
-        // Mettre à jour la couleur si on a changé d'arbre (navigation inter-arbres)
         TreeNode.parseTreeId(node.id)?.let { treeId ->
             updateCurrentTreeContext(treeId)
         }
@@ -212,35 +221,56 @@ class TreeExplorerViewModel(
             parent = newState.parent,
             siblings = newState.siblings,
             children = newState.children,
-            focusedNode = newState.focusedNode,
+            navigationNode = node,
+            previewNode = if (updatePreview) node else _uiState.value.previewNode,
             isLoading = false
         )
     }
 
-    /**
-     * Met à jour uniquement le noeud focus (quand on scrolle dans le carrousel)
-     * sans recalculer toute la hiérarchie.
-     */
     fun updateFocusWithinSiblings(node: TreeNode) {
-        if (_uiState.value.focusedNode?.id == node.id) return
+        if (_uiState.value.navigationNode?.id == node.id) return
         
-        // Mettre à jour la couleur si on a changé d'arbre
         TreeNode.parseTreeId(node.id)?.let { treeId ->
             updateCurrentTreeContext(treeId)
         }
 
         _uiState.value = _uiState.value.copy(
-            focusedNode = node,
+            navigationNode = node,
+            previewNode = node, // Un clic dans les siblings change toujours la preview
             children = node.children
         )
     }
 
-    /**
-     * Sélectionne un noeud (ex: un enfant sans sous-enfants) 
-     * pour mise à jour de la preview "Ajouter" sans changer de niveau.
-     */
     fun selectNodeWithoutNavigating(node: TreeNode) {
-        _uiState.value = _uiState.value.copy(focusedNode = node)
+        _uiState.value = _uiState.value.copy(previewNode = node)
+    }
+
+    /**
+     * Sélectionne un noeud via son ID (venant de Treant.js ou recherche)
+     * On cherche d'abord dans l'arbre actif, puis dans le cache des autres racines.
+     */
+    fun selectNodeWithoutNavigatingById(uniqueId: String) {
+        // 1. Chercher dans l'arbre actuellement chargé
+        var target = findNodeRecursively(rootNode, uniqueId)
+        
+        // 2. Si pas trouvé, chercher dans le cache des racines (cas navigation inter-arbres Treant)
+        if (target == null) {
+            val treeId = TreeNode.parseTreeId(uniqueId) ?: -1
+            target = findNodeRecursively(profileTreeRootsCache[treeId], uniqueId)
+        }
+
+        target?.let { node ->
+            selectNodeWithoutNavigating(node)
+        } ?: run {
+            Log.w(TAG, "SELECT_BY_ID: Node $uniqueId NOT FOUND in current or cached trees")
+        }
+    }
+
+    /**
+     * Appelé lors du retour au menu Inventaire (TreeSelectionFragment)
+     */
+    fun resetSelection() {
+        _uiState.value = _uiState.value.copy(previewNode = null)
     }
 
     private suspend fun fetchRootNodePreview(treeId: Int): TreeNode? {
@@ -250,26 +280,20 @@ class TreeExplorerViewModel(
     }
 
     fun addToPhrase(externalNode: TreeNode? = null) {
-        val nodeToAdd = externalNode ?: _uiState.value.focusedNode ?: return
+        val nodeToAdd = externalNode ?: _uiState.value.previewNode ?: return
         
-        // On crée une copie avec un ID d'instance unique (doublons autorisés mais distincts techniquement)
         val uniqueInstanceNode = nodeToAdd.copy(
             id = "${nodeToAdd.id}_${System.currentTimeMillis()}_${(0..999).random()}"
         )
         
-        // Si c'est une image distante (ex: recherche), on lance le téléchargement en arrière-plan
-        // pour qu'elle devienne accessible offline dans le bandeau.
         if (nodeToAdd.imageUrl.startsWith("http") || nodeToAdd.imageUrl.contains("/api/v1/mobile/")) {
             viewModelScope.launch {
                 val sessionManager = org.libera.pictotree.data.SessionManager(getApplication())
                 val token = sessionManager.getToken()
                 val engine = org.libera.pictotree.data.repository.ImageSyncEngine(getApplication(), imageDao, username, hostUrl, token)
                 engine.downloadSingleImage(nodeToAdd.imageUrl, nodeToAdd.label)
-                
-                // Note: L'UI se rafraîchira au prochain bind de l'adapter car le fichier existera sur disque.
             }
         }
-
         _phraseList.value = _phraseList.value + uniqueInstanceNode
     }
 
@@ -289,7 +313,6 @@ class TreeExplorerViewModel(
         viewModelScope.launch {
             val loadedTreeId = rootNode?.let { TreeNode.parseTreeId(it.id) } ?: -1
             if (loadedTreeId != treeId) {
-                // FORCER le reload si l'ID ne match pas la racine physiquement chargée
                 currentTreeId = treeId
                 _uiState.value = _uiState.value.copy(isLoading = true)
                 treeDao.getTreeById(treeId)?.let { entity ->
@@ -297,7 +320,10 @@ class TreeExplorerViewModel(
                 }
             }
             val target = findNodeRecursively(rootNode, uniqueId) ?: rootNode
-            target?.let { focusOnNode(it); if (addToBasket) addToPhrase(it) }
+            target?.let { 
+                focusOnNode(it, updatePreview = true) 
+                if (addToBasket) addToPhrase(it) 
+            }
         }
     }
 
@@ -320,9 +346,6 @@ class TreeExplorerViewModel(
         }
     }
 
-    /**
-     * Met à jour la liste sans déclencher de nouvel état (utilisé en fin de Drag & Drop)
-     */
     fun updatePhraseListSilently(newList: List<TreeNode>) {
         _phraseList.value = newList
     }

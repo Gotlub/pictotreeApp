@@ -40,7 +40,6 @@ class TreeGlobalMapDialog : DialogFragment() {
                 putIntArray("treeIds", treeIds)
                 putInt("currentTreeId", currentTreeId)
                 putString("username", username)
-                putString("globalSelectedNodeId", selectedNodeId)
             }
             dialog.arguments = args
             return dialog
@@ -54,17 +53,17 @@ class TreeGlobalMapDialog : DialogFragment() {
     private var treeIds: IntArray = intArrayOf()
     private var currentIndex: Int = -1
     private var username: String = ""
-    private var globalSelectedNodeId: String = ""
-    private var globalSelectedTreeId: Int = -1
 
-    // Map pour garder la trace des sélections par arbre (mémoire temporaire de la session Treant)
-    private val selectedNodesPerTree = mutableMapOf<Int, String>()
-    
     private var isDraggingPhrase = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setStyle(STYLE_NORMAL, android.R.style.Theme_DeviceDefault_Light_NoActionBar_Fullscreen)
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putInt("saved_currentIndex", currentIndex)
     }
 
     override fun onDismiss(dialog: DialogInterface) {
@@ -75,18 +74,6 @@ class TreeGlobalMapDialog : DialogFragment() {
     override fun onStart() {
         super.onStart()
         (requireActivity() as? org.libera.pictotree.MainActivity)?.applyUserOrientation()
-    }
-
-    override fun onSaveInstanceState(outState: Bundle) {
-        super.onSaveInstanceState(outState)
-        outState.putInt("saved_currentIndex", currentIndex)
-        outState.putString("saved_globalSelectedNodeId", globalSelectedNodeId)
-        outState.putInt("saved_globalSelectedTreeId", globalSelectedTreeId)
-        // Sauvegarder les sélections par arbre
-        val trees = selectedNodesPerTree.keys.toIntArray()
-        val nodes = selectedNodesPerTree.values.toTypedArray()
-        outState.putIntArray("map_trees", trees)
-        outState.putStringArray("map_nodes", nodes)
     }
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -103,20 +90,8 @@ class TreeGlobalMapDialog : DialogFragment() {
 
         if (savedInstanceState != null) {
             currentIndex = savedInstanceState.getInt("saved_currentIndex", -1)
-            globalSelectedNodeId = savedInstanceState.getString("saved_globalSelectedNodeId", "") ?: ""
-            globalSelectedTreeId = savedInstanceState.getInt("saved_globalSelectedTreeId", -1)
-            
-            val trees = savedInstanceState.getIntArray("map_trees")
-            val nodes = savedInstanceState.getStringArray("map_nodes")
-            if (trees != null && nodes != null) {
-                for (i in trees.indices) {
-                    selectedNodesPerTree[trees[i]] = nodes[i]
-                }
-            }
         } else {
             val startTreeId = arguments?.getInt("currentTreeId", -1) ?: -1
-            globalSelectedNodeId = arguments?.getString("globalSelectedNodeId", "") ?: ""
-            globalSelectedTreeId = startTreeId
             currentIndex = treeIds.indexOf(startTreeId)
         }
 
@@ -125,25 +100,27 @@ class TreeGlobalMapDialog : DialogFragment() {
                 .navigate(R.id.action_treeExplorerFragment_to_phraseFullscreenFragment)
         }
 
+        root.findViewById<View>(R.id.btn_clear_phrase)?.setOnClickListener {
+            showClearPhraseConfirmation()
+        }
+
         val database = AppDatabase.getDatabase(requireContext(), username)
         val treeDao = database.treeDao()
         val imageDao = database.imageDao()
 
-        // Setup Phrase Bar (RecyclerView)
+        // Setup Phrase Bar
         val rvPhrase = root.findViewById<RecyclerView>(R.id.rv_phrase)
         val phraseAdapter = PhraseAdapter(username = username)
         rvPhrase.adapter = phraseAdapter
         rvPhrase.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
 
-        // Drag & Drop / Swipe to Delete pour la phrase (Synchronisé avec les fragments)
+        // Drag & Drop / Swipe to Delete
         val itemTouchHelper = androidx.recyclerview.widget.ItemTouchHelper(object : androidx.recyclerview.widget.ItemTouchHelper.SimpleCallback(
             androidx.recyclerview.widget.ItemTouchHelper.LEFT or androidx.recyclerview.widget.ItemTouchHelper.RIGHT,
             androidx.recyclerview.widget.ItemTouchHelper.UP
         ) {
             override fun onMove(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder, target: RecyclerView.ViewHolder): Boolean {
-                val fromPos = viewHolder.bindingAdapterPosition
-                val toPos = target.bindingAdapterPosition
-                phraseAdapter.moveItem(fromPos, toPos)
+                phraseAdapter.moveItem(viewHolder.bindingAdapterPosition, target.bindingAdapterPosition)
                 return true
             }
 
@@ -157,93 +134,60 @@ class TreeGlobalMapDialog : DialogFragment() {
                 super.onSelectedChanged(viewHolder, actionState)
                 if (actionState == androidx.recyclerview.widget.ItemTouchHelper.ACTION_STATE_DRAG) {
                     isDraggingPhrase = true
-                    viewHolder?.itemView?.apply {
-                        alpha = 0.8f
-                        scaleX = 1.05f
-                        scaleY = 1.05f
-                    }
+                    viewHolder?.itemView?.apply { alpha = 0.8f; scaleX = 1.05f; scaleY = 1.05f }
                 }
             }
 
             override fun clearView(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder) {
                 super.clearView(recyclerView, viewHolder)
                 isDraggingPhrase = false
-                viewHolder.itemView.apply {
-                    alpha = 1.0f
-                    scaleX = 1.0f
-                    scaleY = 1.0f
-                }
-                val finalList = phraseAdapter.getCurrentList().toList()
-                viewModel.updatePhraseListSilently(finalList)
+                viewHolder.itemView.apply { alpha = 1.0f; scaleX = 1.0f; scaleY = 1.0f }
+                viewModel.updatePhraseListSilently(phraseAdapter.getCurrentList().toList())
             }
         })
         itemTouchHelper.attachToRecyclerView(rvPhrase)
 
-        // Observe Phrase List (Synchronisé avec les fragments)
+        val ivPreview = root.findViewById<android.widget.ImageView>(R.id.iv_selection_preview)
+
+        // Observe State (Synchronisé avec les fragments)
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                // Phrase observation
                 launch {
                     var lastPhraseSize = 0
                     viewModel.phraseList.collect { phrase ->
                         if (!isDraggingPhrase) {
                             phraseAdapter.submitList(phrase)
-                            if (phrase.size > lastPhraseSize) {
-                                rvPhrase.smoothScrollToPosition(phrase.size - 1)
-                            }
+                            if (phrase.size > lastPhraseSize) rvPhrase.smoothScrollToPosition(phrase.size - 1)
                         }
                         lastPhraseSize = phrase.size
                     }
                 }
 
-                // Etape 3 : Injection CSS pour la couleur CAA dans Treant.js (Observer réactif)
+                // Global State observation (Colors & Preview Node)
                 launch {
                     viewModel.uiState.collect { state ->
                         injectCaaStyle(state.colorCode)
+                        
+                        // MISE À JOUR RÉACTIVE DE LA PREVIEW
+                        state.previewNode?.let { node ->
+                            ivPreview.visibility = View.VISIBLE
+                            loadPreviewImage(node.imageUrl, ivPreview)
+                            applyCaaColorToPreview(state.colorCode, ivPreview)
+                        } ?: run {
+                            ivPreview.visibility = View.GONE
+                        }
                     }
                 }
-            }
-        }
-
-        // Restaurer la sélection dans la map temporaire au démarrage
-        if (globalSelectedTreeId != -1 && globalSelectedNodeId.isNotEmpty()) {
-            selectedNodesPerTree[globalSelectedTreeId] = globalSelectedNodeId
-        }
-
-        val ivPreview = root.findViewById<android.widget.ImageView>(R.id.iv_selection_preview)
-
-        // Initialiser la miniature si une sélection existe déjà
-        viewModel.uiState.value.focusedNode?.let { centerNode ->
-            if (centerNode.id == globalSelectedNodeId) {
-                ivPreview.visibility = View.VISIBLE
-                loadPreviewImage(centerNode.imageUrl, ivPreview)
-                applyCaaColorToPreview(viewModel.uiState.value.colorCode, ivPreview)
             }
         }
 
         val bridge = object {
             @JavascriptInterface
             fun onNodeSelected(prefixedNodeId: String, imageUrl: String?) {
-                val treeId = prefixedNodeId.split("_").firstOrNull()?.toIntOrNull() ?: return
-                
-                // Mettre à jour le contexte couleur CAA dans le ViewModel partagé
-                viewModel.updateCurrentTreeContext(treeId)
-
-                // On stocke la sélection pour cet arbre précis
-                selectedNodesPerTree[treeId] = prefixedNodeId
-                globalSelectedTreeId = treeId
-                globalSelectedNodeId = prefixedNodeId
-                Log.d(TAG, "TREANT_SELECT: Tree $treeId, Node $prefixedNodeId")
-
-                // Mettre à jour la miniature
-                requireActivity().runOnUiThread {
-                    if (!imageUrl.isNullOrEmpty()) {
-                        ivPreview.visibility = View.VISIBLE
-                        loadPreviewImage(imageUrl, ivPreview)
-                        applyCaaColorToPreview(viewModel.uiState.value.colorCode, ivPreview)
-                    } else {
-                        ivPreview.visibility = View.GONE
-                    }
-                }
+                // On met à jour DIRECTEMENT le ViewModel, qui est notre seule source de vérité
+                viewModel.selectNodeWithoutNavigatingById(prefixedNodeId)
+                Log.d(TAG, "TREANT_SELECT: Node $prefixedNodeId selected")
             }
         }
 
@@ -260,25 +204,23 @@ class TreeGlobalMapDialog : DialogFragment() {
         fun loadTree(index: Int) {
             if (treeIds.isEmpty() || index !in treeIds.indices) return
             val treeId = treeIds[index]
-            
-            // On reste en NORTH (Haut vers Bas) même en paysage car nos arbres sont "larges" (mandat utilisateur)
             val orientation = "NORTH"
             
-            // Mettre à jour la couleur CAA et la cible globale en temps réel
+            // On informe le ViewModel qu'on change d'arbre (pour la couleur CAA)
             viewModel.updateCurrentTreeContext(treeId)
-            globalSelectedTreeId = treeId
-            globalSelectedNodeId = selectedNodesPerTree[treeId] ?: ""
-
-            // Cacher la miniature si on n'a pas encore de sélection dans cet arbre
-            if (globalSelectedNodeId.isEmpty()) ivPreview.visibility = View.GONE
 
             lifecycleScope.launch(Dispatchers.IO) {
                 treeDao.getTreeById(treeId)?.let { entity ->
                     withContext(Dispatchers.Main) {
-                        val selectedNodeId = selectedNodesPerTree[treeId] ?: ""
+                        // On récupère l'ID du picto sélectionné depuis le ViewModel
+                        // S'il appartient à cet arbre, on le passe au moteur de rendu pour le highlight
+                        val previewNode = viewModel.uiState.value.previewNode
+                        val highlightId = if (previewNode != null && TreeNode.parseTreeId(previewNode.id) == treeId) {
+                            previewNode.id
+                        } else ""
+                        
                         val safeJson = android.util.Base64.encodeToString(entity.jsonPayload.toByteArray(), android.util.Base64.NO_WRAP)
-                        webView.evaluateJavascript("javascript:renderTreeBase64('$safeJson', '$selectedNodeId', false, $treeId, '$orientation');", null)
-                        // Forcer l'injection du style immédiatement après le rendu
+                        webView.evaluateJavascript("javascript:renderTreeBase64('$safeJson', '$highlightId', false, $treeId, '$orientation');", null)
                         injectCaaStyle(viewModel.uiState.value.colorCode)
                     }
                 }
@@ -290,7 +232,6 @@ class TreeGlobalMapDialog : DialogFragment() {
                 if (currentIndex != -1) loadTree(currentIndex)
             }
             override fun shouldInterceptRequest(view: WebView?, request: WebResourceRequest?): WebResourceResponse? {
-                // ACTIVATION DU MODE OFFLINE STRICT : Treant.js ne doit JAMAIS aller sur internet
                 return WebViewImageInterceptor.intercept(requireContext(), username, imageDao, request?.url, strictOffline = true)
             }
         }
@@ -298,43 +239,23 @@ class TreeGlobalMapDialog : DialogFragment() {
         webView.loadUrl("file:///android_asset/tree_viewer.html")
 
         root.findViewById<ImageButton>(R.id.btn_prev_tree).setOnClickListener {
-            if (currentIndex > 0) { 
-                currentIndex--
-                loadTree(currentIndex) 
-            }
+            if (currentIndex > 0) { currentIndex--; loadTree(currentIndex) }
         }
         root.findViewById<ImageButton>(R.id.btn_next_tree).setOnClickListener {
-            if (currentIndex < treeIds.size - 1) { 
-                currentIndex++
-                loadTree(currentIndex) 
-            }
+            if (currentIndex < treeIds.size - 1) { currentIndex++; loadTree(currentIndex) }
         }
 
         root.findViewById<View>(R.id.btn_add_to_basket).setOnClickListener {
-            val currentTreeId = if (currentIndex in treeIds.indices) treeIds[currentIndex] else -1
-            val visibleSelection = selectedNodesPerTree[currentTreeId]
-            if (currentTreeId != -1) {
-                if (!visibleSelection.isNullOrEmpty()) {
-                    viewModel.jumpToTreeAndNode(currentTreeId, visibleSelection, addToBasket = true)
-                } else {
-                    // Fallback: add root of the current tree
-                    lifecycleScope.launch(Dispatchers.IO) {
-                        val treeEntity = treeDao.getTreeById(currentTreeId)
-                        val rawId = treeEntity?.let { extractRootIdFromJson(it.jsonPayload) } ?: ""
-                        val fallbackId = "${currentTreeId}_${rawId}_r"
-                        withContext(Dispatchers.Main) { 
-                            viewModel.jumpToTreeAndNode(currentTreeId, fallbackId, addToBasket = true) 
-                        }
-                    }
-                }
-            }
+            viewModel.addToPhrase() // Utilise directement previewNode du ViewModel
         }
 
-        // BOUTON RETOUR : Icône 3 barres (ic_menu_sort_by_size)
         root.findViewById<View>(R.id.btn_back_to_nav).setOnClickListener {
-            Log.d(TAG, "VIEW_CHANGE: Returning to Nav. Tree $globalSelectedTreeId, Node $globalSelectedNodeId")
-            if (globalSelectedTreeId != -1) {
-                viewModel.jumpToTreeAndNode(globalSelectedTreeId, globalSelectedNodeId)
+            // RETOUR À LA NAVIGATION NATIVE
+            val previewNode = viewModel.uiState.value.previewNode
+            if (previewNode != null) {
+                val treeId = TreeNode.parseTreeId(previewNode.id) ?: -1
+                // On saute physiquement vers l'arbre et le noeud sélectionnés
+                viewModel.jumpToTreeAndNode(treeId, previewNode.id)
             }
             dismiss()
         }
@@ -342,24 +263,17 @@ class TreeGlobalMapDialog : DialogFragment() {
         root.findViewById<View>(R.id.card_search).setOnClickListener {
             val searchDialog = org.libera.pictotree.ui.common.PictoSearchDialog()
             searchDialog.onPictoSelected = { result ->
-                val searchNode = TreeNode(
-                    id = "search_${result.id}_recherche",
-                    label = result.name,
-                    imageUrl = result.imageUrl,
-                    children = emptyList()
-                )
+                val searchNode = TreeNode("search_${result.id}_recherche", result.name, result.imageUrl, emptyList())
                 viewModel.addToPhrase(searchNode)
             }
             searchDialog.show(childFragmentManager, "PictoSearch")
         }
 
-        // ACTION : Lecture Vocale (Micro) intégrée dans le bloc haut droite
         root.findViewById<View>(R.id.card_speak).setOnClickListener {
             val phrase = viewModel.phraseList.value
-            if (phrase.isEmpty()) return@setOnClickListener
-            ttsManager.stop()
-            phrase.forEachIndexed { index, node ->
-                ttsManager.speak(node.label, index.toString())
+            if (phrase.isNotEmpty()) {
+                ttsManager.stop()
+                phrase.forEachIndexed { index, node -> ttsManager.speak(node.label, index.toString()) }
             }
         }
 
@@ -373,6 +287,18 @@ class TreeGlobalMapDialog : DialogFragment() {
         }
 
         return root
+    }
+
+    private fun showClearPhraseConfirmation() {
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+            .setTitle("Effacer le bandeau ?")
+            .setMessage("Voulez-vous vraiment vider toute la phrase ?")
+            .setPositiveButton("Oui") { _, _ ->
+                viewModel.clearPhrase()
+            }
+            .setNegativeButton("Non", null)
+            .setIcon(android.R.drawable.ic_menu_delete)
+            .show()
     }
 
     private fun injectCaaStyle(color: String) {
@@ -405,27 +331,17 @@ class TreeGlobalMapDialog : DialogFragment() {
     private fun loadPreviewImage(url: String, imageView: android.widget.ImageView) {
         val fileName = org.libera.pictotree.utils.FileUtils.getLocalFileNameFromUrl(url)
         val localFile = java.io.File(requireContext().filesDir, "$username/images/$fileName")
-        val finalSource = if (localFile.exists()) localFile else url
+        val finalSource: Any = if (localFile.exists()) localFile else url
         
-        imageView.load(finalSource) {
+        val imageLoader = org.libera.pictotree.network.RetrofitClient.getImageLoader(requireContext())
+        imageView.load(finalSource, imageLoader) {
             crossfade(true)
             placeholder(R.drawable.ic_launcher_foreground)
             error(R.drawable.ic_launcher_foreground)
-            // GESTION DU MODE OFFLINE STRICT
             diskCachePolicy(coil.request.CachePolicy.ENABLED)
-            if (!url.startsWith("file")) {
+            if (finalSource is String && !finalSource.startsWith("file")) {
                 networkCachePolicy(coil.request.CachePolicy.DISABLED)
             }
         }
-    }
-
-    private fun extractRootIdFromJson(jsonStr: String): String {
-        return try {
-            val json = JSONObject(jsonStr)
-            val root = if (json.has("root_node")) json.getJSONObject("root_node")
-            else if (json.has("roots") && json.getJSONArray("roots").length() > 0) json.getJSONArray("roots").getJSONObject(0)
-            else null
-            root?.optString("node_id", root.optString("id")) ?: ""
-        } catch (e: Exception) { "" }
     }
 }

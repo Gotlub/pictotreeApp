@@ -80,6 +80,9 @@ class TreeSelectionFragment : Fragment() {
             }
         }
         explorerViewModel = ViewModelProvider(requireActivity(), explorerFactory)[TreeExplorerViewModel::class.java]
+        
+        // RESET de la sélection au retour sur l'inventaire (Mandat utilisateur)
+        explorerViewModel.resetSelection()
 
         setupUI(view)
         setupObservers()
@@ -190,6 +193,22 @@ class TreeSelectionFragment : Fragment() {
         btnFullscreenPhrase.setOnClickListener {
             findNavController().navigate(R.id.phraseFullscreenFragment)
         }
+
+        view.findViewById<View>(R.id.btn_clear_phrase)?.setOnClickListener {
+            showClearPhraseConfirmation()
+        }
+    }
+
+    private fun showClearPhraseConfirmation() {
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+            .setTitle("Effacer le bandeau ?")
+            .setMessage("Voulez-vous vraiment vider toute la phrase ?")
+            .setPositiveButton("Oui") { _, _ ->
+                explorerViewModel.clearPhrase()
+            }
+            .setNegativeButton("Non", null)
+            .setIcon(android.R.drawable.ic_menu_delete)
+            .show()
     }
 
     override fun onStart() {

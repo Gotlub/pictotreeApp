@@ -18,18 +18,19 @@ object TreeNavigator {
         
         // Calcul du fil d'Ariane (Breadcrumbs)
         val breadcrumbs = mutableListOf<TreeNode>()
-        var p = parent?.parent
+        var p = parent
         while (p != null) {
             breadcrumbs.add(0, p)
             p = p.parent
         }
 
+        // Calculer l'état final
         return HierarchicalUiState(
             breadcrumbs = breadcrumbs,
             parent = parent,
             siblings = siblings,
             children = currentNode.children,
-            focusedNode = currentNode
+            navigationNode = currentNode
         )
     }
 
@@ -38,6 +39,7 @@ object TreeNavigator {
         val parent: TreeNode? = null,
         val siblings: List<TreeNode> = emptyList(),
         val children: List<TreeNode> = emptyList(),
-        val focusedNode: TreeNode
+        val navigationNode: TreeNode? = null,
+        val previewNode: TreeNode? = null
     )
 }
