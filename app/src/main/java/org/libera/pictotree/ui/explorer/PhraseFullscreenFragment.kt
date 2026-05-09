@@ -35,8 +35,11 @@ class PhraseFullscreenFragment : DialogFragment() {
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
-        // Forcer le paysage pour le bandeau de phrase
-        requireActivity().requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+        // Désactiver temporairement le verrouillage d'orientation utilisateur
+        (requireActivity() as? org.libera.pictotree.MainActivity)?.disableOrientationLock()
+        
+        // FORCER LE PAYSAGE (Axe horizontal sur le côté long)
+        requireActivity().requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
         
         val root = inflater.inflate(R.layout.fragment_phrase_fullscreen, container, false)
 
@@ -137,8 +140,11 @@ class PhraseFullscreenFragment : DialogFragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
-        // Rétablir l'orientation automatique en sortant
-        requireActivity().requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+        // Autoriser à nouveau le verrouillage utilisateur
+        val mainActivity = requireActivity() as? org.libera.pictotree.MainActivity
+        mainActivity?.enableOrientationLock()
+        // Restaurer le verrouillage d'orientation de l'utilisateur en sortant
+        mainActivity?.applyUserOrientation()
         ttsManager.shutdown()
     }
 }

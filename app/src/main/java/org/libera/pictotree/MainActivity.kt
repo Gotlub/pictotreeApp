@@ -83,7 +83,13 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private var isOrientationLockDisabled = false
+
+    fun disableOrientationLock() { isOrientationLockDisabled = true }
+    fun enableOrientationLock() { isOrientationLockDisabled = false }
+
     fun applyUserOrientation() {
+        if (isOrientationLockDisabled) return
         val sessionManager = SessionManager(this)
         val username = sessionManager.getUsername() ?: return
         requestedOrientation = sessionManager.getPreferredOrientation(username)
