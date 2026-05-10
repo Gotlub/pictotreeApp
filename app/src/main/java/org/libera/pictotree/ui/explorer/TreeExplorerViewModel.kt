@@ -59,6 +59,8 @@ data class HierarchicalUiState(
     val navigationNode: TreeNode? = null, // Le noeud autour duquel on navigue
     val previewNode: TreeNode? = null,    // Le noeud affiché dans la preview "Ajouter"
     
+    val phraseSize: Int = 1, // 0: Small, 1: Medium, 2: Large
+    
     val isLoading: Boolean = true,
     val error: String? = null,
     val colorCode: String = "#000000"
@@ -271,6 +273,12 @@ class TreeExplorerViewModel(
      */
     fun resetSelection() {
         _uiState.value = _uiState.value.copy(previewNode = null)
+    }
+
+    fun updatePhraseSize(size: Int) {
+        if (size in 0..2) {
+            _uiState.value = _uiState.value.copy(phraseSize = size)
+        }
     }
 
     private suspend fun fetchRootNodePreview(treeId: Int): TreeNode? {

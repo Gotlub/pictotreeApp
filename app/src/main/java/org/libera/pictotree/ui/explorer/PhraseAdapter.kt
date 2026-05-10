@@ -11,7 +11,7 @@ import org.libera.pictotree.R
 
 class PhraseAdapter(
     private val username: String, // Nouveau : Indispensable pour le mapping local
-    private val layoutId: Int = R.layout.item_phrase_picto,
+    val layoutId: Int = R.layout.item_phrase_picto,
     private val allowNetwork: Boolean = false,
     private val onItemClick: ((TreeNode) -> Unit)? = null
 ) : RecyclerView.Adapter<PhraseAdapter.PhraseViewHolder>() {

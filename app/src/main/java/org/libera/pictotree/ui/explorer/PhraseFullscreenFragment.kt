@@ -1,6 +1,7 @@
 package org.libera.pictotree.ui.explorer
 
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -10,17 +11,17 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.floatingactionbutton.FloatingActionButton
+import com.google.android.material.button.MaterialButtonToggleGroup
 import kotlinx.coroutines.launch
 import org.libera.pictotree.R
 import org.libera.pictotree.data.SessionManager
 import org.libera.pictotree.data.database.AppDatabase
-import org.libera.pictotree.data.database.entity.UserConfig
 import org.libera.pictotree.network.RetrofitClient
 import org.libera.pictotree.utils.TTSManager
-
 import androidx.fragment.app.DialogFragment
 
 class PhraseFullscreenFragment : DialogFragment() {
@@ -28,6 +29,9 @@ class PhraseFullscreenFragment : DialogFragment() {
     private lateinit var viewModel: TreeExplorerViewModel
     private lateinit var ttsManager: TTSManager
     private lateinit var adapter: PhraseAdapter
+    private lateinit var rv: RecyclerView
+    private var isDraggingPhrase = false
+    private var itemTouchHelper: ItemTouchHelper? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -35,10 +39,7 @@ class PhraseFullscreenFragment : DialogFragment() {
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
-        // Désactiver temporairement le verrouillage d'orientation utilisateur
         (requireActivity() as? org.libera.pictotree.MainActivity)?.disableOrientationLock()
-        
-        // FORCER LE PAYSAGE (Axe horizontal sur le côté long)
         requireActivity().requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
         
         val root = inflater.inflate(R.layout.fragment_phrase_fullscreen, container, false)
@@ -52,30 +53,11 @@ class PhraseFullscreenFragment : DialogFragment() {
         val factory = object : ViewModelProvider.Factory {
             override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
                 @Suppress("UNCHECKED_CAST")
-                return TreeExplorerViewModel(
-                    requireActivity().application, 
-                    treeDao, 
-                    profileDao,
-                    database.imageDao(), // Ajouté
-                    userConfigRepository,
-                    RetrofitClient.SERVER_URL, 
-                    username
-                ) as T
+                return TreeExplorerViewModel(requireActivity().application, treeDao, profileDao, database.imageDao(), userConfigRepository, RetrofitClient.SERVER_URL, username) as T
             }
         }
-        // Share ViewModel at Activity level
         viewModel = ViewModelProvider(requireActivity(), factory)[TreeExplorerViewModel::class.java]
-        
         ttsManager = TTSManager(requireContext())
-        
-        // Observer la langue depuis le ViewModel (Cache réactif)
-        viewLifecycleOwner.lifecycleScope.launch {
-            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.userConfig.collect { config ->
-                    config?.let { ttsManager.setLanguage(it.locale) }
-                }
-            }
-        }
         
         setupUI(root)
         observeViewModel()
@@ -84,37 +66,46 @@ class PhraseFullscreenFragment : DialogFragment() {
     }
 
     private fun setupUI(root: View) {
-        val rv = root.findViewById<RecyclerView>(R.id.rv_phrase_fullscreen)
+        rv = root.findViewById(R.id.rv_phrase_fullscreen)
         val btnClose = root.findViewById<ImageButton>(R.id.btn_close_fullscreen)
         val fabSpeak = root.findViewById<FloatingActionButton>(R.id.fab_speak_fullscreen)
+        val toggleSize = root.findViewById<MaterialButtonToggleGroup>(R.id.toggle_phrase_size)
 
         val username = SessionManager(requireContext()).getUsername() ?: "default"
-        adapter = PhraseAdapter(username, R.layout.item_phrase_picto_fullscreen)
-        rv.adapter = adapter
-        rv.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
+        
+        // Setup initial
+        updateAdapterForSize(viewModel.uiState.value.phraseSize, username)
 
-        btnClose.setOnClickListener {
-            dismiss()
+        // Sync ToggleGroup
+        val currentSize = viewModel.uiState.value.phraseSize
+        val checkedBtnId = when(currentSize) {
+            0 -> R.id.btn_size_s
+            2 -> R.id.btn_size_l
+            else -> R.id.btn_size_m
         }
+        toggleSize.check(checkedBtnId)
+
+        toggleSize.addOnButtonCheckedListener { _, checkedId, isChecked ->
+            if (isChecked) {
+                val size = when(checkedId) {
+                    R.id.btn_size_s -> 0
+                    R.id.btn_size_l -> 2
+                    else -> 1
+                }
+                viewModel.updatePhraseSize(size)
+            }
+        }
+
+        btnClose.setOnClickListener { dismiss() }
 
         ttsManager.setListeners(
             onStart = { utteranceId ->
                 val index = utteranceId.toIntOrNull() ?: -1
-                requireActivity().runOnUiThread {
-                    if (index != -1) {
-                        adapter.highlightPosition(index)
-                        rv.smoothScrollToPosition(index)
-                    }
-                }
+                requireActivity().runOnUiThread { if (index != -1) { adapter.highlightPosition(index); rv.smoothScrollToPosition(index) } }
             },
             onDone = { utteranceId ->
                 val index = utteranceId.toIntOrNull() ?: -1
-                val totalItems = adapter.itemCount
-                if (index == totalItems - 1) {
-                    requireActivity().runOnUiThread {
-                        adapter.highlightPosition(-1)
-                    }
-                }
+                if (index == adapter.itemCount - 1) requireActivity().runOnUiThread { adapter.highlightPosition(-1) }
             }
         )
 
@@ -122,17 +113,74 @@ class PhraseFullscreenFragment : DialogFragment() {
             val phrase = viewModel.phraseList.value
             if (phrase.isEmpty()) return@setOnClickListener
             ttsManager.stop()
-            phrase.forEachIndexed { index, node ->
-                ttsManager.speak(node.label, index.toString())
-            }
+            phrase.forEachIndexed { index, node -> ttsManager.speak(node.label, index.toString()) }
         }
     }
 
+    private fun updateAdapterForSize(size: Int, username: String) {
+        val layoutRes = when(size) {
+            0 -> R.layout.item_phrase_picto_small
+            1 -> R.layout.item_phrase_picto_medium
+            else -> R.layout.item_phrase_picto_large
+        }
+        
+        adapter = PhraseAdapter(username, layoutRes, onItemClick = { node -> ttsManager.speak(node.label) })
+        rv.adapter = adapter
+        rv.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
+        adapter.submitList(viewModel.phraseList.value)
+
+        // GESTION PROPRE DU TOUCH HELPER (Un seul à la fois)
+        itemTouchHelper?.attachToRecyclerView(null)
+        
+        itemTouchHelper = ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(
+            ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT, ItemTouchHelper.UP
+        ) {
+            override fun onMove(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder, target: RecyclerView.ViewHolder): Boolean {
+                adapter.moveItem(viewHolder.bindingAdapterPosition, target.bindingAdapterPosition)
+                return true
+            }
+            override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
+                if (direction == ItemTouchHelper.UP) viewModel.removeItemFromPhrase(viewHolder.bindingAdapterPosition)
+            }
+            override fun onSelectedChanged(viewHolder: RecyclerView.ViewHolder?, actionState: Int) {
+                super.onSelectedChanged(viewHolder, actionState)
+                if (actionState == ItemTouchHelper.ACTION_STATE_DRAG) {
+                    isDraggingPhrase = true
+                    val elevationPx = 50 * viewHolder!!.itemView.resources.displayMetrics.density
+                    viewHolder.itemView?.apply { alpha = 0.8f; scaleX = 1.15f; scaleY = 1.15f; elevation = elevationPx }
+                }
+            }
+            override fun clearView(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder) {
+                super.clearView(recyclerView, viewHolder)
+                isDraggingPhrase = false
+                viewHolder.itemView.apply { alpha = 1.0f; scaleX = 1.0f; scaleY = 1.0f; elevation = 0f }
+                viewModel.updatePhraseListSilently(adapter.getCurrentList().toList())
+            }
+        })
+        itemTouchHelper?.attachToRecyclerView(rv)
+    }
+
     private fun observeViewModel() {
+        val username = SessionManager(requireContext()).getUsername() ?: "default"
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.phraseList.collect { phrase ->
-                    adapter.submitList(phrase)
+                launch {
+                    viewModel.phraseList.collect { phrase -> if (!isDraggingPhrase) adapter.submitList(phrase) }
+                }
+                launch {
+                    viewModel.uiState.collect { state ->
+                        val targetLayout = when(state.phraseSize) {
+                            0 -> R.layout.item_phrase_picto_small
+                            1 -> R.layout.item_phrase_picto_medium
+                            else -> R.layout.item_phrase_picto_large
+                        }
+                        if (adapter.layoutId != targetLayout) {
+                            updateAdapterForSize(state.phraseSize, username)
+                        }
+                    }
+                }
+                launch {
+                    viewModel.userConfig.collect { config -> config?.let { ttsManager.setLanguage(it.locale) } }
                 }
             }
         }
@@ -140,10 +188,8 @@ class PhraseFullscreenFragment : DialogFragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
-        // Autoriser à nouveau le verrouillage utilisateur
         val mainActivity = requireActivity() as? org.libera.pictotree.MainActivity
         mainActivity?.enableOrientationLock()
-        // Restaurer le verrouillage d'orientation de l'utilisateur en sortant
         mainActivity?.applyUserOrientation()
         ttsManager.shutdown()
     }

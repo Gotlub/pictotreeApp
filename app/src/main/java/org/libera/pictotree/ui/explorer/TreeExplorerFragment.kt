@@ -87,10 +87,9 @@ class TreeExplorerFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         
-        // Verrouillage de sécurité lors de la création de la vue
         ignoreScrollEvents = true
         viewLifecycleOwner.lifecycleScope.launch {
-            delay(800) // Un peu plus long pour être sûr que le layout pass est fini
+            delay(800)
             ignoreScrollEvents = false
         }
 
@@ -107,7 +106,6 @@ class TreeExplorerFragment : Fragment() {
         rvChildren = view.findViewById(R.id.rv_children_preview)
         rvPhrase = view.findViewById(R.id.rv_phrase)
         
-        // Désactivation de la sauvegarde Android pour éviter les sauts lors de la restauration
         rvSiblings.isSaveEnabled = false
         rvChildren.isSaveEnabled = false
         rvBreadcrumbs.isSaveEnabled = false
@@ -166,11 +164,8 @@ class TreeExplorerFragment : Fragment() {
         rvSiblings.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
                 if (newState == RecyclerView.SCROLL_STATE_DRAGGING) userIsSwiping = true
-                
                 if (newState == RecyclerView.SCROLL_STATE_IDLE) {
-                    if (userIsSwiping && !ignoreScrollEvents) {
-                        updateFocusFromFirstVisible()
-                    }
+                    if (userIsSwiping && !ignoreScrollEvents) updateFocusFromFirstVisible()
                     userIsSwiping = false
                 }
             }
@@ -222,35 +217,29 @@ class TreeExplorerFragment : Fragment() {
         if (!::ivArrowToChildren.isInitialized || !::rvSiblings.isInitialized) return
         val state = viewModel.uiState.value
         val targetNode = state.navigationNode ?: return
-        
         var position = siblingAdapter.currentList.indexOfFirst { it.id == targetNode.id }
         if (position != -1) {
             val view = (rvSiblings.layoutManager as LinearLayoutManager).findViewByPosition(position)
             if (view != null) {
-                val hasChildren = state.children.isNotEmpty()
-                ivArrowToChildren.visibility = if (hasChildren) View.VISIBLE else View.INVISIBLE
+                ivArrowToChildren.visibility = if (state.children.isNotEmpty()) View.VISIBLE else View.INVISIBLE
                 val viewCenter = (view.left + view.right) / 2
                 ivArrowToChildren.translationX = (viewCenter - rvSiblings.width / 2).toFloat()
-            } else {
-                ivArrowToChildren.visibility = View.INVISIBLE
-            }
-        } else {
-            ivArrowToChildren.visibility = View.INVISIBLE
-        }
+            } else ivArrowToChildren.visibility = View.INVISIBLE
+        } else ivArrowToChildren.visibility = View.INVISIBLE
     }
 
     private fun updateHorizontalScrollIndicators(rv: RecyclerView, gradL: View?, arrowL: View?, gradR: View?, arrowR: View?) {
         val canLeft = rv.canScrollHorizontally(-1); val canRight = rv.canScrollHorizontally(1)
-        if (gradL != null && gradL.id != View.NO_ID && gradL.parent != null) gradL.visibility = if (canLeft) View.VISIBLE else View.INVISIBLE
-        if (arrowL != null && arrowL.id != View.NO_ID && arrowL.parent != null) arrowL.visibility = if (canLeft) View.VISIBLE else View.INVISIBLE
-        if (gradR != null && gradR.id != View.NO_ID && gradR.parent != null) gradR.visibility = if (canRight) View.VISIBLE else View.INVISIBLE
-        if (arrowR != null && arrowR.id != View.NO_ID && arrowR.parent != null) arrowR.visibility = if (canRight) View.VISIBLE else View.INVISIBLE
+        if (gradL != null && gradL.parent != null) gradL.visibility = if (canLeft) View.VISIBLE else View.INVISIBLE
+        if (arrowL != null && arrowL.parent != null) arrowL.visibility = if (canLeft) View.VISIBLE else View.INVISIBLE
+        if (gradR != null && gradR.parent != null) gradR.visibility = if (canRight) View.VISIBLE else View.INVISIBLE
+        if (arrowR != null && arrowR.parent != null) arrowR.visibility = if (canRight) View.VISIBLE else View.INVISIBLE
     }
 
     private fun updateVerticalScrollIndicators(rv: RecyclerView, gradTop: View?, gradBottom: View?) {
         val canUp = rv.canScrollVertically(-1); val canDown = rv.canScrollVertically(1)
-        if (gradTop != null && gradTop.id != View.NO_ID && gradTop.parent != null) gradTop.visibility = if (canUp) View.VISIBLE else View.INVISIBLE
-        if (gradBottom != null && gradBottom.id != View.NO_ID && gradBottom.parent != null) gradBottom.visibility = if (canDown) View.VISIBLE else View.INVISIBLE
+        if (gradTop != null && gradTop.parent != null) gradTop.visibility = if (canUp) View.VISIBLE else View.INVISIBLE
+        if (gradBottom != null && gradBottom.parent != null) gradBottom.visibility = if (canDown) View.VISIBLE else View.INVISIBLE
     }
 
     private fun updateFocusFromFirstVisible() {
@@ -258,8 +247,8 @@ class TreeExplorerFragment : Fragment() {
         val layoutManager = rvSiblings.layoutManager as LinearLayoutManager
         val position = layoutManager.findFirstVisibleItemPosition()
         if (position != RecyclerView.NO_POSITION && position < siblingAdapter.currentList.size) {
-            val focusedNode = siblingAdapter.currentList[position]
-            viewModel.updateFocusWithinSiblings(focusedNode)
+            val navTargetNode = siblingAdapter.currentList[position]
+            viewModel.updateFocusWithinSiblings(navTargetNode)
         }
     }
 
@@ -273,24 +262,11 @@ class TreeExplorerFragment : Fragment() {
             override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T = TreeExplorerViewModel(requireActivity().application, database.treeDao(), database.profileDao(), database.imageDao(), userConfigRepository, org.libera.pictotree.network.RetrofitClient.SERVER_URL, username) as T
         }
         viewModel = ViewModelProvider(requireActivity(), factory)[TreeExplorerViewModel::class.java]
-        
         val targetTreeId = arguments?.getInt("treeId", -1) ?: -1
         val profileId = arguments?.getInt("profileId", -1) ?: -1
-        
-        // LOGIQUE ANTI-TÉLÉPORTATION : 
-        // On ne recharge l'arbre que si c'est une nouvelle navigation (isFreshEntry)
-        // OU si le ViewModel est vide. Si c'est une rotation, on garde l'état actuel (VM survit).
         if (isFreshEntry || viewModel.getCurrentTreeId() == -1) {
-            if (profileId != -1) { 
-                viewLifecycleOwner.lifecycleScope.launch { 
-                    val trees = database.profileDao().getTreesForProfileOrdered(profileId)
-                    viewModel.setProfileTreeContext(profileId, trees.map { it.id })
-                    if (targetTreeId != -1) viewModel.loadTree(targetTreeId) 
-                } 
-            }
+            if (profileId != -1) { viewLifecycleOwner.lifecycleScope.launch { val trees = database.profileDao().getTreesForProfileOrdered(profileId); viewModel.setProfileTreeContext(profileId, trees.map { it.id }); if (targetTreeId != -1) viewModel.loadTree(targetTreeId) } }
             else if (targetTreeId != -1) viewModel.loadTree(targetTreeId)
-        } else {
-            Log.d("TreeExplorer", "Rotation detected: Skipping loadTree to preserve state")
         }
     }
 
@@ -312,30 +288,22 @@ class TreeExplorerFragment : Fragment() {
         view.findViewById<View>(R.id.card_rotate)?.setOnClickListener { (requireActivity() as? org.libera.pictotree.MainActivity)?.toggleOrientation() }
         btnAddToPhrase.setOnClickListener { viewModel.addToPhrase() }
         view.findViewById<View>(R.id.btn_fullscreen_phrase)?.setOnClickListener { findNavController().navigate(R.id.action_treeExplorerFragment_to_phraseFullscreenFragment) }
-        
-        view.findViewById<View>(R.id.btn_clear_phrase)?.setOnClickListener {
-            showClearPhraseConfirmation()
-        }
-        
+        view.findViewById<View>(R.id.btn_clear_phrase)?.setOnClickListener { showClearPhraseConfirmation() }
         containerParent.setOnClickListener { viewModel.uiState.value.parent?.let { viewModel.focusOnNode(it) } }
     }
 
     private fun showClearPhraseConfirmation() {
-        com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
-            .setTitle("Effacer le bandeau ?")
-            .setMessage("Voulez-vous vraiment vider toute la phrase ?")
-            .setPositiveButton("Oui") { _, _ ->
-                viewModel.clearPhrase()
-            }
-            .setNegativeButton("Non", null)
-            .setIcon(android.R.drawable.ic_menu_delete)
-            .show()
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext()).setTitle("Effacer le bandeau ?").setMessage("Voulez-vous vraiment vider toute la phrase ?")
+            .setPositiveButton("Oui") { _, _ -> viewModel.clearPhrase() }.setNegativeButton("Non", null).setIcon(android.R.drawable.ic_menu_delete).show()
     }
 
     private fun setupObservers() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                launch { viewModel.uiState.collect { state -> updateUI(state); rvBreadcrumbs.post { if (::scrollTopIndicator.isInitialized && ::scrollBottomIndicator.isInitialized) updateVerticalScrollIndicators(rvBreadcrumbs, scrollTopIndicator, scrollBottomIndicator) } } }
+                launch { viewModel.uiState.collect { state -> 
+                    updateUI(state)
+                    rvBreadcrumbs.post { if (::scrollTopIndicator.isInitialized && ::scrollBottomIndicator.isInitialized) updateVerticalScrollIndicators(rvBreadcrumbs, scrollTopIndicator, scrollBottomIndicator) } 
+                } }
                 launch { var lastPhraseSize = 0; viewModel.phraseList.collect { phrase -> if (!isDraggingPhrase) { phraseAdapter.submitList(phrase); if (phrase.size > lastPhraseSize) rvPhrase.smoothScrollToPosition(phrase.size - 1) }; lastPhraseSize = phrase.size } }
                 launch { viewModel.userConfig.collect { config -> config?.let { ttsManager.setLanguage(it.locale) } } }
             }
@@ -354,11 +322,8 @@ class TreeExplorerFragment : Fragment() {
             val username = org.libera.pictotree.data.SessionManager(requireContext()).getUsername() ?: "default"
             val localFile = java.io.File(requireContext().filesDir, "$username/images/$fileName")
             var finalSource: Any = if (localFile.exists()) localFile else state.parent.imageUrl
-            if (finalSource is String && !finalSource.startsWith("http") && !finalSource.startsWith("file")) {
-                finalSource = "${org.libera.pictotree.network.RetrofitClient.SERVER_URL.removeSuffix("/")}/${(finalSource as String).removePrefix("/")}"
-            }
-            ivParent.load(finalSource) { 
-                placeholder(R.drawable.ic_launcher_background); error(R.drawable.ic_launcher_background); diskCachePolicy(coil.request.CachePolicy.ENABLED); networkCachePolicy(coil.request.CachePolicy.DISABLED)
+            if (finalSource is String && !finalSource.startsWith("http") && !finalSource.startsWith("file")) finalSource = "${org.libera.pictotree.network.RetrofitClient.SERVER_URL.removeSuffix("/")}/${(finalSource as String).removePrefix("/")}"
+            ivParent.load(finalSource) { placeholder(R.drawable.ic_launcher_background); error(R.drawable.ic_launcher_background); diskCachePolicy(coil.request.CachePolicy.ENABLED); networkCachePolicy(coil.request.CachePolicy.DISABLED)
                 if (finalSource is String && ((finalSource as String).contains("/api/v1/mobile/") || (finalSource as String).contains("/pictograms/"))) {
                     val token = org.libera.pictotree.data.SessionManager(requireContext()).getToken()
                     if (!token.isNullOrEmpty()) addHeader("Authorization", "Bearer $token")
@@ -366,41 +331,25 @@ class TreeExplorerFragment : Fragment() {
             } 
         } else containerParent.visibility = View.INVISIBLE
         breadcrumbAdapter.submitList(state.breadcrumbs) { rvBreadcrumbs.post { if (state.breadcrumbs.isNotEmpty()) rvBreadcrumbs.scrollToPosition(state.breadcrumbs.size - 1); if (::scrollTopIndicator.isInitialized && ::scrollBottomIndicator.isInitialized) updateVerticalScrollIndicators(rvBreadcrumbs, scrollTopIndicator, scrollBottomIndicator) } }
-        
         val oldSiblings = siblingAdapter.currentList
         siblingAdapter.submitList(state.siblings) {
             val navPos = state.siblings.indexOfFirst { it.id == state.navigationNode?.id }
             var highlightPos = state.siblings.indexOfFirst { it.id == state.previewNode?.id }
             if (highlightPos == -1) highlightPos = state.siblings.indexOfFirst { it.id == state.previewNode?.parent?.id }
-
-            if (navPos != -1) { 
-                ignoreScrollEvents = true
-                rvSiblings.post { 
-                    rvSiblings.scrollToPosition(navPos)
-                    siblingAdapter.setSelectedPosition(highlightPos) 
-                    rvSiblings.postDelayed({ ignoreScrollEvents = false }, 200)
-                }
-            } else {
-                if (oldSiblings != state.siblings) rvSiblings.post { rvSiblings.scrollToPosition(0) }
-                siblingAdapter.setSelectedPosition(highlightPos)
-            }
+            if (navPos != -1) { ignoreScrollEvents = true; rvSiblings.post { rvSiblings.scrollToPosition(navPos); siblingAdapter.setSelectedPosition(highlightPos); rvSiblings.postDelayed({ ignoreScrollEvents = false }, 200) } }
+            else { if (oldSiblings != state.siblings) rvSiblings.post { rvSiblings.scrollToPosition(0) }; siblingAdapter.setSelectedPosition(highlightPos) }
             rvSiblings.post { if (::siblingsGradLeft.isInitialized && ::siblingsArrowLeft.isInitialized && ::siblingsGradRight.isInitialized && ::siblingsArrowRight.isInitialized) updateHorizontalScrollIndicators(rvSiblings, siblingsGradLeft, siblingsArrowLeft, siblingsGradRight, siblingsArrowRight); positionChildrenArrow() }
         }
-        
         if (::ivArrowToSiblings.isInitialized) ivArrowToSiblings.visibility = if (state.parent != null) View.VISIBLE else View.INVISIBLE
         if (::ivArrowToChildren.isInitialized) ivArrowToChildren.visibility = if (state.children.isNotEmpty()) View.VISIBLE else View.INVISIBLE
-        
         state.previewNode?.let { node -> 
             val cleanUrl = org.libera.pictotree.utils.FileUtils.getCleanUrl(node.imageUrl)
             val fileName = org.libera.pictotree.utils.FileUtils.getLocalFileNameFromUrl(cleanUrl)
             val username = org.libera.pictotree.data.SessionManager(requireContext()).getUsername() ?: "default"
             val localFile = java.io.File(requireContext().filesDir, "$username/images/$fileName")
             var finalSource: Any = if (localFile.exists()) localFile else node.imageUrl
-            if (finalSource is String && !finalSource.startsWith("http") && !finalSource.startsWith("file")) {
-                finalSource = "${org.libera.pictotree.network.RetrofitClient.SERVER_URL.removeSuffix("/")}/${(finalSource as String).removePrefix("/")}"
-            }
-            ivSelectedLarge.load(finalSource) { 
-                placeholder(R.drawable.ic_launcher_foreground); error(R.drawable.ic_launcher_foreground); diskCachePolicy(coil.request.CachePolicy.ENABLED); networkCachePolicy(coil.request.CachePolicy.DISABLED)
+            if (finalSource is String && !finalSource.startsWith("http") && !finalSource.startsWith("file")) finalSource = "${org.libera.pictotree.network.RetrofitClient.SERVER_URL.removeSuffix("/")}/${(finalSource as String).removePrefix("/")}"
+            ivSelectedLarge.load(finalSource) { placeholder(R.drawable.ic_launcher_foreground); error(R.drawable.ic_launcher_foreground); diskCachePolicy(coil.request.CachePolicy.ENABLED); networkCachePolicy(coil.request.CachePolicy.DISABLED)
                 if (finalSource is String && ((finalSource as String).contains("/api/v1/mobile/") || (finalSource as String).contains("/pictograms/"))) {
                     val token = org.libera.pictotree.data.SessionManager(requireContext()).getToken()
                     if (!token.isNullOrEmpty()) addHeader("Authorization", "Bearer $token")
@@ -408,8 +357,7 @@ class TreeExplorerFragment : Fragment() {
             } 
         }
         val oldChildren = childrenAdapter.currentList
-        childrenAdapter.submitList(state.children) {
-            if (oldChildren != state.children) rvChildren.scrollToPosition(0)
+        childrenAdapter.submitList(state.children) { if (oldChildren != state.children) rvChildren.scrollToPosition(0)
             childrenAdapter.setSelectedPosition(state.children.indexOfFirst { it.id == state.previewNode?.id })
             rvChildren.post { if (::childrenGradLeft.isInitialized && ::childrenArrowLeft.isInitialized && ::childrenGradRight.isInitialized && ::childrenArrowRight.isInitialized) updateHorizontalScrollIndicators(rvChildren, childrenGradLeft, childrenArrowLeft, childrenGradRight, childrenArrowRight) }
         }
