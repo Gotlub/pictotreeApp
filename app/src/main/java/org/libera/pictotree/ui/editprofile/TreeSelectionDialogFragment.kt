@@ -5,7 +5,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ProgressBar
-import androidx.appcompat.widget.SwitchCompat
 import androidx.core.widget.doAfterTextChanged
 import androidx.fragment.app.DialogFragment
 import androidx.lifecycle.Lifecycle
@@ -23,7 +22,7 @@ import org.libera.pictotree.network.dto.TreeMetadataDTO
 
 class TreeSelectionDialogFragment(
     private val remoteTreesFlow: StateFlow<List<TreeMetadataDTO>>,
-    private val onSearchRequested: (String, Boolean) -> Unit,
+    private val onSearchRequested: (String) -> Unit, // Removed Boolean parameter
     private val onLoadMoreRequested: () -> Unit,
     private val onTreeSelected: (TreeMetadataDTO) -> Unit
 ) : DialogFragment() {
@@ -51,7 +50,6 @@ class TreeSelectionDialogFragment(
         val recyclerView: RecyclerView = view.findViewById(R.id.recyclerViewRemoteTrees)
         val progressBar: ProgressBar = view.findViewById(R.id.progressBarRemoteTrees)
         val etSearch: TextInputEditText = view.findViewById(R.id.etSearchRemoteTrees)
-        val switchPublic: SwitchCompat = view.findViewById(R.id.switchIsPublic)
 
         val adapter = RemoteTreeAdapter { tree ->
             onTreeSelected(tree)
@@ -82,6 +80,7 @@ class TreeSelectionDialogFragment(
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 remoteTreesFlow.collect { trees ->
                     adapter.submitList(trees)
+                    progressBar.visibility = View.GONE
                 }
             }
         }
@@ -92,17 +91,9 @@ class TreeSelectionDialogFragment(
             val query = editable?.toString() ?: ""
             searchJob = viewLifecycleOwner.lifecycleScope.launch {
                 delay(300) // Debounce 300ms
-                onSearchRequested(query, switchPublic.isChecked)
+                progressBar.visibility = View.VISIBLE
+                onSearchRequested(query)
             }
-        }
-
-        // Ecouter le switch
-        switchPublic.setOnCheckedChangeListener { _, isChecked ->
-            val text = if (isChecked) "Arbres Publics" else "Mes Arbres Privés"
-            switchPublic.text = text
-            
-            val query = etSearch.text?.toString() ?: ""
-            onSearchRequested(query, isChecked)
         }
     }
 }

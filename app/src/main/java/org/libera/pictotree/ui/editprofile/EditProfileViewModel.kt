@@ -96,7 +96,7 @@ class EditProfileViewModel(
 
     fun openTreeSelection() {
         viewModelScope.launch {
-            searchTrees("", true)
+            searchTrees("")
             _showTreeSelectionEvent.send(Unit)
         }
     }
@@ -105,18 +105,17 @@ class EditProfileViewModel(
     private var isRemoteLastPage = false
     private var isRemoteLoadingMore = false
     private var currentRemoteQuery = ""
-    private var currentRemoteIsPublic = true
 
-    fun searchTrees(query: String, isPublic: Boolean) {
+    fun searchTrees(query: String) {
         currentRemoteQuery = query
-        currentRemoteIsPublic = isPublic
         currentRemotePage = 1
         isRemoteLastPage = false
         
         viewModelScope.launch {
             try {
+                // On ne cherche que dans MES arbres privés
                 val response = treeApiService.getAvailableTrees(
-                    isPublic = isPublic,
+                    isPublic = false,
                     search = if (query.isBlank()) null else query,
                     page = currentRemotePage,
                     limit = 50
@@ -140,7 +139,7 @@ class EditProfileViewModel(
         viewModelScope.launch {
             try {
                 val response = treeApiService.getAvailableTrees(
-                    isPublic = currentRemoteIsPublic,
+                    isPublic = false,
                     search = if (currentRemoteQuery.isBlank()) null else currentRemoteQuery,
                     page = currentRemotePage,
                     limit = 50
@@ -279,20 +278,30 @@ class EditProfileViewModel(
                 val token = sessionManager.getToken() ?: ""
                 val hostUrl = org.libera.pictotree.network.RetrofitClient.SERVER_URL
                 
-                var finalAvatarUrl = avatarUrl
+                var localAvatarUrl = avatarUrl
+                val remoteAvatarUrl = if (avatarUrl != null && (avatarUrl.startsWith("http") || avatarUrl.contains("/api/v1/mobile/"))) {
+                    // C'est une URL distante, on la conserve telle quelle pour le serveur
+                    avatarUrl
+                } else {
+                    null
+                }
                 
-                // Si c'est une image distante (Base ou Arasaac), on la télécharge en local
-                if (avatarUrl != null && (avatarUrl.startsWith("http") || avatarUrl.contains("/api/v1/mobile/"))) {
+                // Si c'est une image distante, on tente de la télécharger pour l'usage local offline
+                if (remoteAvatarUrl != null) {
                     val engine = ImageSyncEngine(getApplication(), imageDao, username, hostUrl, token)
-                    val localUrl = engine.downloadSingleImage(avatarUrl)
+                    val localUrl = engine.downloadSingleImage(remoteAvatarUrl)
                     if (localUrl != null) {
-                        finalAvatarUrl = localUrl
+                        localAvatarUrl = localUrl
                     }
                 }
 
                 val currentProfile = profileDao.getProfileById(profileId)
                 if (currentProfile != null) {
-                    val updated = currentProfile.copy(name = newName, avatarUrl = finalAvatarUrl)
+                    val updated = currentProfile.copy(
+                        name = newName, 
+                        avatarUrl = localAvatarUrl,
+                        remoteAvatarUrl = remoteAvatarUrl
+                    )
                     profileDao.insertProfile(updated)
                     loadProfile(profileId)
                 }

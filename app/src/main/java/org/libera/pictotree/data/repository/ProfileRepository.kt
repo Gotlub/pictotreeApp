@@ -19,4 +19,8 @@ class ProfileRepository(private val profileDao: ProfileDao) {
     suspend fun getTreesForProfileOrdered(profileId: Int) = profileDao.getTreesForProfileOrdered(profileId)
 
     suspend fun getTreesWithColorForProfile(profileId: Int) = profileDao.getTreesWithColorForProfile(profileId)
+
+    suspend fun insertProfileTreeCrossRef(ref: org.libera.pictotree.data.database.entity.ProfileTreeCrossRef) {
+        profileDao.insertProfileTreeCrossRef(ref)
+    }
 }

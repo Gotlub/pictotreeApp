@@ -25,4 +25,12 @@ interface TreeApiService {
     suspend fun searchPictograms(
         @Query("q") query: String
     ): Response<List<org.libera.pictotree.network.dto.PictoSearchResultDTO>>
+
+    @GET("profiles")
+    suspend fun getAvailableProfiles(): Response<List<org.libera.pictotree.network.dto.ProfileDTO>>
+
+    @GET("profiles/{id}")
+    suspend fun getProfileDetails(
+        @Path("id") profileId: Int
+    ): Response<org.libera.pictotree.network.dto.ProfileDTO>
 }

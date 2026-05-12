@@ -230,7 +230,13 @@ class TreeExplorerViewModel(
     }
 
     fun updateFocusWithinSiblings(node: TreeNode) {
-        if (_uiState.value.navigationNode?.id == node.id) return
+        // Même si on ne change pas de niveau de navigation, on veut que ce noeud devienne la preview
+        if (_uiState.value.navigationNode?.id == node.id) {
+            if (_uiState.value.previewNode?.id != node.id) {
+                _uiState.value = _uiState.value.copy(previewNode = node)
+            }
+            return
+        }
         
         TreeNode.parseTreeId(node.id)?.let { treeId ->
             updateCurrentTreeContext(treeId)
@@ -238,7 +244,7 @@ class TreeExplorerViewModel(
 
         _uiState.value = _uiState.value.copy(
             navigationNode = node,
-            previewNode = node, // Un clic dans les siblings change toujours la preview
+            previewNode = node,
             children = node.children
         )
     }

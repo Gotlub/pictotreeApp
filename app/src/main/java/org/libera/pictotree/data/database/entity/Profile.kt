@@ -8,6 +8,7 @@ data class Profile(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
     val name: String,
-    val avatarUrl: String? = null,
-    val settingsJson: String? = null // Stockage flexible des préférences (taille, navigation, etc.)
+    val avatarUrl: String? = null, // Local file:// path or color: hex
+    val remoteAvatarUrl: String? = null, // Original remote URL (Arasaac or Flask)
+    val settingsJson: String? = null // Stockage flexible des préférences
 )

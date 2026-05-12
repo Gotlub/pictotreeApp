@@ -300,10 +300,7 @@ class TreeExplorerFragment : Fragment() {
     private fun setupObservers() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                launch { viewModel.uiState.collect { state -> 
-                    updateUI(state)
-                    rvBreadcrumbs.post { if (::scrollTopIndicator.isInitialized && ::scrollBottomIndicator.isInitialized) updateVerticalScrollIndicators(rvBreadcrumbs, scrollTopIndicator, scrollBottomIndicator) } 
-                } }
+                launch { viewModel.uiState.collect { state -> updateUI(state); rvBreadcrumbs.post { if (::scrollTopIndicator.isInitialized && ::scrollBottomIndicator.isInitialized) updateVerticalScrollIndicators(rvBreadcrumbs, scrollTopIndicator, scrollBottomIndicator) } } }
                 launch { var lastPhraseSize = 0; viewModel.phraseList.collect { phrase -> if (!isDraggingPhrase) { phraseAdapter.submitList(phrase); if (phrase.size > lastPhraseSize) rvPhrase.smoothScrollToPosition(phrase.size - 1) }; lastPhraseSize = phrase.size } }
                 launch { viewModel.userConfig.collect { config -> config?.let { ttsManager.setLanguage(it.locale) } } }
             }
@@ -334,10 +331,26 @@ class TreeExplorerFragment : Fragment() {
         val oldSiblings = siblingAdapter.currentList
         siblingAdapter.submitList(state.siblings) {
             val navPos = state.siblings.indexOfFirst { it.id == state.navigationNode?.id }
+            
+            // LOGIQUE DE BORDURE : 
+            // 1. Sur le picto sélectionné (previewNode) s'il est là
+            // 2. SINON sur le parent du picto sélectionné (s'il est un enfant)
+            // 3. SINON sur le noeud de navigation actuel
             var highlightPos = state.siblings.indexOfFirst { it.id == state.previewNode?.id }
             if (highlightPos == -1) highlightPos = state.siblings.indexOfFirst { it.id == state.previewNode?.parent?.id }
-            if (navPos != -1) { ignoreScrollEvents = true; rvSiblings.post { rvSiblings.scrollToPosition(navPos); siblingAdapter.setSelectedPosition(highlightPos); rvSiblings.postDelayed({ ignoreScrollEvents = false }, 200) } }
-            else { if (oldSiblings != state.siblings) rvSiblings.post { rvSiblings.scrollToPosition(0) }; siblingAdapter.setSelectedPosition(highlightPos) }
+            if (highlightPos == -1) highlightPos = navPos
+
+            if (navPos != -1) { 
+                ignoreScrollEvents = true
+                rvSiblings.post { 
+                    rvSiblings.scrollToPosition(navPos)
+                    siblingAdapter.setSelectedPosition(highlightPos) 
+                    rvSiblings.postDelayed({ ignoreScrollEvents = false }, 200)
+                }
+            } else {
+                if (oldSiblings != state.siblings) rvSiblings.post { rvSiblings.scrollToPosition(0) }
+                siblingAdapter.setSelectedPosition(highlightPos)
+            }
             rvSiblings.post { if (::siblingsGradLeft.isInitialized && ::siblingsArrowLeft.isInitialized && ::siblingsGradRight.isInitialized && ::siblingsArrowRight.isInitialized) updateHorizontalScrollIndicators(rvSiblings, siblingsGradLeft, siblingsArrowLeft, siblingsGradRight, siblingsArrowRight); positionChildrenArrow() }
         }
         if (::ivArrowToSiblings.isInitialized) ivArrowToSiblings.visibility = if (state.parent != null) View.VISIBLE else View.INVISIBLE

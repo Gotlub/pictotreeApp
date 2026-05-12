@@ -214,8 +214,8 @@ class EditProfileFragment : Fragment() {
                     viewModel.showTreeSelectionEvent.collect {
                         val dialog = TreeSelectionDialogFragment(
                             remoteTreesFlow = viewModel.remoteTrees,
-                            onSearchRequested = { query, isPublic ->
-                                viewModel.searchTrees(query, isPublic)
+                            onSearchRequested = { query ->
+                                viewModel.searchTrees(query)
                             },
                             onLoadMoreRequested = {
                                 viewModel.loadMoreTrees()

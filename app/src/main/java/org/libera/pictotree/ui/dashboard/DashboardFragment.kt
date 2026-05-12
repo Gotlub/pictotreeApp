@@ -16,8 +16,8 @@ import androidx.navigation.fragment.findNavController
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 import kotlinx.coroutines.launch
@@ -35,7 +35,9 @@ class DashboardFragment : Fragment() {
     private lateinit var rvProfiles: RecyclerView
     private lateinit var progressBar: ProgressBar
     private lateinit var tvEmptyState: TextView
-    private lateinit var fabAddProfile: ExtendedFloatingActionButton
+    private lateinit var layoutAdminActions: View
+    private lateinit var btnCreateProfile: MaterialButton
+    private lateinit var btnImportProfile: MaterialButton
     private lateinit var ivAdminStatus: ImageView
     private lateinit var ivLogout: ImageView
     private lateinit var cardUserSettings: View
@@ -57,7 +59,9 @@ class DashboardFragment : Fragment() {
         rvProfiles = view.findViewById(R.id.rvProfiles)
         progressBar = view.findViewById(R.id.progressBar)
         tvEmptyState = view.findViewById(R.id.tvEmptyState)
-        fabAddProfile = view.findViewById(R.id.fabAddProfile)
+        layoutAdminActions = view.findViewById(R.id.layout_admin_actions)
+        btnCreateProfile = view.findViewById(R.id.btnCreateProfile)
+        btnImportProfile = view.findViewById(R.id.btnImportProfile)
         ivAdminStatus = view.findViewById(R.id.ivAdminStatus)
         ivLogout = view.findViewById(R.id.ivLogout)
         cardUserSettings = view.findViewById(R.id.cardUserSettings)
@@ -72,8 +76,18 @@ class DashboardFragment : Fragment() {
         
         val profileRepository = ProfileRepository(database.profileDao())
         val userConfigRepository = UserConfigRepository(database.userConfigDao())
-        
-        val factory = DashboardViewModelFactory(profileRepository, userConfigRepository)
+        val treeDao = database.treeDao()
+        val imageDao = database.imageDao()
+        val treeApiService = org.libera.pictotree.network.RetrofitClient.treeApiService
+
+        val factory = DashboardViewModelFactory(
+            requireActivity().application, 
+            profileRepository, 
+            userConfigRepository,
+            treeDao,
+            imageDao,
+            treeApiService
+        )
         viewModel = ViewModelProvider(this, factory)[DashboardViewModel::class.java]
         
         if (isOnline) {
@@ -136,7 +150,7 @@ class DashboardFragment : Fragment() {
                 launch {
                     viewModel.isAdminMode.collect { isAdmin ->
                         adapter.isAdminMode = isAdmin
-                        fabAddProfile.visibility = if (isAdmin && isOnline) View.VISIBLE else View.GONE
+                        layoutAdminActions.visibility = if (isAdmin && isOnline) View.VISIBLE else View.GONE
                         if (isAdmin) {
                             cardUserSettings.visibility = View.VISIBLE
                             ivAdminStatus.setImageResource(android.R.drawable.ic_partial_secure)
@@ -152,11 +166,22 @@ class DashboardFragment : Fragment() {
                         config?.let { tvCurrentLanguage.text = it.locale.uppercase() }
                     }
                 }
+
+                launch {
+                    viewModel.isImporting.collect { importing ->
+                        progressBar.visibility = if (importing) View.VISIBLE else View.GONE
+                    }
+                }
             }
         }
 
         // Setup Listeners
-        fabAddProfile.setOnClickListener { viewModel.createQuickProfile() }
+        btnCreateProfile.setOnClickListener { viewModel.createQuickProfile() }
+        btnImportProfile.setOnClickListener { 
+            viewModel.fetchRemoteProfiles()
+            showImportProfileDialog()
+        }
+        
         tvCurrentLanguage.setOnClickListener { showLanguageDialog() }
         btnSetPin.setOnClickListener { showSetPinDialog() }
         
@@ -178,6 +203,16 @@ class DashboardFragment : Fragment() {
                 }
             }
         }
+    }
+
+    private fun showImportProfileDialog() {
+        val dialog = ImportProfileDialogFragment(
+            remoteProfilesFlow = viewModel.remoteProfiles,
+            onImportClick = { remoteProfile ->
+                viewModel.importRemoteProfile(remoteProfile)
+            }
+        )
+        dialog.show(childFragmentManager, "ImportProfileDialog")
     }
 
     private fun showUnlockPinDialog() {

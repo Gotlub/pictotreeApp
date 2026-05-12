@@ -18,7 +18,7 @@ import org.libera.pictotree.data.database.entity.UserConfig
 
 @Database(
     entities = [Profile::class, TreeEntity::class, ProfileTreeCrossRef::class, ImageEntity::class, TreeImageCrossRef::class, UserConfig::class],
-    version = 5,
+    version = 6,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

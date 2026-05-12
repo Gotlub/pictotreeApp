@@ -16,23 +16,15 @@
     <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="8dp">
+        android:layout_marginBottom="12dp">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/etSearchRemoteTrees"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Rechercher par nom ou auteur..."
+            android:hint="Rechercher par nom..."
             android:inputType="text" />
     </com.google.android.material.textfield.TextInputLayout>
-
-    <androidx.appcompat.widget.SwitchCompat
-        android:id="@+id/switchIsPublic"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="12dp"
-        android:text="Arbres Publics"
-        android:checked="true" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerViewRemoteTrees"

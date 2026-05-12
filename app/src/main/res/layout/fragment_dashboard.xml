@@ -72,18 +72,34 @@
         app:layout_constraintTop_toBottomOf="@+id/appBarLayout"
         tools:listitem="@layout/item_profile" />
 
-    <!-- Add button (visible only in ONLINE Admin mode) -->
-    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
-        android:id="@+id/fabAddProfile"
+    <!-- Action Buttons (visible only in ONLINE Admin mode) -->
+    <LinearLayout
+        android:id="@+id/layout_admin_actions"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_margin="16dp"
-        android:text="@string/dashboard_add_profile_btn"
-        app:icon="@android:drawable/ic_input_add"
+        android:orientation="horizontal"
         android:visibility="gone"
         tools:visibility="visible"
         app:layout_constraintBottom_toTopOf="@id/cardUserSettings"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnImportProfile"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Importer"
+            app:icon="@android:drawable/ic_menu_revert"
+            android:layout_marginEnd="8dp"
+            style="?attr/materialButtonOutlinedStyle" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnCreateProfile"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Nouveau"
+            app:icon="@android:drawable/ic_input_add" />
+    </LinearLayout>
 
     <!-- User Settings Bar (Visible in Admin Mode, now at bottom) -->
     <com.google.android.material.card.MaterialCardView
