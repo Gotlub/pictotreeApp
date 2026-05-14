@@ -72,6 +72,8 @@
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:layout_marginTop="16dp"
+        android:clipToPadding="false"
+        android:paddingBottom="100dp"
         app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
         app:layout_constraintTop_toBottomOf="@id/layoutAvatarSelector"
         app:layout_constraintBottom_toBottomOf="parent"
@@ -79,13 +81,27 @@
         app:layout_constraintEnd_toEndOf="parent"
         tools:listitem="@layout/item_profile_tree" />
 
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
+    <!-- BOUTON MENU (Gauche) - Réhaussé à 32dp -->
+    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+        android:id="@+id/btnOpenOptions"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginBottom="32dp"
+        android:text="Options"
+        app:icon="@android:drawable/ic_menu_preferences"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <!-- BOUTON AJOUTER ARBRE (Droite) - Réhaussé à 32dp -->
+    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
         android:id="@+id/fabAddTree"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_margin="16dp"
-        android:contentDescription="Add Tree"
-        android:src="@android:drawable/ic_input_add"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="32dp"
+        android:text="Add tree"
+        app:icon="@android:drawable/ic_input_add"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 

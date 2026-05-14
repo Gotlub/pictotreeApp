@@ -184,6 +184,14 @@ class TreeGlobalMapDialog : DialogFragment() {
                         }
                     }
                 }
+
+                // Observation des réglages de recherche
+                launch {
+                    viewModel.settings.collect { settings ->
+                        root.findViewById<View>(R.id.card_search)?.visibility = 
+                            if (settings.enableSearch) View.VISIBLE else View.GONE
+                    }
+                }
             }
         }
 

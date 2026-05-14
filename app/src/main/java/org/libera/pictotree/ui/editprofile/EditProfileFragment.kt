@@ -17,6 +17,7 @@ import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.floatingactionbutton.FloatingActionButton
+import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
 import com.google.android.material.textfield.TextInputEditText
 import coil.load
 import kotlinx.coroutines.launch
@@ -24,6 +25,7 @@ import org.libera.pictotree.R
 import org.libera.pictotree.data.database.AppDatabase
 import org.libera.pictotree.network.RetrofitClient
 import org.libera.pictotree.data.SessionManager
+import org.libera.pictotree.data.repository.ProfileRepository
 
 import androidx.core.widget.doAfterTextChanged
 import kotlinx.coroutines.delay
@@ -47,7 +49,8 @@ class EditProfileFragment : Fragment() {
         val editProfileName = view.findViewById<TextInputEditText>(R.id.editProfileName)
         val ivAvatarPreview = view.findViewById<ImageView>(R.id.ivAvatarPreview)
         val recyclerView = view.findViewById<RecyclerView>(R.id.recyclerViewProfileTrees)
-        val fabAddTree = view.findViewById<FloatingActionButton>(R.id.fabAddTree)
+        val fabAddTree = view.findViewById<ExtendedFloatingActionButton>(R.id.fabAddTree)
+        val btnOpenOptions = view.findViewById<ExtendedFloatingActionButton>(R.id.btnOpenOptions)
         val progressBar = view.findViewById<ProgressBar>(R.id.progressBarSync)
         val btnSearchAvatar = view.findViewById<android.view.View>(R.id.btnSearchAvatar)
 
@@ -89,8 +92,16 @@ class EditProfileFragment : Fragment() {
             }
         }
         
+        val profileRepository = ProfileRepository(
+            requireContext(),
+            database.profileDao(),
+            database.treeDao(),
+            database.imageDao(),
+            username
+        )
         val factory = EditProfileViewModelFactory(
             requireActivity().application,
+            profileRepository,
             database.profileDao(),
             database.treeDao(),
             database.imageDao(),
@@ -98,10 +109,18 @@ class EditProfileFragment : Fragment() {
         )
         viewModel = androidx.lifecycle.ViewModelProvider(this, factory)[EditProfileViewModel::class.java]
 
-        val profileId = arguments?.getLong("profileId")?.toInt() ?: -1
+        val profileId = arguments?.getInt("profileId") ?: -1
 
         if (profileId != -1) {
             viewModel.loadProfile(profileId)
+        }
+
+        // ================= OPTIONS DIALOG =================
+        btnOpenOptions.setOnClickListener {
+            if (profileId != -1) {
+                val dialog = ProfileOptionsDialogFragment.newInstance(profileId)
+                dialog.show(childFragmentManager, "ProfileOptions")
+            }
         }
 
         // ================= AUTO-SAVE ON EXIT =================
@@ -121,7 +140,7 @@ class EditProfileFragment : Fragment() {
         editProfileName.doAfterTextChanged { text ->
             nameSaveJob?.cancel()
             nameSaveJob = viewLifecycleOwner.lifecycleScope.launch {
-                delay(2000) // Sauvegarde auto après 2 secondes d'inactivité
+                delay(2000)
                 val newName = text?.toString()?.trim() ?: ""
                 if (newName.isNotEmpty() && profileId != -1) {
                     viewModel.updateProfile(profileId, newName, currentSelectedAvatarUrl)
@@ -136,7 +155,6 @@ class EditProfileFragment : Fragment() {
                 currentSelectedAvatarUrl = searchResult.imageUrl
                 loadAvatar(currentSelectedAvatarUrl)
                 
-                // SAUVEGARDE INSTANTANÉE de l'avatar
                 val name = editProfileName.text?.toString()?.trim() ?: ""
                 if (profileId != -1) {
                     viewModel.updateProfile(profileId, name, currentSelectedAvatarUrl)
@@ -150,7 +168,9 @@ class EditProfileFragment : Fragment() {
 
         val adapter = ProfileTreeAdapter(
             onTreeDelete = { tree ->
-                viewModel.deleteTree(tree)
+                if (profileId != -1) {
+                    viewModel.deleteTreeFromProfile(profileId, tree.id)
+                }
             },
             onOrderChanged = { newTrees ->
                 if (profileId != -1) {
@@ -179,20 +199,13 @@ class EditProfileFragment : Fragment() {
             ItemTouchHelper.UP or ItemTouchHelper.DOWN, 0
         ) {
             override fun isLongPressDragEnabled(): Boolean = false
-
-            override fun onMove(
-                recyclerView: RecyclerView,
-                viewHolder: RecyclerView.ViewHolder,
-                target: RecyclerView.ViewHolder
-            ): Boolean {
+            override fun onMove(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder, target: RecyclerView.ViewHolder): Boolean {
                 val from = viewHolder.bindingAdapterPosition
                 val to = target.bindingAdapterPosition
                 adapter.moveItem(from, to) 
                 return true
             }
-
             override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {}
-            
             override fun clearView(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder) {
                 super.clearView(recyclerView, viewHolder)
                 adapter.dispatchUpdates()
@@ -268,18 +281,14 @@ class EditProfileFragment : Fragment() {
             "Blue (Adjectives)" to "#64B5F6",
             "Pink (Social)" to "#F06292"
         )
-        
         val names = caaColors.keys.toTypedArray()
         val codes = caaColors.values.toTypedArray()
         var selectedIdx = codes.indexOf(currentColor)
         if (selectedIdx == -1) selectedIdx = 0
-
         val adapter = object : android.widget.ArrayAdapter<String>(requireContext(), android.R.layout.select_dialog_item, names) {
             override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
                 val view = super.getView(position, convertView, parent) as android.widget.TextView
                 val colorCode = codes[position]
-                
-                // Add colored circle icon
                 val size = (24 * context.resources.displayMetrics.density).toInt()
                 val drawable = android.graphics.drawable.GradientDrawable().apply {
                     shape = android.graphics.drawable.GradientDrawable.OVAL
@@ -291,14 +300,9 @@ class EditProfileFragment : Fragment() {
                 return view
             }
         }
-
-        AlertDialog.Builder(requireContext())
-            .setTitle("Fitzgerald Key (CAA)")
-            .setAdapter(adapter) { dialog, which ->
-                viewModel.updateTreeColor(profileId, treeId, codes[which])
-                dialog.dismiss()
-            }
-            .setNegativeButton("Cancel", null)
-            .show()
+        AlertDialog.Builder(requireContext()).setTitle("Fitzgerald Key (CAA)").setAdapter(adapter) { dialog, which ->
+            viewModel.updateTreeColor(profileId, treeId, codes[which])
+            dialog.dismiss()
+        }.setNegativeButton("Cancel", null).show()
     }
 }

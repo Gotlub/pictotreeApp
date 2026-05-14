@@ -17,6 +17,7 @@ import org.libera.pictotree.data.database.dao.TreeDao
 import org.libera.pictotree.data.database.dao.ProfileDao
 import java.io.File
 import com.google.gson.Gson
+import org.libera.pictotree.data.model.ProfileSettings
 
 /**
  * Représente un noeud de l'arbre avec un ID unique au monde (treeId_nodeId_path).
@@ -83,6 +84,9 @@ class TreeExplorerViewModel(
     private val _uiState = MutableStateFlow(HierarchicalUiState())
     val uiState: StateFlow<HierarchicalUiState> = _uiState.asStateFlow()
 
+    private val _settings = MutableStateFlow(ProfileSettings())
+    val settings: StateFlow<ProfileSettings> = _settings.asStateFlow()
+
     private val _phraseList = MutableStateFlow<List<TreeNode>>(emptyList())
     val phraseList: StateFlow<List<TreeNode>> = _phraseList.asStateFlow()
 
@@ -125,10 +129,6 @@ class TreeExplorerViewModel(
         }
     }
 
-    /**
-     * Charge un arbre. 
-     * SI l'arbre est déjà chargé (ex: rotation), on ignore pour garder l'état.
-     */
     fun loadTree(treeId: Int) {
         if (currentTreeId == treeId && rootNode != null) {
             Log.d(TAG, "LOAD_TREE: Already loaded Tree $treeId, skipping reset (Survive Rotation)")
@@ -139,14 +139,26 @@ class TreeExplorerViewModel(
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             currentTreeId = treeId
 
-            val color = profileTreeColorsCache[treeId] ?: if (profileId != -1) {
-                val dbColor = profileDao.getProfileTreeCrossRef(profileId, treeId)?.colorCode ?: "#000000"
-                profileTreeColorsCache[treeId] = dbColor
-                dbColor
-            } else "#000000"
-            _uiState.value = _uiState.value.copy(colorCode = color)
-
             try {
+                // Charger les préférences du profil
+                if (profileId != -1) {
+                    profileDao.getProfileById(profileId)?.let { profile ->
+                        profile.settingsJson?.let {
+                            try {
+                                val savedSettings = Gson().fromJson(it, ProfileSettings::class.java)
+                                _settings.value = savedSettings
+                            } catch (e: Exception) { e.printStackTrace() }
+                        }
+                    }
+                }
+
+                val color = profileTreeColorsCache[treeId] ?: if (profileId != -1) {
+                    val dbColor = profileDao.getProfileTreeCrossRef(profileId, treeId)?.colorCode ?: "#000000"
+                    profileTreeColorsCache[treeId] = dbColor
+                    dbColor
+                } else "#000000"
+                _uiState.value = _uiState.value.copy(colorCode = color)
+
                 treeDao.getTreeById(treeId)?.let { entity ->
                     val rawJson = JSONObject(entity.jsonPayload)
                     getRootObject(rawJson)?.let { rootObj ->
@@ -157,8 +169,6 @@ class TreeExplorerViewModel(
                         val firstChild = parsedRoot.children.firstOrNull()
                         val startNode = firstChild ?: parsedRoot
                         
-                        // Si on n'a pas de sélection (ex: retour de l'inventaire), 
-                        // on initialise la preview sur le point d'entrée
                         if (_uiState.value.previewNode == null) {
                             focusOnNode(startNode, updatePreview = true)
                         } else {
@@ -206,9 +216,6 @@ class TreeExplorerViewModel(
         return node
     }
 
-    /**
-     * @param updatePreview Si true, ce noeud devient la nouvelle sélection pour le panier.
-     */
     fun focusOnNode(node: TreeNode, updatePreview: Boolean = true) {
         Log.d(TAG, "NAV_MOVE: ${node.id} (UpdatePreview: $updatePreview)")
         val roots = profileTreeIds.mapNotNull { profileTreeRootsCache[it] }
@@ -230,7 +237,6 @@ class TreeExplorerViewModel(
     }
 
     fun updateFocusWithinSiblings(node: TreeNode) {
-        // Même si on ne change pas de niveau de navigation, on veut que ce noeud devienne la preview
         if (_uiState.value.navigationNode?.id == node.id) {
             if (_uiState.value.previewNode?.id != node.id) {
                 _uiState.value = _uiState.value.copy(previewNode = node)
@@ -253,20 +259,12 @@ class TreeExplorerViewModel(
         _uiState.value = _uiState.value.copy(previewNode = node)
     }
 
-    /**
-     * Sélectionne un noeud via son ID (venant de Treant.js ou recherche)
-     * On cherche d'abord dans l'arbre actif, puis dans le cache des autres racines.
-     */
     fun selectNodeWithoutNavigatingById(uniqueId: String) {
-        // 1. Chercher dans l'arbre actuellement chargé
         var target = findNodeRecursively(rootNode, uniqueId)
-        
-        // 2. Si pas trouvé, chercher dans le cache des racines (cas navigation inter-arbres Treant)
         if (target == null) {
             val treeId = TreeNode.parseTreeId(uniqueId) ?: -1
             target = findNodeRecursively(profileTreeRootsCache[treeId], uniqueId)
         }
-
         target?.let { node ->
             selectNodeWithoutNavigating(node)
         } ?: run {
@@ -274,9 +272,6 @@ class TreeExplorerViewModel(
         }
     }
 
-    /**
-     * Appelé lors du retour au menu Inventaire (TreeSelectionFragment)
-     */
     fun resetSelection() {
         _uiState.value = _uiState.value.copy(previewNode = null)
     }

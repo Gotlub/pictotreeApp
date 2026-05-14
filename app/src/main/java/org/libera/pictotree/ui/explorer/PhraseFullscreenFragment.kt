@@ -1,7 +1,6 @@
 package org.libera.pictotree.ui.explorer
 
 import android.os.Bundle
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -31,6 +30,7 @@ class PhraseFullscreenFragment : DialogFragment() {
     private lateinit var adapter: PhraseAdapter
     private lateinit var rv: RecyclerView
     private var isDraggingPhrase = false
+    private var lastClickTime = 0L // Debounce
     private var itemTouchHelper: ItemTouchHelper? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -73,10 +73,8 @@ class PhraseFullscreenFragment : DialogFragment() {
 
         val username = SessionManager(requireContext()).getUsername() ?: "default"
         
-        // Setup initial
         updateAdapterForSize(viewModel.uiState.value.phraseSize, username)
 
-        // Sync ToggleGroup
         val currentSize = viewModel.uiState.value.phraseSize
         val checkedBtnId = when(currentSize) {
             0 -> R.id.btn_size_s
@@ -86,7 +84,7 @@ class PhraseFullscreenFragment : DialogFragment() {
         toggleSize.check(checkedBtnId)
 
         toggleSize.addOnButtonCheckedListener { _, checkedId, isChecked ->
-            if (isChecked) {
+            if (isChecked && canClick()) {
                 val size = when(checkedId) {
                     R.id.btn_size_s -> 0
                     R.id.btn_size_l -> 2
@@ -96,7 +94,7 @@ class PhraseFullscreenFragment : DialogFragment() {
             }
         }
 
-        btnClose.setOnClickListener { dismiss() }
+        btnClose.setOnClickListener { if (canClick()) dismiss() }
 
         ttsManager.setListeners(
             onStart = { utteranceId ->
@@ -110,11 +108,21 @@ class PhraseFullscreenFragment : DialogFragment() {
         )
 
         fabSpeak.setOnClickListener {
-            val phrase = viewModel.phraseList.value
-            if (phrase.isEmpty()) return@setOnClickListener
-            ttsManager.stop()
-            phrase.forEachIndexed { index, node -> ttsManager.speak(node.label, index.toString()) }
+            if (canClick()) {
+                val phrase = viewModel.phraseList.value
+                if (phrase.isEmpty()) return@setOnClickListener
+                ttsManager.stop()
+                phrase.forEachIndexed { index, node -> ttsManager.speak(node.label, index.toString()) }
+            }
         }
+    }
+
+    private fun canClick(): Boolean {
+        val now = System.currentTimeMillis()
+        val debounce = viewModel.settings.value.clickDebounceMs
+        if (now - lastClickTime < debounce) return false
+        lastClickTime = now
+        return true
     }
 
     private fun updateAdapterForSize(size: Int, username: String) {
@@ -124,14 +132,14 @@ class PhraseFullscreenFragment : DialogFragment() {
             else -> R.layout.item_phrase_picto_large
         }
         
-        adapter = PhraseAdapter(username, layoutRes, onItemClick = { node -> ttsManager.speak(node.label) })
+        adapter = PhraseAdapter(username, layoutRes, onItemClick = { node -> 
+            if (canClick()) ttsManager.speak(node.label) 
+        })
         rv.adapter = adapter
         rv.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
         adapter.submitList(viewModel.phraseList.value)
 
-        // GESTION PROPRE DU TOUCH HELPER (Un seul à la fois)
         itemTouchHelper?.attachToRecyclerView(null)
-        
         itemTouchHelper = ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(
             ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT, ItemTouchHelper.UP
         ) {
@@ -174,13 +182,14 @@ class PhraseFullscreenFragment : DialogFragment() {
                             1 -> R.layout.item_phrase_picto_medium
                             else -> R.layout.item_phrase_picto_large
                         }
-                        if (adapter.layoutId != targetLayout) {
-                            updateAdapterForSize(state.phraseSize, username)
-                        }
+                        if (adapter.layoutId != targetLayout) updateAdapterForSize(state.phraseSize, username)
                     }
                 }
                 launch {
                     viewModel.userConfig.collect { config -> config?.let { ttsManager.setLanguage(it.locale) } }
+                }
+                launch {
+                    viewModel.settings.collect { settings -> ttsManager.setSpeed(settings.ttsSpeed) }
                 }
             }
         }

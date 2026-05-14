@@ -107,7 +107,7 @@ class DashboardViewModel(
     }
 
     fun deleteProfile(profile: Profile) {
-        viewModelScope.launch { profileRepository.deleteProfile(profile) }
+        viewModelScope.launch { profileRepository.deleteFullProfile(profile.id) }
     }
 
     fun playProfile(profileId: Int) {

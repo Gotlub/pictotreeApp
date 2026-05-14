@@ -32,4 +32,7 @@ interface ImageDao {
 
     @Query("SELECT * FROM images WHERE name LIKE '%' || :query || '%' LIMIT 100")
     suspend fun searchImages(query: String): List<ImageEntity>
+
+    @Query("SELECT * FROM images")
+    suspend fun getAllImages(): List<ImageEntity>
 }

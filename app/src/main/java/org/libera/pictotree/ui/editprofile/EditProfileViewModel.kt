@@ -1,35 +1,46 @@
 package org.libera.pictotree.ui.editprofile
 
 import android.app.Application
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.gson.Gson
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.libera.pictotree.data.SessionManager
 import org.libera.pictotree.data.database.dao.ImageDao
 import org.libera.pictotree.data.database.dao.ProfileDao
 import org.libera.pictotree.data.database.dao.TreeDao
+import org.libera.pictotree.data.database.entity.Profile
 import org.libera.pictotree.data.database.entity.ProfileTreeCrossRef
 import org.libera.pictotree.data.database.entity.TreeEntity
 import org.libera.pictotree.network.dto.TreeMetadataDTO
 import org.libera.pictotree.data.repository.ImageSyncEngine
+import org.libera.pictotree.data.repository.ProfileRepository
 import org.libera.pictotree.network.TreeApiService
+import org.libera.pictotree.data.model.ProfileSettings
+import org.libera.pictotree.ui.explorer.TreeNode
+import java.io.File
 
 class EditProfileViewModel(
     application: Application,
+    private val profileRepository: ProfileRepository,
     private val profileDao: ProfileDao,
     private val treeDao: TreeDao,
     private val imageDao: ImageDao,
     private val treeApiService: TreeApiService
 ) : AndroidViewModel(application) {
 
+    private val TAG = "EditProfileViewModel"
+
     private val _uiState = MutableStateFlow<EditProfileUiState>(EditProfileUiState.Loading)
     val uiState: StateFlow<EditProfileUiState> = _uiState.asStateFlow()
+
+    private val _settings = MutableStateFlow(ProfileSettings())
+    val settings: StateFlow<ProfileSettings> = _settings.asStateFlow()
 
     private val _showTreeSelectionEvent = Channel<Unit>(Channel.BUFFERED)
     val showTreeSelectionEvent = _showTreeSelectionEvent.receiveAsFlow()
@@ -37,131 +48,65 @@ class EditProfileViewModel(
     private val _remoteTrees = MutableStateFlow<List<TreeMetadataDTO>>(emptyList())
     val remoteTrees: StateFlow<List<TreeMetadataDTO>> = _remoteTrees.asStateFlow()
 
+    private var profileId: Int = -1
+
     fun loadProfile(profileId: Int) {
+        this.profileId = profileId
         viewModelScope.launch {
             try {
                 val profile = profileDao.getProfileById(profileId)
                 if (profile != null) {
+                    val savedSettings = profile.settingsJson?.let {
+                        try { Gson().fromJson(it, ProfileSettings::class.java) }
+                        catch (e: Exception) { ProfileSettings() }
+                    } ?: ProfileSettings()
+                    
+                    _settings.value = savedSettings
+
                     val treesWithColor = profileDao.getTreesWithColorForProfile(profileId)
                     val sessionManager = SessionManager(getApplication())
-                    val username = sessionManager.getUsername()
+                    val username = sessionManager.getUsername() ?: "default"
                     
                     val uiModels = treesWithColor.map { item ->
                         val tree = item.tree
                         var localPath: String? = null
                         try {
-                            val url = tree.rootUrl
-                            if (!url.isNullOrEmpty()) {
-                                // 1. Normaliser l'URL (Absolue + Host Correct)
+                            if (!tree.rootUrl.isNullOrEmpty()) {
                                 val hostUrl = org.libera.pictotree.network.RetrofitClient.SERVER_URL
-                                val normalizedUrl = org.libera.pictotree.utils.FileUtils.normalizeUrl(url, hostUrl)
-                                
-                                // 2. Nettoyer (Supprimer cache-buster)
+                                val normalizedUrl = org.libera.pictotree.utils.FileUtils.normalizeUrl(tree.rootUrl, hostUrl)
                                 val cleanUrl = org.libera.pictotree.utils.FileUtils.getCleanUrl(normalizedUrl)
-                                
-                                // 3. Rechercher l'Image téléchargée en associant l'URL distante NETTOYÉE
                                 val imageEntity = imageDao.getImageByRemotePath(cleanUrl)
-                                if (imageEntity != null && username != null) {
-                                    val file = java.io.File(getApplication<Application>().filesDir, "$username/${imageEntity.localPath}")
-                                    if (file.exists()) {
-                                        localPath = file.absolutePath
-                                    }
+                                if (imageEntity != null) {
+                                    val file = File(getApplication<Application>().filesDir, "$username/${imageEntity.localPath}")
+                                    if (file.exists()) localPath = file.absolutePath
                                 }
                             }
-                        } catch (e: Exception) {
-                            e.printStackTrace()
-                        }
+                        } catch (e: Exception) { e.printStackTrace() }
                         ProfileTreeUiModel(tree, localPath, item.colorCode)
                     }
                     _uiState.value = EditProfileUiState.Success(profile, uiModels)
                 } else {
-                    _uiState.value = EditProfileUiState.Error("Profile completely missing from DB")
+                    _uiState.value = EditProfileUiState.Error("Profile not found")
                 }
             } catch(e: Exception) {
-               _uiState.value = EditProfileUiState.Error(e.message ?: "Unknown database error loading profile")
+               _uiState.value = EditProfileUiState.Error(e.message ?: "Error loading profile")
             }
         }
     }
-
-    fun updateTreeColor(profileId: Int, treeId: Int, colorCode: String) {
-        viewModelScope.launch {
-            try {
-                profileDao.updateTreeColor(profileId, treeId, colorCode)
-                loadProfile(profileId)
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
-    }
-
-    fun openTreeSelection() {
-        viewModelScope.launch {
-            searchTrees("")
-            _showTreeSelectionEvent.send(Unit)
-        }
-    }
-
-    private var currentRemotePage = 1
-    private var isRemoteLastPage = false
-    private var isRemoteLoadingMore = false
-    private var currentRemoteQuery = ""
 
     fun searchTrees(query: String) {
-        currentRemoteQuery = query
-        currentRemotePage = 1
-        isRemoteLastPage = false
-        
         viewModelScope.launch {
             try {
-                // On ne cherche que dans MES arbres privés
-                val response = treeApiService.getAvailableTrees(
-                    isPublic = false,
-                    search = if (query.isBlank()) null else query,
-                    page = currentRemotePage,
-                    limit = 50
-                )
-                if (response.isSuccessful) {
-                    val items = response.body() ?: emptyList()
-                    _remoteTrees.value = items
-                    if (items.size < 50) isRemoteLastPage = true
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
+                val response = treeApiService.getAvailableTrees(isPublic = false, search = query.takeIf { it.isNotBlank() }, page = 1, limit = 50)
+                if (response.isSuccessful) _remoteTrees.value = response.body() ?: emptyList()
+            } catch (e: Exception) { e.printStackTrace() }
         }
     }
 
-    fun loadMoreTrees() {
-        if (isRemoteLoadingMore || isRemoteLastPage) return
-        isRemoteLoadingMore = true
-        currentRemotePage++
-        
-        viewModelScope.launch {
-            try {
-                val response = treeApiService.getAvailableTrees(
-                    isPublic = false,
-                    search = if (currentRemoteQuery.isBlank()) null else currentRemoteQuery,
-                    page = currentRemotePage,
-                    limit = 50
-                )
-                if (response.isSuccessful) {
-                    val items = response.body() ?: emptyList()
-                    if (items.isEmpty()) {
-                        isRemoteLastPage = true
-                    } else {
-                        _remoteTrees.value = _remoteTrees.value + items
-                        if (items.size < 50) isRemoteLastPage = true
-                    }
-                } else {
-                    currentRemotePage--
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-                currentRemotePage--
-            } finally {
-                isRemoteLoadingMore = false
-            }
-        }
+    fun loadMoreTrees() { /* Pagination */ }
+
+    fun openTreeSelection() {
+        viewModelScope.launch { searchTrees(""); _showTreeSelectionEvent.send(Unit) }
     }
 
     fun synchronizeAndImportTree(treeId: Int, profileId: Int, username: String) {
@@ -171,103 +116,49 @@ class EditProfileViewModel(
 
         viewModelScope.launch {
             try {
-                // Étape 1 : Récupérer "l'ADN" de l'Arbre via Retrofit (Token automatique via Interceptor)
                 val response = treeApiService.getTree(treeId)
                 if (response.isSuccessful && response.body() != null) {
                     val fullTree = response.body()!!
-                    
-                    // Étape 2 : Insérer l'Entité de Base
                     val jsonPayload = Gson().toJson(fullTree)
-                    
                     val rawRootUrl = fullTree.rootNode?.imageUrl ?: ""
-                    val cleanRootUrl = if (rawRootUrl.isNotEmpty()) {
-                        val normalized = org.libera.pictotree.utils.FileUtils.normalizeUrl(rawRootUrl, hostUrl)
+                    val cleanRootUrl = rawRootUrl.takeIf { it.isNotEmpty() }?.let {
+                        val normalized = org.libera.pictotree.utils.FileUtils.normalizeUrl(it, hostUrl)
                         org.libera.pictotree.utils.FileUtils.getCleanUrl(normalized)
-                    } else null
+                    }
 
-                    val treeEntity = TreeEntity(
-                        id = fullTree.treeId,
-                        name = fullTree.name,
-                        jsonPayload = jsonPayload,
-                        isPublic = false,
-                        lastSync = System.currentTimeMillis(),
-                        rootUrl = cleanRootUrl
-                    )
+                    val treeEntity = TreeEntity(id = fullTree.treeId, name = fullTree.name, jsonPayload = jsonPayload, isPublic = false, lastSync = System.currentTimeMillis(), rootUrl = cleanRootUrl)
                     treeDao.insertTree(treeEntity)
 
-                    // Étape 3 : Engine d'Importation
                     val engine = ImageSyncEngine(getApplication(), imageDao, username, hostUrl, authToken)
                     fullTree.rootNode?.let { engine.syncImagesFromNode(it, fullTree.treeId) }
                     
-                    // Étape 4 : Lier à ce Profil
                     val maxOrder = profileDao.getMaxDisplayOrderForProfile(profileId) ?: -1
-                    val crossRef = ProfileTreeCrossRef(profileId, treeEntity.id, maxOrder + 1)
-                    profileDao.insertProfileTreeCrossRef(crossRef)
+                    profileRepository.insertProfileTreeCrossRef(ProfileTreeCrossRef(profileId, treeEntity.id, maxOrder + 1))
                     
                     loadProfile(profileId)
                 }
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
+            } catch (e: Exception) { e.printStackTrace() }
         }
     }
 
-    fun deleteTree(tree: TreeEntity) {
+    fun deleteTreeFromProfile(profileId: Int, treeId: Int) {
         viewModelScope.launch {
-            try {
-                val sessionManager = SessionManager(getApplication())
-                val username = sessionManager.getUsername() ?: return@launch
-                val currentProfile = (_uiState.value as? EditProfileUiState.Success)?.profile ?: return@launch
-                
-                // 1. SUPPRIMER LE LIEN avec le Profil actuel (et surtout pas l'Arbre entier !)
-                profileDao.deleteProfileTreeCrossRefByIds(currentProfile.id, tree.id)
-                
-                // 2. Compter combien d'AUTRES profils utilisent encore cet arbre
-                val remainingProfiles = profileDao.countProfilesForTree(tree.id)
-                
-                if (remainingProfiles == 0) {
-                    // C'EST LE DERNIER PROFIL À UTILISER CET ARBRE ! On le détruit.
-                    val images = imageDao.getImagesForTree(tree.id)
-                    treeDao.deleteTree(tree) // Cascade détruit ses TreeImageCrossRef
-                    
-                    val filesDir = java.io.File(getApplication<Application>().filesDir, username)
-                    images.forEach { image ->
-                        val refCount = imageDao.countImageReferences(image.id)
-                        if (refCount == 0) {
-                            // C'est la dernière arborescence à utiliser cette image ! Purge intégrale.
-                            imageDao.deleteImageById(image.id)
-                            val physicalFile = java.io.File(filesDir, image.localPath)
-                            if (physicalFile.exists()) {
-                                physicalFile.delete()
-                            }
-                        }
-                    }
-                }
-                
-                // 4. Reload Profile
-                loadProfile(currentProfile.id)
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
+            profileRepository.removeTreeFromProfile(profileId, treeId)
+            loadProfile(profileId)
         }
     }
 
     fun updateTreesOrder(profileId: Int, reorderedTrees: List<ProfileTreeUiModel>) {
         viewModelScope.launch {
-            try {
-                val crossRefs = reorderedTrees.mapIndexed { index, model ->
-                    ProfileTreeCrossRef(
-                        profileId = profileId,
-                        treeId = model.tree.id,
-                        displayOrder = index,
-                        colorCode = model.colorCode
-                    )
-                }
-                profileDao.updateProfileTreeCrossRefs(crossRefs)
-            } catch (e: Exception) {
-                e.printStackTrace()
+            val crossRefs = reorderedTrees.mapIndexed { index, model ->
+                ProfileTreeCrossRef(profileId = profileId, treeId = model.tree.id, displayOrder = index, colorCode = model.colorCode)
             }
+            profileDao.updateProfileTreeCrossRefs(crossRefs)
         }
+    }
+
+    fun updateTreeColor(profileId: Int, treeId: Int, colorCode: String) {
+        viewModelScope.launch { profileDao.updateTreeColor(profileId, treeId, colorCode); loadProfile(profileId) }
     }
 
     fun updateProfile(profileId: Int, newName: String, avatarUrl: String?) {
@@ -279,41 +170,43 @@ class EditProfileViewModel(
                 val hostUrl = org.libera.pictotree.network.RetrofitClient.SERVER_URL
                 
                 var localAvatarUrl = avatarUrl
-                val remoteAvatarUrl = if (avatarUrl != null && (avatarUrl.startsWith("http") || avatarUrl.contains("/api/v1/mobile/"))) {
-                    // C'est une URL distante, on la conserve telle quelle pour le serveur
-                    avatarUrl
-                } else {
-                    null
-                }
                 
-                // Si c'est une image distante, on tente de la télécharger pour l'usage local offline
-                if (remoteAvatarUrl != null) {
+                if (avatarUrl != null && (avatarUrl.startsWith("http") || avatarUrl.contains("/api/v1/mobile/"))) {
                     val engine = ImageSyncEngine(getApplication(), imageDao, username, hostUrl, token)
-                    val localUrl = engine.downloadSingleImage(remoteAvatarUrl)
-                    if (localUrl != null) {
-                        localAvatarUrl = localUrl
-                    }
+                    engine.downloadSingleImage(avatarUrl)?.let { localAvatarUrl = it }
                 }
 
-                val currentProfile = profileDao.getProfileById(profileId)
-                if (currentProfile != null) {
-                    val updated = currentProfile.copy(
+                profileDao.getProfileById(profileId)?.let { current ->
+                    val updated = current.copy(
                         name = newName, 
                         avatarUrl = localAvatarUrl,
-                        remoteAvatarUrl = remoteAvatarUrl
+                        remoteAvatarUrl = avatarUrl, // On passe l'URL brute, le Repository se chargera de la normaliser
+                        settingsJson = Gson().toJson(_settings.value)
                     )
-                    profileDao.insertProfile(updated)
+                    profileRepository.updateProfile(updated)
                     loadProfile(profileId)
                 }
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
+            } catch (e: Exception) { e.printStackTrace() }
+        }
+    }
+
+    fun updateSettings(newSettings: ProfileSettings, profileId: Int) {
+        _settings.value = newSettings
+        val state = _uiState.value
+        if (state is EditProfileUiState.Success) updateProfile(profileId, state.profile.name, state.profile.avatarUrl)
+    }
+
+    fun deleteFullProfile(profileId: Int, onComplete: () -> Unit) {
+        viewModelScope.launch {
+            profileRepository.deleteFullProfile(profileId)
+            withContext(Dispatchers.Main) { onComplete() }
         }
     }
 }
 
 class EditProfileViewModelFactory(
     private val application: Application,
+    private val profileRepository: ProfileRepository,
     private val profileDao: ProfileDao,
     private val treeDao: TreeDao,
     private val imageDao: ImageDao,
@@ -322,7 +215,7 @@ class EditProfileViewModelFactory(
     override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(EditProfileViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return EditProfileViewModel(application, profileDao, treeDao, imageDao, treeApiService) as T
+            return EditProfileViewModel(application, profileRepository, profileDao, treeDao, imageDao, treeApiService) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

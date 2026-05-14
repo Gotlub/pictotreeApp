@@ -13,6 +13,7 @@ class TTSManager(context: Context) : TextToSpeech.OnInitListener {
     private var tts: TextToSpeech? = null
     private var isInitialized = false
     private var pendingLanguage: String? = null
+    private var pendingSpeed: Float = 1.0f
     
     // Callbacks pour l'illumination UI
     private var onStartListener: ((String) -> Unit)? = null
@@ -30,13 +31,12 @@ class TTSManager(context: Context) : TextToSpeech.OnInitListener {
             
             // Appliquer la langue en attente ou la langue par défaut
             val langToSet = pendingLanguage ?: Locale.getDefault().language
-            val result = tts?.setLanguage(Locale(langToSet))
+            tts?.setLanguage(Locale(langToSet))
             
-            android.util.Log.d("TTSManager", "TTS Initialized. Setting language to $langToSet. Result: $result")
+            // Appliquer la vitesse
+            tts?.setSpeechRate(pendingSpeed)
             
-            if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
-                android.util.Log.e("TTSManager", "Language $langToSet is not supported or missing data.")
-            }
+            android.util.Log.d("TTSManager", "TTS Initialized. Language: $langToSet, Speed: $pendingSpeed")
         } else {
             android.util.Log.e("TTSManager", "TTS Initialization failed with status: $status")
         }
@@ -71,6 +71,16 @@ class TTSManager(context: Context) : TextToSpeech.OnInitListener {
             android.util.Log.d("TTSManager", "Language updated to $languageCode. Result: $result")
         } else {
             android.util.Log.d("TTSManager", "Language $languageCode stored as pending (TTS not ready)")
+        }
+    }
+
+    /**
+     * Définit la vitesse de parole (1.0 = normal).
+     */
+    fun setSpeed(speed: Float) {
+        pendingSpeed = speed
+        if (isInitialized) {
+            tts?.setSpeechRate(speed)
         }
     }
 

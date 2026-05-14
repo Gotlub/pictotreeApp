@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="20dp">
+
+        <TextView
+            android:id="@+id/tvOptionsTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Options du Profil"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:textColor="?attr/colorPrimary"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent" />
+
+        <!-- BOUTON FERMER (Croix en haut à droite) -->
+        <ImageButton
+            android:id="@+id/btnCloseOptions"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@android:drawable/ic_menu_close_clear_cancel"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:contentDescription="Fermer" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginTop="24dp"
+            app:layout_constraintTop_toBottomOf="@id/tvOptionsTitle">
+
+            <!-- Startup View -->
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginBottom="16dp">
+                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Démarrer sur :" android:textSize="16sp" />
+                <Spinner android:id="@+id/spinnerStartupView" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+            </LinearLayout>
+
+            <!-- Default Orientation -->
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginBottom="16dp">
+                <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Orientation fixe :" android:textSize="16sp" />
+                <Spinner android:id="@+id/spinnerOrientation" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+            </LinearLayout>
+
+            <!-- Enable Search -->
+            <com.google.android.material.materialswitch.MaterialSwitch
+                android:id="@+id/switchEnableSearch"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Activer la recherche (Loupe)"
+                android:textSize="16sp"
+                android:layout_marginBottom="16dp"/>
+
+            <!-- TTS Speed -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Vitesse de parole :"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+            <com.google.android.material.slider.Slider
+                android:id="@+id/sliderTtsSpeed"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:valueFrom="0.5"
+                android:valueTo="2.0"
+                android:stepSize="0.1"
+                android:layout_marginBottom="12dp" />
+
+            <!-- Click Debounce -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Délai anti-rebond (ms) :"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+            <com.google.android.material.slider.Slider
+                android:id="@+id/sliderDebounce"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:valueFrom="0.0"
+                android:valueTo="2000.0"
+                android:stepSize="100.0"
+                android:layout_marginBottom="24dp" />
+
+            <!-- ACTIONS -->
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+                
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnSyncProfile"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Sauvegarder sur le Web"
+                    android:layout_marginBottom="8dp"
+                    app:icon="@android:drawable/ic_popup_sync" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnDeleteProfile"
+                    style="?attr/materialButtonOutlinedStyle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Supprimer le profil local"
+                    android:textColor="@android:color/holo_red_dark"
+                    app:strokeColor="@android:color/holo_red_dark"
+                    app:icon="@android:drawable/ic_menu_delete"
+                    app:iconTint="@android:color/holo_red_dark" />
+
+            </LinearLayout>
+        </LinearLayout>
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</ScrollView>

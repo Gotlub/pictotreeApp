@@ -17,4 +17,7 @@ interface TreeDao {
 
     @Delete
     suspend fun deleteTree(tree: TreeEntity)
+
+    @Query("SELECT * FROM trees")
+    suspend fun getAllTreesSync(): List<TreeEntity>
 }

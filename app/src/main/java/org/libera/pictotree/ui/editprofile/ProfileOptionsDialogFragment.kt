@@ -1,0 +1,161 @@
+package org.libera.pictotree.ui.editprofile
+
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
+import android.widget.Spinner
+import android.widget.Toast
+import androidx.fragment.app.DialogFragment
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import com.google.android.material.button.MaterialButton
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.materialswitch.MaterialSwitch
+import com.google.android.material.slider.Slider
+import kotlinx.coroutines.launch
+import org.libera.pictotree.R
+import org.libera.pictotree.data.model.ProfileSettings
+
+class ProfileOptionsDialogFragment : DialogFragment() {
+
+    private lateinit var viewModel: EditProfileViewModel
+    private var profileId: Int = -1
+
+    companion object {
+        fun newInstance(profileId: Int): ProfileOptionsDialogFragment {
+            val frag = ProfileOptionsDialogFragment()
+            val args = Bundle()
+            args.putInt("profileId", profileId)
+            frag.arguments = args
+            return frag
+        }
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        // Style standard de dialogue
+        setStyle(STYLE_NORMAL, com.google.android.material.R.style.Theme_Material3_Light_Dialog)
+    }
+
+    override fun onStart() {
+        super.onStart()
+        val width = (resources.displayMetrics.widthPixels * 0.90).toInt()
+        dialog?.window?.setLayout(width, ViewGroup.LayoutParams.WRAP_CONTENT)
+    }
+
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
+        return inflater.inflate(R.layout.dialog_profile_options, container, false)
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        
+        profileId = arguments?.getInt("profileId") ?: -1
+        
+        // Shared ViewModel with EditProfileFragment
+        viewModel = ViewModelProvider(requireParentFragment())[EditProfileViewModel::class.java]
+
+        val spinnerStartupView = view.findViewById<Spinner>(R.id.spinnerStartupView)
+        val spinnerOrientation = view.findViewById<Spinner>(R.id.spinnerOrientation)
+        val switchEnableSearch = view.findViewById<MaterialSwitch>(R.id.switchEnableSearch)
+        val sliderTtsSpeed = view.findViewById<Slider>(R.id.sliderTtsSpeed)
+        val sliderDebounce = view.findViewById<Slider>(R.id.sliderDebounce)
+        val btnDeleteProfile = view.findViewById<MaterialButton>(R.id.btnDeleteProfile)
+        val btnSyncProfile = view.findViewById<MaterialButton>(R.id.btnSyncProfile)
+        val btnClose = view.findViewById<android.widget.ImageButton>(R.id.btnCloseOptions)
+
+        btnClose.setOnClickListener { dismiss() }
+
+        // Setup Spinners
+        val startupViewOptions = arrayOf("Vue Spatiale", "Carte Globale")
+        val startupViewValues = arrayOf("EXPLORER", "MAP")
+        spinnerStartupView.adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_dropdown_item, startupViewOptions)
+
+        val orientationOptions = arrayOf("Portrait", "Paysage")
+        val orientationValues = arrayOf("PORTRAIT", "LANDSCAPE")
+        spinnerOrientation.adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_dropdown_item, orientationOptions)
+
+        // Sync with ViewModel
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.settings.collect { settings ->
+                    val startupIdx = startupViewValues.indexOf(settings.startupView)
+                    if (startupIdx != -1) spinnerStartupView.setSelection(startupIdx)
+
+                    val orientIdx = orientationValues.indexOf(settings.defaultOrientation)
+                    if (orientIdx != -1) spinnerOrientation.setSelection(orientIdx)
+
+                    switchEnableSearch.isChecked = settings.enableSearch
+                    sliderTtsSpeed.value = settings.ttsSpeed
+                    sliderDebounce.value = settings.clickDebounceMs.toFloat()
+                }
+            }
+        }
+
+        // Listeners
+        spinnerStartupView.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                val current = viewModel.settings.value
+                if (current.startupView != startupViewValues[position]) {
+                    viewModel.updateSettings(current.copy(startupView = startupViewValues[position]), profileId)
+                }
+            }
+            override fun onNothingSelected(parent: AdapterView<*>?) {}
+        }
+
+        spinnerOrientation.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                val current = viewModel.settings.value
+                if (current.defaultOrientation != orientationValues[position]) {
+                    viewModel.updateSettings(current.copy(defaultOrientation = orientationValues[position]), profileId)
+                }
+            }
+            override fun onNothingSelected(parent: AdapterView<*>?) {}
+        }
+
+        switchEnableSearch.setOnCheckedChangeListener { _, isChecked ->
+            val current = viewModel.settings.value
+            if (current.enableSearch != isChecked) {
+                viewModel.updateSettings(current.copy(enableSearch = isChecked), profileId)
+            }
+        }
+
+        sliderTtsSpeed.addOnChangeListener { _, value, fromUser ->
+            if (fromUser) {
+                val current = viewModel.settings.value
+                viewModel.updateSettings(current.copy(ttsSpeed = value), profileId)
+            }
+        }
+
+        sliderDebounce.addOnChangeListener { _, value, fromUser ->
+            if (fromUser) {
+                val current = viewModel.settings.value
+                viewModel.updateSettings(current.copy(clickDebounceMs = value.toLong()), profileId)
+            }
+        }
+
+        btnDeleteProfile.setOnClickListener {
+            MaterialAlertDialogBuilder(requireContext())
+                .setTitle("Supprimer le Profil ?")
+                .setMessage("Toutes les données locales de ce profil seront perdues. Cette action est irréversible.")
+                .setPositiveButton("Supprimer") { _, _ ->
+                    viewModel.deleteFullProfile(profileId) {
+                        dismiss()
+                        requireActivity().onBackPressedDispatcher.onBackPressed()
+                    }
+                }
+                .setNegativeButton("Annuler", null)
+                .setIcon(android.R.drawable.ic_menu_delete)
+                .show()
+        }
+
+        btnSyncProfile.setOnClickListener {
+            Toast.makeText(requireContext(), "Synchronisation Cloud bientôt disponible", Toast.LENGTH_SHORT).show()
+        }
+    }
+}

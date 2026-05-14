@@ -55,7 +55,6 @@ class DashboardFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Setup UI References
         rvProfiles = view.findViewById(R.id.rvProfiles)
         progressBar = view.findViewById(R.id.progressBar)
         tvEmptyState = view.findViewById(R.id.tvEmptyState)
@@ -68,18 +67,23 @@ class DashboardFragment : Fragment() {
         tvCurrentLanguage = view.findViewById(R.id.tvCurrentLanguage)
         btnSetPin = view.findViewById(R.id.btnSetPin)
 
-        // Setup Logic
         val sessionManager = SessionManager(requireContext())
         val isOnline = sessionManager.isOnline()
         val username = sessionManager.getUsername() ?: "default"
         val database = AppDatabase.getDatabase(requireContext(), username)
         
-        val profileRepository = ProfileRepository(database.profileDao())
+        val profileRepository = ProfileRepository(
+            requireContext(),
+            database.profileDao(),
+            database.treeDao(),
+            database.imageDao(),
+            username
+        )
         val userConfigRepository = UserConfigRepository(database.userConfigDao())
         val treeDao = database.treeDao()
         val imageDao = database.imageDao()
         val treeApiService = org.libera.pictotree.network.RetrofitClient.treeApiService
-
+        
         val factory = DashboardViewModelFactory(
             requireActivity().application, 
             profileRepository, 
@@ -97,52 +101,56 @@ class DashboardFragment : Fragment() {
         adapter = ProfileAdapter(
                 onProfileClick = { profile -> viewModel.playProfile(profile.id) },
                 onEditClick = { profile ->
-                    val bundle = Bundle().apply { putLong("profileId", profile.id.toLong()) }
+                    // UNIFICATION ID : Utilisation de putInt pour correspondre aux autres vues
+                    val bundle = Bundle().apply { putInt("profileId", profile.id) }
                     findNavController().navigate(R.id.action_dashboardFragment_to_editProfileFragment, bundle)
                 }
         )
         rvProfiles.layoutManager = LinearLayoutManager(requireContext())
         rvProfiles.adapter = adapter
 
-        // Setup Observers
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
 
                 launch {
                     viewModel.navigateToProfileEvent.collect { profileId ->
-                        val bundle = Bundle().apply { putLong("profileId", profileId) }
+                        // UNIFICATION ID : Conversion explicite en Int
+                        val bundle = Bundle().apply { putInt("profileId", profileId.toInt()) }
                         findNavController().navigate(R.id.action_dashboardFragment_to_editProfileFragment, bundle)
                     }
                 }
 
                 launch {
                     viewModel.playProfileEvent.collect { profileId ->
-                        val bundle = Bundle().apply { 
-                            putInt("profileId", profileId)
+                        viewLifecycleOwner.lifecycleScope.launch {
+                            val db = AppDatabase.getDatabase(requireContext(), sessionManager.getUsername() ?: "default")
+                            val profile = db.profileDao().getProfileById(profileId)
+                            val settings = profile?.settingsJson?.let {
+                                try { com.google.gson.Gson().fromJson(it, org.libera.pictotree.data.model.ProfileSettings::class.java) }
+                                catch (e: Exception) { org.libera.pictotree.data.model.ProfileSettings() }
+                            } ?: org.libera.pictotree.data.model.ProfileSettings()
+                            
+                            val orientation = if (settings.defaultOrientation == "LANDSCAPE") {
+                                android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+                            } else {
+                                android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                            }
+                            
+                            sessionManager.setPreferredOrientation(sessionManager.getUsername() ?: "default", orientation)
+                            (requireActivity() as? org.libera.pictotree.MainActivity)?.applyUserOrientation()
+                            
+                            val bundle = Bundle().apply { putInt("profileId", profileId) }
+                            findNavController().navigate(R.id.action_dashboardFragment_to_treeSelectionFragment, bundle)
                         }
-                        findNavController().navigate(R.id.action_dashboardFragment_to_treeSelectionFragment, bundle)
                     }
                 }
 
                 launch {
                     viewModel.uiState.collect { state ->
                         when (state) {
-                            is DashboardUiState.Loading -> {
-                                progressBar.visibility = View.VISIBLE
-                                tvEmptyState.visibility = View.GONE
-                                rvProfiles.visibility = View.GONE
-                            }
-                            is DashboardUiState.Empty -> {
-                                progressBar.visibility = View.GONE
-                                tvEmptyState.visibility = View.VISIBLE
-                                rvProfiles.visibility = View.GONE
-                            }
-                            is DashboardUiState.Success -> {
-                                progressBar.visibility = View.GONE
-                                tvEmptyState.visibility = View.GONE
-                                rvProfiles.visibility = View.VISIBLE
-                                adapter.submitList(state.profiles)
-                            }
+                            is DashboardUiState.Loading -> { progressBar.visibility = View.VISIBLE; tvEmptyState.visibility = View.GONE; rvProfiles.visibility = View.GONE }
+                            is DashboardUiState.Empty -> { progressBar.visibility = View.GONE; tvEmptyState.visibility = View.VISIBLE; rvProfiles.visibility = View.GONE }
+                            is DashboardUiState.Success -> { progressBar.visibility = View.GONE; tvEmptyState.visibility = View.GONE; rvProfiles.visibility = View.VISIBLE; adapter.submitList(state.profiles) }
                         }
                     }
                 }
@@ -161,26 +169,13 @@ class DashboardFragment : Fragment() {
                     }
                 }
 
-                launch {
-                    viewModel.userConfig.collect { config ->
-                        config?.let { tvCurrentLanguage.text = it.locale.uppercase() }
-                    }
-                }
-
-                launch {
-                    viewModel.isImporting.collect { importing ->
-                        progressBar.visibility = if (importing) View.VISIBLE else View.GONE
-                    }
-                }
+                launch { viewModel.userConfig.collect { config -> config?.let { tvCurrentLanguage.text = it.locale.uppercase() } } }
+                launch { viewModel.isImporting.collect { importing -> progressBar.visibility = if (importing) View.VISIBLE else View.GONE } }
             }
         }
 
-        // Setup Listeners
         btnCreateProfile.setOnClickListener { viewModel.createQuickProfile() }
-        btnImportProfile.setOnClickListener { 
-            viewModel.fetchRemoteProfiles()
-            showImportProfileDialog()
-        }
+        btnImportProfile.setOnClickListener { viewModel.fetchRemoteProfiles(); showImportProfileDialog() }
         
         tvCurrentLanguage.setOnClickListener { showLanguageDialog() }
         btnSetPin.setOnClickListener { showSetPinDialog() }
@@ -194,13 +189,9 @@ class DashboardFragment : Fragment() {
             if (isOnline) {
                 Toast.makeText(requireContext(), getString(R.string.dashboard_admin_online_toast), Toast.LENGTH_SHORT).show()
             } else {
-                if (viewModel.isAdminMode.value) {
-                    viewModel.setAdminMode(false)
-                } else if (viewModel.userConfig.value?.offlineSettingsPin != null) {
-                    showUnlockPinDialog()
-                } else {
-                    Toast.makeText(requireContext(), getString(R.string.dashboard_offline_pin_security_toast), Toast.LENGTH_LONG).show()
-                }
+                if (viewModel.isAdminMode.value) viewModel.setAdminMode(false)
+                else if (viewModel.userConfig.value?.offlineSettingsPin != null) showUnlockPinDialog()
+                else Toast.makeText(requireContext(), getString(R.string.dashboard_offline_pin_security_toast), Toast.LENGTH_LONG).show()
             }
         }
     }
@@ -208,9 +199,7 @@ class DashboardFragment : Fragment() {
     private fun showImportProfileDialog() {
         val dialog = ImportProfileDialogFragment(
             remoteProfilesFlow = viewModel.remoteProfiles,
-            onImportClick = { remoteProfile ->
-                viewModel.importRemoteProfile(remoteProfile)
-            }
+            onImportClick = { remoteProfile -> viewModel.importRemoteProfile(remoteProfile) }
         )
         dialog.show(childFragmentManager, "ImportProfileDialog")
     }
@@ -222,32 +211,18 @@ class DashboardFragment : Fragment() {
         container.setPadding(40, 0, 40, 0)
         container.addView(input)
         container.hint = getString(R.string.dashboard_pin_btn)
-
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle(R.string.dialog_unlock_title)
-            .setMessage(R.string.dialog_unlock_message)
-            .setView(container)
+        MaterialAlertDialogBuilder(requireContext()).setTitle(R.string.dialog_unlock_title).setMessage(R.string.dialog_unlock_message).setView(container)
             .setPositiveButton(R.string.dialog_unlock_validate) { _, _ ->
                 val pin = input.text?.toString()
-                if (viewModel.verifyPin(pin ?: "")) {
-                    viewModel.setAdminMode(true)
-                    Toast.makeText(requireContext(), getString(R.string.dashboard_unlocked_toast), Toast.LENGTH_SHORT).show()
-                } else {
-                    Toast.makeText(requireContext(), getString(R.string.dashboard_wrong_pin_toast), Toast.LENGTH_SHORT).show()
-                }
-            }
-            .setNegativeButton(R.string.dialog_create_profile_btn_cancel, null)
-            .show()
+                if (viewModel.verifyPin(pin ?: "")) { viewModel.setAdminMode(true); Toast.makeText(requireContext(), getString(R.string.dashboard_unlocked_toast), Toast.LENGTH_SHORT).show() }
+                else Toast.makeText(requireContext(), getString(R.string.dashboard_wrong_pin_toast), Toast.LENGTH_SHORT).show()
+            }.setNegativeButton(R.string.dialog_create_profile_btn_cancel, null).show()
     }
 
     private fun showLanguageDialog() {
         val languages = arrayOf("Français", "English", "Español", "Deutsch", "Italiano", "Nederlands", "Polski")
         val codes = arrayOf("fr", "en", "es", "de", "it", "nl", "pl")
-        
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle(R.string.dialog_lang_title)
-            .setItems(languages) { _, which -> viewModel.setLanguage(codes[which]) }
-            .show()
+        MaterialAlertDialogBuilder(requireContext()).setTitle(R.string.dialog_lang_title).setItems(languages) { _, which -> viewModel.setLanguage(codes[which]) }.show()
     }
 
     private fun showSetPinDialog() {
@@ -257,21 +232,11 @@ class DashboardFragment : Fragment() {
         container.setPadding(40, 0, 40, 0)
         container.addView(input)
         container.hint = getString(R.string.dialog_pin_hint)
-
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle(R.string.dialog_pin_title)
-            .setMessage(R.string.dialog_pin_message)
-            .setView(container)
+        MaterialAlertDialogBuilder(requireContext()).setTitle(R.string.dialog_pin_title).setMessage(R.string.dialog_pin_message).setView(container)
             .setPositiveButton(R.string.dialog_pin_save) { _, _ ->
                 val pin = input.text?.toString()
-                if (pin?.length == 4) {
-                    viewModel.setPin(pin)
-                    Toast.makeText(requireContext(), getString(R.string.dialog_pin_saved_toast), Toast.LENGTH_SHORT).show()
-                } else {
-                    Toast.makeText(requireContext(), getString(R.string.dialog_pin_error_length), Toast.LENGTH_SHORT).show()
-                }
-            }
-            .setNegativeButton(R.string.dialog_create_profile_btn_cancel, null)
-            .show()
+                if (pin?.length == 4) { viewModel.setPin(pin); Toast.makeText(requireContext(), getString(R.string.dialog_pin_saved_toast), Toast.LENGTH_SHORT).show() }
+                else Toast.makeText(requireContext(), getString(R.string.dialog_pin_error_length), Toast.LENGTH_SHORT).show()
+            }.setNegativeButton(R.string.dialog_create_profile_btn_cancel, null).show()
     }
 }

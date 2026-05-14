@@ -44,7 +44,7 @@
         tools:layout="@layout/fragment_edit_profile">
         <argument
             android:name="profileId"
-            app:argType="long" />
+            app:argType="integer" />
     </fragment>
 
     <fragment
