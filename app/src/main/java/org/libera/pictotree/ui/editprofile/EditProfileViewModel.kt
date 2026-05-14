@@ -103,7 +103,7 @@ class EditProfileViewModel(
         }
     }
 
-    fun loadMoreTrees() { /* Pagination */ }
+    fun loadMoreTrees() { /* Implementation via scroll */ }
 
     fun openTreeSelection() {
         viewModelScope.launch { searchTrees(""); _showTreeSelectionEvent.send(Unit) }
@@ -169,23 +169,35 @@ class EditProfileViewModel(
                 val token = sessionManager.getToken() ?: ""
                 val hostUrl = org.libera.pictotree.network.RetrofitClient.SERVER_URL
                 
-                var localAvatarUrl = avatarUrl
+                val currentProfile = profileDao.getProfileById(profileId) ?: return@launch
                 
-                if (avatarUrl != null && (avatarUrl.startsWith("http") || avatarUrl.contains("/api/v1/mobile/"))) {
+                var finalLocalAvatarUrl = avatarUrl
+                var finalRemoteAvatarUrl = currentProfile.remoteAvatarUrl
+                
+                // Déterminer si l'entrée est une nouvelle URL distante
+                val isInputRemote = avatarUrl != null && (avatarUrl.startsWith("http") || avatarUrl.contains("/api/v1/mobile/"))
+                
+                if (isInputRemote) {
+                    // Nouvel avatar distant -> On télécharge et on met à jour le lien remote
+                    finalRemoteAvatarUrl = avatarUrl
                     val engine = ImageSyncEngine(getApplication(), imageDao, username, hostUrl, token)
-                    engine.downloadSingleImage(avatarUrl)?.let { localAvatarUrl = it }
+                    finalLocalAvatarUrl = engine.downloadSingleImage(avatarUrl!!) ?: avatarUrl
+                } else {
+                    // L'entrée est soit file://, soit null, soit color:
+                    // On garde le remoteAvatarUrl actuel de la BDD pour ne pas le corrompre avec du local
+                    finalLocalAvatarUrl = avatarUrl ?: currentProfile.avatarUrl
                 }
 
-                profileDao.getProfileById(profileId)?.let { current ->
-                    val updated = current.copy(
-                        name = newName, 
-                        avatarUrl = localAvatarUrl,
-                        remoteAvatarUrl = avatarUrl, // On passe l'URL brute, le Repository se chargera de la normaliser
-                        settingsJson = Gson().toJson(_settings.value)
-                    )
-                    profileRepository.updateProfile(updated)
-                    loadProfile(profileId)
-                }
+                val updated = currentProfile.copy(
+                    name = newName, 
+                    avatarUrl = finalLocalAvatarUrl, 
+                    remoteAvatarUrl = finalRemoteAvatarUrl, 
+                    settingsJson = Gson().toJson(_settings.value)
+                )
+                
+                // Passer par le Repository pour un nettoyage sécurisé
+                profileRepository.updateProfile(updated)
+                loadProfile(profileId)
             } catch (e: Exception) { e.printStackTrace() }
         }
     }
