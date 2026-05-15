@@ -120,7 +120,10 @@ class TreeSelectionFragment : Fragment() {
                 }
 
                 if (settings.startupView == "MAP") {
-                    // OUVRIR DIRECTEMENT LA CARTE GLOBALE (Désormais injectée via childFragmentManager pour cohabiter)
+                    // SI MODE CARTE GLOBALE : On prépare l'état dans le VM et on ouvre le dialogue
+                    explorerViewModel.setProfileTreeContext(profileId, explorerViewModel.getProfileTreeIds().toList())
+                    explorerViewModel.loadTree(tree.id)
+                    
                     val treeIds = explorerViewModel.getProfileTreeIds()
                     val dialog = org.libera.pictotree.ui.explorer.TreeGlobalMapDialog.newInstance(
                         treeIds, tree.id, username, ""
@@ -229,7 +232,7 @@ class TreeSelectionFragment : Fragment() {
                                 progressBar.visibility = View.GONE
                                 Toast.makeText(context, state.message, Toast.LENGTH_LONG).show()
                             }
-                            else -> {} // Handle potential empty state or others
+                            else -> {}
                         }
                     }
                 }

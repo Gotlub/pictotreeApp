@@ -101,8 +101,14 @@ class TreeGlobalMapDialog : DialogFragment() {
         }
 
         root.findViewById<View>(R.id.btn_fullscreen_phrase).setOnClickListener {
-            androidx.navigation.fragment.NavHostFragment.findNavController(this)
-                .navigate(R.id.action_treeExplorerFragment_to_phraseFullscreenFragment)
+            val navController = findNavController()
+            // Détection dynamique de l'action selon la vue parente pour éviter le crash
+            val actionId = if (navController.currentDestination?.id == R.id.treeSelectionFragment) {
+                R.id.action_treeSelectionFragment_to_phraseFullscreenFragment
+            } else {
+                R.id.action_treeExplorerFragment_to_phraseFullscreenFragment
+            }
+            navController.navigate(actionId)
         }
 
         root.findViewById<View>(R.id.btn_clear_phrase)?.setOnClickListener {
@@ -198,7 +204,9 @@ class TreeGlobalMapDialog : DialogFragment() {
         val bridge = object {
             @JavascriptInterface
             fun onNodeSelected(prefixedNodeId: String, imageUrl: String?) {
+                // On met à jour DIRECTEMENT le ViewModel, qui est notre seule source de vérité
                 viewModel.selectNodeWithoutNavigatingById(prefixedNodeId)
+                Log.d(TAG, "TREANT_SELECT: Node $prefixedNodeId selected")
             }
         }
 
@@ -217,11 +225,14 @@ class TreeGlobalMapDialog : DialogFragment() {
             val treeId = treeIds[index]
             val orientation = "NORTH"
             
+            // On informe le ViewModel qu'on change d'arbre (pour la couleur CAA)
             viewModel.updateCurrentTreeContext(treeId)
 
             lifecycleScope.launch(Dispatchers.IO) {
                 treeDao.getTreeById(treeId)?.let { entity ->
                     withContext(Dispatchers.Main) {
+                        // On récupère l'ID du picto sélectionné depuis le ViewModel
+                        // S'il appartient à cet arbre, on le passe au moteur de rendu pour le highlight
                         val previewNode = viewModel.uiState.value.previewNode
                         val highlightId = if (previewNode != null && TreeNode.parseTreeId(previewNode.id) == treeId) {
                             previewNode.id
@@ -256,14 +267,26 @@ class TreeGlobalMapDialog : DialogFragment() {
         }
 
         root.findViewById<View>(R.id.btn_add_to_basket).setOnClickListener {
-            viewModel.addToPhrase()
+            viewModel.addToPhrase() // Utilise directement previewNode du ViewModel
         }
 
         root.findViewById<View>(R.id.btn_back_to_nav).setOnClickListener {
+            // RETOUR À LA NAVIGATION NATIVE
             val previewNode = viewModel.uiState.value.previewNode
             if (previewNode != null) {
                 val treeId = TreeNode.parseTreeId(previewNode.id) ?: -1
                 viewModel.jumpToTreeAndNode(treeId, previewNode.id)
+                
+                val navController = findNavController()
+                // FIX STARTUP MAP : Si on vient de la sélection, on saute vers l'explorateur
+                if (navController.currentDestination?.id == R.id.treeSelectionFragment) {
+                    val bundle = Bundle().apply {
+                        putInt("treeId", treeId)
+                        putInt("profileId", viewModel.getProfileId())
+                        putString("username", username)
+                    }
+                    navController.navigate(R.id.action_treeSelectionFragment_to_treeExplorerFragment, bundle)
+                }
             }
             dismiss()
         }
@@ -291,7 +314,11 @@ class TreeGlobalMapDialog : DialogFragment() {
 
         root.findViewById<View>(R.id.card_back_to_trees).setOnClickListener {
             dismiss()
-            (parentFragment as? Fragment)?.findNavController()?.popBackStack()
+            val navController = findNavController()
+            // On s'assure de revenir à la sélection d'arbres si on n'y est pas déjà
+            if (navController.currentDestination?.id != R.id.treeSelectionFragment) {
+                navController.popBackStack(R.id.treeSelectionFragment, false)
+            }
         }
 
         return root

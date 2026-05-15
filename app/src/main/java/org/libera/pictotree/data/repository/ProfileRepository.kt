@@ -115,7 +115,7 @@ class ProfileRepository(
     /**
      * MOTEUR DE PURGE CIBLÉ
      */
-    private suspend fun runTargetedGarbageCollector(imagesToCheck: List<ImageEntity>) = withContext(Dispatchers.IO) {
+    internal suspend fun runTargetedGarbageCollector(imagesToCheck: List<ImageEntity>) = withContext(Dispatchers.IO) {
         if (imagesToCheck.isEmpty()) return@withContext
         
         try {

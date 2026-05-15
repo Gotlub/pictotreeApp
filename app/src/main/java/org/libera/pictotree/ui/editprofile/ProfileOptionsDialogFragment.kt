@@ -16,10 +16,8 @@ import androidx.lifecycle.repeatOnLifecycle
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.materialswitch.MaterialSwitch
-import com.google.android.material.slider.Slider
 import kotlinx.coroutines.launch
 import org.libera.pictotree.R
-import org.libera.pictotree.data.model.ProfileSettings
 
 class ProfileOptionsDialogFragment : DialogFragment() {
 
@@ -38,7 +36,6 @@ class ProfileOptionsDialogFragment : DialogFragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Style standard de dialogue
         setStyle(STYLE_NORMAL, com.google.android.material.R.style.Theme_Material3_Light_Dialog)
     }
 
@@ -56,15 +53,11 @@ class ProfileOptionsDialogFragment : DialogFragment() {
         super.onViewCreated(view, savedInstanceState)
         
         profileId = arguments?.getInt("profileId") ?: -1
-        
-        // Shared ViewModel with EditProfileFragment
         viewModel = ViewModelProvider(requireParentFragment())[EditProfileViewModel::class.java]
 
         val spinnerStartupView = view.findViewById<Spinner>(R.id.spinnerStartupView)
         val spinnerOrientation = view.findViewById<Spinner>(R.id.spinnerOrientation)
         val switchEnableSearch = view.findViewById<MaterialSwitch>(R.id.switchEnableSearch)
-        val sliderTtsSpeed = view.findViewById<Slider>(R.id.sliderTtsSpeed)
-        val sliderDebounce = view.findViewById<Slider>(R.id.sliderDebounce)
         val btnDeleteProfile = view.findViewById<MaterialButton>(R.id.btnDeleteProfile)
         val btnSyncProfile = view.findViewById<MaterialButton>(R.id.btnSyncProfile)
         val btnClose = view.findViewById<android.widget.ImageButton>(R.id.btnCloseOptions)
@@ -91,8 +84,6 @@ class ProfileOptionsDialogFragment : DialogFragment() {
                     if (orientIdx != -1) spinnerOrientation.setSelection(orientIdx)
 
                     switchEnableSearch.isChecked = settings.enableSearch
-                    sliderTtsSpeed.value = settings.ttsSpeed
-                    sliderDebounce.value = settings.clickDebounceMs.toFloat()
                 }
             }
         }
@@ -122,20 +113,6 @@ class ProfileOptionsDialogFragment : DialogFragment() {
             val current = viewModel.settings.value
             if (current.enableSearch != isChecked) {
                 viewModel.updateSettings(current.copy(enableSearch = isChecked), profileId)
-            }
-        }
-
-        sliderTtsSpeed.addOnChangeListener { _, value, fromUser ->
-            if (fromUser) {
-                val current = viewModel.settings.value
-                viewModel.updateSettings(current.copy(ttsSpeed = value), profileId)
-            }
-        }
-
-        sliderDebounce.addOnChangeListener { _, value, fromUser ->
-            if (fromUser) {
-                val current = viewModel.settings.value
-                viewModel.updateSettings(current.copy(clickDebounceMs = value.toLong()), profileId)
             }
         }
 

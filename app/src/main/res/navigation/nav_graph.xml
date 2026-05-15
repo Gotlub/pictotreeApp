@@ -58,6 +58,9 @@
         <action
             android:id="@+id/action_treeSelectionFragment_to_treeExplorerFragment"
             app:destination="@id/treeExplorerFragment" />
+        <action
+            android:id="@+id/action_treeSelectionFragment_to_phraseFullscreenFragment"
+            app:destination="@id/phraseFullscreenFragment" />
     </fragment>
 
     <fragment

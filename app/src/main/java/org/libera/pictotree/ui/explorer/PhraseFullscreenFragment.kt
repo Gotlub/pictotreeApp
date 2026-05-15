@@ -21,6 +21,7 @@ import org.libera.pictotree.data.SessionManager
 import org.libera.pictotree.data.database.AppDatabase
 import org.libera.pictotree.network.RetrofitClient
 import org.libera.pictotree.utils.TTSManager
+
 import androidx.fragment.app.DialogFragment
 
 class PhraseFullscreenFragment : DialogFragment() {
@@ -30,7 +31,6 @@ class PhraseFullscreenFragment : DialogFragment() {
     private lateinit var adapter: PhraseAdapter
     private lateinit var rv: RecyclerView
     private var isDraggingPhrase = false
-    private var lastClickTime = 0L // Debounce
     private var itemTouchHelper: ItemTouchHelper? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -84,7 +84,7 @@ class PhraseFullscreenFragment : DialogFragment() {
         toggleSize.check(checkedBtnId)
 
         toggleSize.addOnButtonCheckedListener { _, checkedId, isChecked ->
-            if (isChecked && canClick()) {
+            if (isChecked) {
                 val size = when(checkedId) {
                     R.id.btn_size_s -> 0
                     R.id.btn_size_l -> 2
@@ -94,7 +94,7 @@ class PhraseFullscreenFragment : DialogFragment() {
             }
         }
 
-        btnClose.setOnClickListener { if (canClick()) dismiss() }
+        btnClose.setOnClickListener { dismiss() }
 
         ttsManager.setListeners(
             onStart = { utteranceId ->
@@ -108,21 +108,11 @@ class PhraseFullscreenFragment : DialogFragment() {
         )
 
         fabSpeak.setOnClickListener {
-            if (canClick()) {
-                val phrase = viewModel.phraseList.value
-                if (phrase.isEmpty()) return@setOnClickListener
-                ttsManager.stop()
-                phrase.forEachIndexed { index, node -> ttsManager.speak(node.label, index.toString()) }
-            }
+            val phrase = viewModel.phraseList.value
+            if (phrase.isEmpty()) return@setOnClickListener
+            ttsManager.stop()
+            phrase.forEachIndexed { index, node -> ttsManager.speak(node.label, index.toString()) }
         }
-    }
-
-    private fun canClick(): Boolean {
-        val now = System.currentTimeMillis()
-        val debounce = viewModel.settings.value.clickDebounceMs
-        if (now - lastClickTime < debounce) return false
-        lastClickTime = now
-        return true
     }
 
     private fun updateAdapterForSize(size: Int, username: String) {
@@ -132,9 +122,7 @@ class PhraseFullscreenFragment : DialogFragment() {
             else -> R.layout.item_phrase_picto_large
         }
         
-        adapter = PhraseAdapter(username, layoutRes, onItemClick = { node -> 
-            if (canClick()) ttsManager.speak(node.label) 
-        })
+        adapter = PhraseAdapter(username, layoutRes, onItemClick = { node -> ttsManager.speak(node.label) })
         rv.adapter = adapter
         rv.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
         adapter.submitList(viewModel.phraseList.value)
@@ -187,9 +175,6 @@ class PhraseFullscreenFragment : DialogFragment() {
                 }
                 launch {
                     viewModel.userConfig.collect { config -> config?.let { ttsManager.setLanguage(it.locale) } }
-                }
-                launch {
-                    viewModel.settings.collect { settings -> ttsManager.setSpeed(settings.ttsSpeed) }
                 }
             }
         }

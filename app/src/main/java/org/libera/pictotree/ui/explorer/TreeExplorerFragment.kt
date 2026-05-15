@@ -53,7 +53,6 @@ class TreeExplorerFragment : Fragment() {
     private lateinit var ivArrowToSiblings: ImageView
     
     private var isDraggingPhrase = false
-    private var lastClickTime = 0L // Pour le debounce logic
     
     // NAVIGATION STABILITY FLAGS
     private var ignoreScrollEvents = false 
@@ -137,9 +136,7 @@ class TreeExplorerFragment : Fragment() {
     private fun setupAdapters() {
         val username = org.libera.pictotree.data.SessionManager(requireContext()).getUsername() ?: "default"
 
-        breadcrumbAdapter = NodeAdapter(username, R.layout.item_breadcrumb) { node -> 
-            if (canClick()) viewModel.focusOnNode(node) 
-        }
+        breadcrumbAdapter = NodeAdapter(username, R.layout.item_breadcrumb) { node -> viewModel.focusOnNode(node) }
         rvBreadcrumbs.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.VERTICAL, false)
         rvBreadcrumbs.adapter = breadcrumbAdapter
         
@@ -152,12 +149,10 @@ class TreeExplorerFragment : Fragment() {
         })
 
         siblingAdapter = NodeAdapter(username, R.layout.item_sibling_node) { node ->
-            if (canClick()) {
-                val position = siblingAdapter.currentList.indexOf(node)
-                if (position != -1) {
-                    siblingAdapter.setSelectedPosition(position)
-                    viewModel.updateFocusWithinSiblings(node)
-                }
+            val position = siblingAdapter.currentList.indexOf(node)
+            if (position != -1) {
+                siblingAdapter.setSelectedPosition(position)
+                viewModel.updateFocusWithinSiblings(node)
             }
         }
         rvSiblings.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
@@ -184,9 +179,7 @@ class TreeExplorerFragment : Fragment() {
         })
 
         childrenAdapter = NodeAdapter(username, R.layout.item_sibling_node) { node ->
-            if (canClick()) {
-                if (node.children.isNotEmpty()) viewModel.focusOnNode(node) else viewModel.selectNodeWithoutNavigating(node)
-            }
+            if (node.children.isNotEmpty()) viewModel.focusOnNode(node) else viewModel.selectNodeWithoutNavigating(node)
         }
         rvChildren.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
         rvChildren.adapter = childrenAdapter
@@ -199,9 +192,7 @@ class TreeExplorerFragment : Fragment() {
             }
         })
 
-        phraseAdapter = PhraseAdapter(username, onItemClick = { node -> 
-            if (canClick()) ttsManager.speak(node.label) 
-        })
+        phraseAdapter = PhraseAdapter(username, onItemClick = { node -> ttsManager.speak(node.label) })
         rvPhrase.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
         rvPhrase.adapter = phraseAdapter
 
@@ -220,14 +211,6 @@ class TreeExplorerFragment : Fragment() {
             }
         })
         itemTouchHelper.attachToRecyclerView(rvPhrase)
-    }
-
-    private fun canClick(): Boolean {
-        val now = System.currentTimeMillis()
-        val debounce = viewModel.settings.value.clickDebounceMs
-        if (now - lastClickTime < debounce) return false
-        lastClickTime = now
-        return true
     }
 
     private fun positionChildrenArrow() {
@@ -289,30 +272,24 @@ class TreeExplorerFragment : Fragment() {
 
     private fun setupListeners(view: View) {
         view.findViewById<View>(R.id.card_eye)?.setOnClickListener {
-            if (canClick()) {
-                val dialog = TreeGlobalMapDialog.newInstance(viewModel.getProfileTreeIds(), viewModel.getCurrentTreeId(), org.libera.pictotree.data.SessionManager(requireContext()).getUsername() ?: "default", viewModel.uiState.value.previewNode?.id ?: "")
-                dialog.show(childFragmentManager, "TreeGlobalMapDialog")
-            }
+            val dialog = TreeGlobalMapDialog.newInstance(viewModel.getProfileTreeIds(), viewModel.getCurrentTreeId(), org.libera.pictotree.data.SessionManager(requireContext()).getUsername() ?: "default", viewModel.uiState.value.previewNode?.id ?: "")
+            dialog.show(childFragmentManager, "TreeGlobalMapDialog")
         }
         view.findViewById<View>(R.id.card_search)?.setOnClickListener {
-            if (canClick()) {
-                val dialog = org.libera.pictotree.ui.common.PictoSearchDialog()
-                dialog.onPictoSelected = { result -> viewModel.addToPhrase(TreeNode("search_${result.id}_recherche", result.name, result.imageUrl, emptyList())) }
-                dialog.show(childFragmentManager, "PictoSearch")
-            }
+            val dialog = org.libera.pictotree.ui.common.PictoSearchDialog()
+            dialog.onPictoSelected = { result -> viewModel.addToPhrase(TreeNode("search_${result.id}_recherche", result.name, result.imageUrl, emptyList())) }
+            dialog.show(childFragmentManager, "PictoSearch")
         }
         view.findViewById<View>(R.id.card_speak)?.setOnClickListener {
-            if (canClick()) {
-                val phrase = viewModel.phraseList.value
-                if (phrase.isNotEmpty()) { ttsManager.stop(); phrase.forEachIndexed { index, node -> ttsManager.speak(node.label, index.toString()) } }
-            }
+            val phrase = viewModel.phraseList.value
+            if (phrase.isNotEmpty()) { ttsManager.stop(); phrase.forEachIndexed { index, node -> ttsManager.speak(node.label, index.toString()) } }
         }
-        view.findViewById<View>(R.id.card_back_to_trees)?.setOnClickListener { if (canClick()) findNavController().popBackStack() }
-        view.findViewById<View>(R.id.card_rotate)?.setOnClickListener { if (canClick()) (requireActivity() as? org.libera.pictotree.MainActivity)?.toggleOrientation() }
-        btnAddToPhrase.setOnClickListener { if (canClick()) viewModel.addToPhrase() }
-        view.findViewById<View>(R.id.btn_fullscreen_phrase)?.setOnClickListener { if (canClick()) findNavController().navigate(R.id.action_treeExplorerFragment_to_phraseFullscreenFragment) }
-        view.findViewById<View>(R.id.btn_clear_phrase)?.setOnClickListener { if (canClick()) showClearPhraseConfirmation() }
-        containerParent.setOnClickListener { if (canClick()) viewModel.uiState.value.parent?.let { viewModel.focusOnNode(it) } }
+        view.findViewById<View>(R.id.card_back_to_trees)?.setOnClickListener { findNavController().popBackStack() }
+        view.findViewById<View>(R.id.card_rotate)?.setOnClickListener { (requireActivity() as? org.libera.pictotree.MainActivity)?.toggleOrientation() }
+        btnAddToPhrase.setOnClickListener { viewModel.addToPhrase() }
+        view.findViewById<View>(R.id.btn_fullscreen_phrase)?.setOnClickListener { findNavController().navigate(R.id.action_treeExplorerFragment_to_phraseFullscreenFragment) }
+        view.findViewById<View>(R.id.btn_clear_phrase)?.setOnClickListener { showClearPhraseConfirmation() }
+        containerParent.setOnClickListener { viewModel.uiState.value.parent?.let { viewModel.focusOnNode(it) } }
     }
 
     private fun showClearPhraseConfirmation() {
@@ -327,8 +304,6 @@ class TreeExplorerFragment : Fragment() {
                     viewModel.settings.collect { settings ->
                         view?.findViewById<View>(R.id.card_search)?.visibility = 
                             if (settings.enableSearch) View.VISIBLE else View.GONE
-                        
-                        ttsManager.setSpeed(settings.ttsSpeed)
                     }
                 }
                 launch { viewModel.uiState.collect { state -> 

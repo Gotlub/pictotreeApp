@@ -105,6 +105,7 @@ class TreeExplorerViewModel(
 
     fun getProfileTreeIds(): IntArray = profileTreeIds.toIntArray()
     fun getCurrentTreeId(): Int = currentTreeId
+    fun getProfileId(): Int = profileId
     
     fun updateCurrentTreeContext(treeId: Int) {
         if (currentTreeId == treeId) return

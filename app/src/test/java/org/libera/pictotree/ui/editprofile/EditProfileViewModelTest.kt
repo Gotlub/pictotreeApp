@@ -17,6 +17,7 @@ import org.libera.pictotree.data.database.dao.TreeDao
 import org.libera.pictotree.data.database.entity.ImageEntity
 import org.libera.pictotree.data.database.entity.Profile
 import org.libera.pictotree.data.database.entity.TreeEntity
+import org.libera.pictotree.data.repository.ProfileRepository
 import org.libera.pictotree.network.TreeApiService
 import java.io.File
 import java.nio.file.Files
@@ -31,6 +32,7 @@ class EditProfileViewModelTest {
     private lateinit var mockTreeDao: TreeDao
     private lateinit var mockImageDao: ImageDao
     private lateinit var mockTreeApiService: TreeApiService
+    private lateinit var mockProfileRepository: ProfileRepository
     private lateinit var tempFilesDir: File
 
     @Before
@@ -42,13 +44,13 @@ class EditProfileViewModelTest {
         mockTreeDao = mockk(relaxed = true)
         mockImageDao = mockk(relaxed = true)
         mockTreeApiService = mockk(relaxed = true)
+        mockProfileRepository = mockk(relaxed = true)
 
-        // Simuler le stockage I/O système sur le bureau temporaire JVM
+        // Simuler le stockage I/O système
         tempFilesDir = Files.createTempDirectory("test_app_files").toFile()
         every { mockApplication.filesDir } returns tempFilesDir
         every { mockApplication.getSharedPreferences(any(), any()) } returns mockk(relaxed = true)
         
-        // Mock SessionManager global construction logic without touching actual SharedPrefs
         mockkConstructor(SessionManager::class)
         every { anyConstructed<SessionManager>().getUsername() } returns "test_user"
     }
@@ -56,56 +58,50 @@ class EditProfileViewModelTest {
     @After
     fun tearDown() {
         Dispatchers.resetMain()
-        unmockkAll() // Désengager MockK
+        unmockkAll()
         tempFilesDir.deleteRecursively()
     }
 
     @Test
-    fun `deleteTree should purge SQLite orphans and physical thumbnails when tree is unique to profile`() = runTest(testDispatcher) {
-        // Mock a Tree and Profile state
-        val mockTree = TreeEntity(id = 11, name = "Target Tree", jsonPayload = "{}", lastSync = 0L, isPublic = false, rootUrl = null)
-        val mockProfile = Profile(id = 1, name = "Kid Profile")
-        val mockImage = ImageEntity(id = 55, remotePath = "http://mock.png", localPath = "images/target.png", name = "target.png")
-
-        // Construct fake physically written image in the temp sandbox
-        val userFilesDir = File(tempFilesDir, "test_user")
-        val fakeStorageImage = File(userFilesDir, "images/target.png")
-        fakeStorageImage.parentFile?.mkdirs()
-        fakeStorageImage.writeText("fake imageData stream block...")
-
-        // Initialiser une UiState.Success parfaite
-        coEvery { mockProfileDao.getProfileById(1) } returns mockProfile
-        coEvery { mockProfileDao.getTreesForProfileOrdered(1) } returns listOf(mockTree)
-
+    fun `deleteTreeFromProfile should delegate to repository and reload profile`() = runTest(testDispatcher) {
         val viewModel = EditProfileViewModel(
             application = mockApplication,
+            profileRepository = mockProfileRepository,
             profileDao = mockProfileDao,
             treeDao = mockTreeDao,
             imageDao = mockImageDao,
             treeApiService = mockTreeApiService
         )
         
-        // Charger l'état 
-        viewModel.loadProfile(1)
-        advanceUntilIdle() 
-
-        // Renseigner le Garbage Collector (Count=0 veut dire destruction justifiée)
-        coEvery { mockProfileDao.countProfilesForTree(11) } returns 0
-        coEvery { mockImageDao.getImagesForTree(11) } returns listOf(mockImage)
-        coEvery { mockImageDao.countImageReferences(55) } returns 0 
-
-        // Exécuter l'action métier dangereuse logicielle (Suppression)
-        viewModel.deleteTree(mockTree)
+        // When: Deleting a tree from profile
+        viewModel.deleteTreeFromProfile(1, 10)
         advanceUntilIdle()
 
-        // S'assurer que le DB DAO a bien effacé l'arbre, la liaison et l'image locale !
-        coVerify(exactly = 1) { 
-            mockProfileDao.deleteProfileTreeCrossRefByIds(1, 11)
-            mockTreeDao.deleteTree(mockTree)
-            mockImageDao.deleteImageById(55)
-        }
+        // Then: Repository should be called
+        coVerify { mockProfileRepository.removeTreeFromProfile(1, 10) }
+        // And: Profile should be reloaded
+        coVerify { mockProfileDao.getProfileById(1) }
+    }
+
+    @Test
+    fun `deleteFullProfile should delegate to repository and call completion`() = runTest(testDispatcher) {
+        val viewModel = EditProfileViewModel(
+            application = mockApplication,
+            profileRepository = mockProfileRepository,
+            profileDao = mockProfileDao,
+            treeDao = mockTreeDao,
+            imageDao = mockImageDao,
+            treeApiService = mockTreeApiService
+        )
         
-        // Vérifier par empreinte Système que I/O Disk a été sollicité
-        assertFalse("Le fichier root ciblé aurait du être effacé physiquement par le GC Engine !", fakeStorageImage.exists())
+        var completed = false
+        // When: Deleting full profile
+        viewModel.deleteFullProfile(1) { completed = true }
+        advanceUntilIdle()
+
+        // Then: Repository should be called
+        coVerify { mockProfileRepository.deleteFullProfile(1) }
+        // And: Completion callback should be triggered
+        assertEquals(true, completed)
     }
 }
