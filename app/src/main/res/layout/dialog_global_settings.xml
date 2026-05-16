@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Paramètres de l'application"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:textColor="?attr/colorPrimary"
+            android:layout_marginBottom="24dp"/>
+
+        <!-- 1. ACCÈS HORS-LIGNE -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Sécurité de connexion"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp" />
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/switchOfflineAccess"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Autoriser l'accès hors-ligne"
+            android:layout_marginBottom="4dp"/>
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Si activé, ce périphérique pourra accéder aux profils sans mot de passe en mode déconnecté (Consultation uniquement)."
+            android:textSize="11sp"
+            android:textColor="#666666"
+            android:layout_marginBottom="16dp" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#DDDDDD"
+            android:layout_marginBottom="16dp" />
+
+        <!-- 2. LANGUE -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Langue de l'application"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp" />
+        <Spinner
+            android:id="@+id/spinnerLanguage"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp" />
+
+        <!-- 3. AFFICHAGE DE L'APP (HEADER) -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Affichage de l'app"
+            android:textStyle="bold"
+            android:layout_marginBottom="12dp" />
+
+        <!-- 4. DÉMARRER SUR -->
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginBottom="12dp">
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Démarrer sur :" />
+            <Spinner android:id="@+id/spinnerStartupView" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+        </LinearLayout>
+
+        <!-- 5. ORIENTATION FIXE -->
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginBottom="12dp">
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Orientation fixe :" />
+            <Spinner android:id="@+id/spinnerOrientation" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+        </LinearLayout>
+
+        <!-- 6. LOUPE DE RECHERCHE -->
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/switchGlobalSearch"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Activer la loupe de recherche"
+            android:layout_marginBottom="24dp"/>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#DDDDDD"
+            android:layout_marginBottom="16dp" />
+
+        <!-- 7. CODE VERROUILLAGE / DÉVERROUILLAGE -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Code verrouillage/déverrouillage"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp" />
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnChangePin"
+            style="?attr/materialButtonOutlinedStyle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Changer le code PIN"
+            android:layout_marginBottom="4dp" />
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Ce code protège l'accès à l'édition (Nouveau, Importer, Supprimer). En cas d'oubli, connectez-vous en ligne."
+            android:textSize="11sp"
+            android:textColor="#666666"
+            android:layout_marginBottom="24dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnCloseSettings"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Fermer" />
+
+    </LinearLayout>
+</ScrollView>

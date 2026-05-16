@@ -15,6 +15,7 @@ import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import org.libera.pictotree.R
 import org.libera.pictotree.data.database.AppDatabase
@@ -103,15 +104,12 @@ class TreeSelectionFragment : Fragment() {
 
         val hostUrl = org.libera.pictotree.network.RetrofitClient.SERVER_URL
         adapter = TreeAdapter(username, hostUrl, allowNetwork = false) { tree ->
-            // LIRE LES PRÉFÉRENCES DU PROFIL
+            // LIRE LES PRÉFÉRENCES GLOBALES DEPUIS USERCONFIG
             viewLifecycleOwner.lifecycleScope.launch {
                 val profileId = arguments?.getInt("profileId", -1) ?: -1
                 val database = AppDatabase.getDatabase(requireContext(), username)
-                val profile = database.profileDao().getProfileById(profileId)
-                val settings = profile?.settingsJson?.let {
-                    try { com.google.gson.Gson().fromJson(it, org.libera.pictotree.data.model.ProfileSettings::class.java) }
-                    catch (e: Exception) { org.libera.pictotree.data.model.ProfileSettings() }
-                } ?: org.libera.pictotree.data.model.ProfileSettings()
+                val config = database.userConfigDao().getUserConfigFlow().first()
+                val startupView = config?.startupView ?: "EXPLORER"
 
                 val bundle = Bundle().apply {
                     putInt("treeId", tree.id)
@@ -119,8 +117,7 @@ class TreeSelectionFragment : Fragment() {
                     putString("username", username)
                 }
 
-                if (settings.startupView == "MAP") {
-                    // SI MODE CARTE GLOBALE : On prépare l'état dans le VM et on ouvre le dialogue
+                if (startupView == "MAP") {
                     explorerViewModel.setProfileTreeContext(profileId, explorerViewModel.getProfileTreeIds().toList())
                     explorerViewModel.loadTree(tree.id)
                     
@@ -206,16 +203,10 @@ class TreeSelectionFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 launch {
-                    val currentProfileId = arguments?.getInt("profileId", -1) ?: -1
-                    val currentUsername = org.libera.pictotree.data.SessionManager(requireContext()).getUsername() ?: "default"
-                    val profile = AppDatabase.getDatabase(requireContext(), currentUsername).profileDao().getProfileById(currentProfileId)
-                    val settings = profile?.settingsJson?.let {
-                        try { com.google.gson.Gson().fromJson(it, org.libera.pictotree.data.model.ProfileSettings::class.java) }
-                        catch (e: Exception) { org.libera.pictotree.data.model.ProfileSettings() }
-                    } ?: org.libera.pictotree.data.model.ProfileSettings()
-
-                    view?.findViewById<View>(R.id.card_search)?.visibility = 
-                        if (settings.enableSearch) View.VISIBLE else View.GONE
+                    explorerViewModel.userConfig.collect { config ->
+                        view?.findViewById<View>(R.id.card_search)?.visibility = 
+                            if (config?.enableSearch == true) View.VISIBLE else View.GONE
+                    }
                 }
 
                 launch {

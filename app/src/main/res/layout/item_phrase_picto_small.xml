@@ -20,8 +20,8 @@
 
         <ImageView
             android:id="@+id/iv_picto"
-            android:layout_width="72dp"
-            android:layout_height="72dp"
+            android:layout_width="100dp"
+            android:layout_height="100dp"
             android:scaleType="centerInside"
             android:contentDescription="Pictogram"
             app:srcCompat="@drawable/ic_launcher_foreground" />

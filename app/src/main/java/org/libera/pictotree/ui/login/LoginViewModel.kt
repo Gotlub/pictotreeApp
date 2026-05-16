@@ -1,14 +1,17 @@
 package org.libera.pictotree.ui.login
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.first
 import org.libera.pictotree.network.RetrofitClient
 import org.libera.pictotree.data.repository.AuthRepository
+import org.libera.pictotree.data.database.AppDatabase
 
 /**
  * UI State for the Login Screen
@@ -27,15 +30,12 @@ data class LoginUiState(
 )
 
 class LoginViewModel(
-    private val authRepository: AuthRepository = AuthRepository(RetrofitClient.apiService)
-) : ViewModel() {
+    application: Application
+) : AndroidViewModel(application) {
 
+    private val authRepository = AuthRepository(RetrofitClient.apiService)
     private val _uiState = MutableStateFlow(LoginUiState())
     val uiState: StateFlow<LoginUiState> = _uiState.asStateFlow()
-
-    init {
-        // Known users are now injected dynamically from the Fragment using loadKnownUsers()
-    }
 
     fun loadKnownUsers(users: List<String>) {
         if (_uiState.value.availableUsers != users) {
@@ -50,7 +50,6 @@ class LoginViewModel(
             
             currentState.copy(
                 selectedUser = username,
-                // Automatically activate online mode if new user
                 isOnlineMode = if (isNewUser) true else currentState.isOnlineMode,
                 isPasswordVisible = if (isNewUser) true else currentState.isPasswordVisible
             )
@@ -75,28 +74,41 @@ class LoginViewModel(
             return
         }
 
-        // On affiche le loading et on efface l'erreur précédente
         _uiState.update { it.copy(isLoading = true, errorMessage = null, isLoginSuccessful = false) }
 
         if (!isOnline) {
-            _uiState.update { it.copy(isLoading = false) }
-            val knownUsers = _uiState.value.availableUsers
-            if (knownUsers.contains(username)) {
-                _uiState.update { it.copy(
-                    isLoginSuccessful = true,
-                    token = null,
-                    username = username
-                ) }
-            } else {
-                _uiState.update { it.copy(errorMessage = "Utilisateur inconnu localement. Passez en mode Ligne pour vous connecter la première fois.") }
+            viewModelScope.launch {
+                val knownUsers = _uiState.value.availableUsers
+                if (knownUsers.contains(username)) {
+                    // VERIFIER L'AUTORISATION HORS LIGNE
+                    val db = AppDatabase.getDatabase(getApplication(), username)
+                    val config = db.userConfigDao().getUserConfigFlow().first()
+                    
+                    if (config?.isOfflineAccessAllowed == true) {
+                        _uiState.update { it.copy(
+                            isLoading = false,
+                            isLoginSuccessful = true,
+                            token = null,
+                            username = username
+                        ) }
+                    } else {
+                        _uiState.update { it.copy(
+                            isLoading = false,
+                            errorMessage = "L'accès hors-ligne n'est pas autorisé pour ce compte. Connectez-vous en ligne."
+                        ) }
+                    }
+                } else {
+                    _uiState.update { it.copy(
+                        isLoading = false,
+                        errorMessage = "Utilisateur inconnu localement. Connectez-vous en ligne."
+                    ) }
+                }
             }
             return
         }
 
         viewModelScope.launch {
             val result = authRepository.login(username, password)
-            
-            // À la fin de la requête, on retire le loader
             _uiState.update { it.copy(isLoading = false) }
 
             result.onSuccess { response ->
@@ -107,8 +119,7 @@ class LoginViewModel(
                     username = username
                 ) }
             }.onFailure { exception ->
-                // Afficher le message d'erreur
-                _uiState.update { it.copy(errorMessage = exception.message ?: "Erreur inconnue de connexion") }
+                _uiState.update { it.copy(errorMessage = exception.message ?: "Erreur de connexion") }
             }
         }
     }

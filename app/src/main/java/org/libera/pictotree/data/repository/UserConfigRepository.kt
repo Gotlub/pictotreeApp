@@ -27,6 +27,30 @@ class UserConfigRepository(private val userConfigDao: UserConfigDao) {
         }
     }
 
+    suspend fun saveGlobalDisplaySettings(startupView: String, orientation: String) {
+        val current = userConfigDao.getUserConfig()
+        if (current != null) {
+            userConfigDao.updateUserConfig(current.copy(
+                startupView = startupView,
+                defaultOrientation = orientation
+            ))
+        }
+    }
+
+    suspend fun saveOfflineAccessAllowed(allowed: Boolean) {
+        val current = userConfigDao.getUserConfig()
+        if (current != null) {
+            userConfigDao.updateUserConfig(current.copy(isOfflineAccessAllowed = allowed))
+        }
+    }
+
+    suspend fun saveEnableSearch(enabled: Boolean) {
+        val current = userConfigDao.getUserConfig()
+        if (current != null) {
+            userConfigDao.updateUserConfig(current.copy(enableSearch = enabled))
+        }
+    }
+
     suspend fun initializeDefaultIfNeeded() {
         if (userConfigDao.getUserConfig() == null) {
             userConfigDao.insertUserConfig(UserConfig(locale = Locale.getDefault().language))
