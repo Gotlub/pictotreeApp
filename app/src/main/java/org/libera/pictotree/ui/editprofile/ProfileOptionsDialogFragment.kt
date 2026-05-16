@@ -4,9 +4,6 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.AdapterView
-import android.widget.ArrayAdapter
-import android.widget.Spinner
 import android.widget.Toast
 import androidx.fragment.app.DialogFragment
 import androidx.lifecycle.Lifecycle
@@ -55,8 +52,6 @@ class ProfileOptionsDialogFragment : DialogFragment() {
         profileId = arguments?.getInt("profileId") ?: -1
         viewModel = ViewModelProvider(requireParentFragment())[EditProfileViewModel::class.java]
 
-        val spinnerStartupView = view.findViewById<Spinner>(R.id.spinnerStartupView)
-        val spinnerOrientation = view.findViewById<Spinner>(R.id.spinnerOrientation)
         val switchEnableSearch = view.findViewById<MaterialSwitch>(R.id.switchEnableSearch)
         val btnDeleteProfile = view.findViewById<MaterialButton>(R.id.btnDeleteProfile)
         val btnSyncProfile = view.findViewById<MaterialButton>(R.id.btnSyncProfile)
@@ -64,51 +59,16 @@ class ProfileOptionsDialogFragment : DialogFragment() {
 
         btnClose.setOnClickListener { dismiss() }
 
-        // Setup Spinners
-        val startupViewOptions = arrayOf("Vue Spatiale", "Carte Globale")
-        val startupViewValues = arrayOf("EXPLORER", "MAP")
-        spinnerStartupView.adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_dropdown_item, startupViewOptions)
-
-        val orientationOptions = arrayOf("Portrait", "Paysage")
-        val orientationValues = arrayOf("PORTRAIT", "LANDSCAPE")
-        spinnerOrientation.adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_dropdown_item, orientationOptions)
-
         // Sync with ViewModel
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.settings.collect { settings ->
-                    val startupIdx = startupViewValues.indexOf(settings.startupView)
-                    if (startupIdx != -1) spinnerStartupView.setSelection(startupIdx)
-
-                    val orientIdx = orientationValues.indexOf(settings.defaultOrientation)
-                    if (orientIdx != -1) spinnerOrientation.setSelection(orientIdx)
-
                     switchEnableSearch.isChecked = settings.enableSearch
                 }
             }
         }
 
         // Listeners
-        spinnerStartupView.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                val current = viewModel.settings.value
-                if (current.startupView != startupViewValues[position]) {
-                    viewModel.updateSettings(current.copy(startupView = startupViewValues[position]), profileId)
-                }
-            }
-            override fun onNothingSelected(parent: AdapterView<*>?) {}
-        }
-
-        spinnerOrientation.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                val current = viewModel.settings.value
-                if (current.defaultOrientation != orientationValues[position]) {
-                    viewModel.updateSettings(current.copy(defaultOrientation = orientationValues[position]), profileId)
-                }
-            }
-            override fun onNothingSelected(parent: AdapterView<*>?) {}
-        }
-
         switchEnableSearch.setOnCheckedChangeListener { _, isChecked ->
             val current = viewModel.settings.value
             if (current.enableSearch != isChecked) {

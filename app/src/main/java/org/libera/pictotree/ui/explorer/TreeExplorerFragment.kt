@@ -301,9 +301,9 @@ class TreeExplorerFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 launch {
-                    viewModel.settings.collect { settings ->
+                    viewModel.userConfig.collect { config ->
                         view?.findViewById<View>(R.id.card_search)?.visibility = 
-                            if (settings.enableSearch) View.VISIBLE else View.GONE
+                            if (config?.enableSearch == true) View.VISIBLE else View.GONE
                     }
                 }
                 launch { viewModel.uiState.collect { state -> 

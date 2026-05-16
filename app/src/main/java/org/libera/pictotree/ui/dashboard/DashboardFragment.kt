@@ -35,14 +35,12 @@ class DashboardFragment : Fragment() {
     private lateinit var rvProfiles: RecyclerView
     private lateinit var progressBar: ProgressBar
     private lateinit var tvEmptyState: TextView
-    private lateinit var layoutAdminActions: View
+    private lateinit var layoutDashboardControls: View
     private lateinit var btnCreateProfile: MaterialButton
     private lateinit var btnImportProfile: MaterialButton
+    private lateinit var btnGlobalMenu: MaterialButton
     private lateinit var ivAdminStatus: ImageView
     private lateinit var ivLogout: ImageView
-    private lateinit var cardUserSettings: View
-    private lateinit var tvCurrentLanguage: TextView
-    private lateinit var btnSetPin: View
 
     override fun onCreateView(
             inflater: LayoutInflater,
@@ -58,14 +56,12 @@ class DashboardFragment : Fragment() {
         rvProfiles = view.findViewById(R.id.rvProfiles)
         progressBar = view.findViewById(R.id.progressBar)
         tvEmptyState = view.findViewById(R.id.tvEmptyState)
-        layoutAdminActions = view.findViewById(R.id.layout_admin_actions)
+        layoutDashboardControls = view.findViewById(R.id.layout_dashboard_controls)
         btnCreateProfile = view.findViewById(R.id.btnCreateProfile)
         btnImportProfile = view.findViewById(R.id.btnImportProfile)
+        btnGlobalMenu = view.findViewById(R.id.btnGlobalMenu)
         ivAdminStatus = view.findViewById(R.id.ivAdminStatus)
         ivLogout = view.findViewById(R.id.ivLogout)
-        cardUserSettings = view.findViewById(R.id.cardUserSettings)
-        tvCurrentLanguage = view.findViewById(R.id.tvCurrentLanguage)
-        btnSetPin = view.findViewById(R.id.btnSetPin)
 
         val sessionManager = SessionManager(requireContext())
         val isOnline = sessionManager.isOnline()
@@ -101,7 +97,6 @@ class DashboardFragment : Fragment() {
         adapter = ProfileAdapter(
                 onProfileClick = { profile -> viewModel.playProfile(profile.id) },
                 onEditClick = { profile ->
-                    // UNIFICATION ID : Utilisation de putInt pour correspondre aux autres vues
                     val bundle = Bundle().apply { putInt("profileId", profile.id) }
                     findNavController().navigate(R.id.action_dashboardFragment_to_editProfileFragment, bundle)
                 }
@@ -114,34 +109,26 @@ class DashboardFragment : Fragment() {
 
                 launch {
                     viewModel.navigateToProfileEvent.collect { profileId ->
-                        // UNIFICATION ID : Conversion explicite en Int
-                        val bundle = Bundle().apply { putInt("profileId", profileId.toInt()) }
+                        val bundle = Bundle().apply { putInt("profileId", profileId) }
                         findNavController().navigate(R.id.action_dashboardFragment_to_editProfileFragment, bundle)
                     }
                 }
 
                 launch {
                     viewModel.playProfileEvent.collect { profileId ->
-                        viewLifecycleOwner.lifecycleScope.launch {
-                            val db = AppDatabase.getDatabase(requireContext(), sessionManager.getUsername() ?: "default")
-                            val profile = db.profileDao().getProfileById(profileId)
-                            val settings = profile?.settingsJson?.let {
-                                try { com.google.gson.Gson().fromJson(it, org.libera.pictotree.data.model.ProfileSettings::class.java) }
-                                catch (e: Exception) { org.libera.pictotree.data.model.ProfileSettings() }
-                            } ?: org.libera.pictotree.data.model.ProfileSettings()
-                            
-                            val orientation = if (settings.defaultOrientation == "LANDSCAPE") {
+                        // Synchroniser l'orientation juste avant de naviguer
+                        val config = viewModel.userConfig.value
+                        if (config != null) {
+                            val orientation = if (config.defaultOrientation == "LANDSCAPE") {
                                 android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
                             } else {
                                 android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
                             }
-                            
-                            sessionManager.setPreferredOrientation(sessionManager.getUsername() ?: "default", orientation)
-                            (requireActivity() as? org.libera.pictotree.MainActivity)?.applyUserOrientation()
-                            
-                            val bundle = Bundle().apply { putInt("profileId", profileId) }
-                            findNavController().navigate(R.id.action_dashboardFragment_to_treeSelectionFragment, bundle)
+                            sessionManager.setPreferredOrientation(username, orientation)
                         }
+                        
+                        val bundle = Bundle().apply { putInt("profileId", profileId) }
+                        findNavController().navigate(R.id.action_dashboardFragment_to_treeSelectionFragment, bundle)
                     }
                 }
 
@@ -158,27 +145,32 @@ class DashboardFragment : Fragment() {
                 launch {
                     viewModel.isAdminMode.collect { isAdmin ->
                         adapter.isAdminMode = isAdmin
-                        layoutAdminActions.visibility = if (isAdmin && isOnline) View.VISIBLE else View.GONE
-                        if (isAdmin) {
-                            cardUserSettings.visibility = View.VISIBLE
-                            ivAdminStatus.setImageResource(android.R.drawable.ic_partial_secure)
-                        } else {
-                            cardUserSettings.visibility = View.GONE
-                            ivAdminStatus.setImageResource(android.R.drawable.ic_secure)
-                        }
+                        layoutDashboardControls.visibility = if (isAdmin) View.VISIBLE else View.GONE
+                        ivAdminStatus.setImageResource(if (isAdmin) android.R.drawable.ic_partial_secure else android.R.drawable.ic_secure)
                     }
                 }
 
-                launch { viewModel.userConfig.collect { config -> config?.let { tvCurrentLanguage.text = it.locale.uppercase() } } }
                 launch { viewModel.isImporting.collect { importing -> progressBar.visibility = if (importing) View.VISIBLE else View.GONE } }
+                
+                // Observer les changements de config pour mettre à jour SessionManager en temps réel
+                launch {
+                    viewModel.userConfig.collect { config ->
+                        if (config != null) {
+                            val orientation = if (config.defaultOrientation == "LANDSCAPE") {
+                                android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+                            } else {
+                                android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                            }
+                            sessionManager.setPreferredOrientation(username, orientation)
+                        }
+                    }
+                }
             }
         }
 
         btnCreateProfile.setOnClickListener { viewModel.createQuickProfile() }
         btnImportProfile.setOnClickListener { viewModel.fetchRemoteProfiles(); showImportProfileDialog() }
-        
-        tvCurrentLanguage.setOnClickListener { showLanguageDialog() }
-        btnSetPin.setOnClickListener { showSetPinDialog() }
+        btnGlobalMenu.setOnClickListener { showGlobalSettingsDialog() }
         
         ivLogout.setOnClickListener {
             sessionManager.clearSession()
@@ -204,6 +196,15 @@ class DashboardFragment : Fragment() {
         dialog.show(childFragmentManager, "ImportProfileDialog")
     }
 
+    private fun showGlobalSettingsDialog() {
+        val dialog = GlobalSettingsDialogFragment()
+        dialog.show(childFragmentManager, "GlobalSettingsDialog")
+    }
+
+    fun showSetPinDialogFromDialog() {
+        showSetPinDialog()
+    }
+
     private fun showUnlockPinDialog() {
         val input = TextInputEditText(requireContext())
         input.inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_VARIATION_PASSWORD
@@ -217,12 +218,6 @@ class DashboardFragment : Fragment() {
                 if (viewModel.verifyPin(pin ?: "")) { viewModel.setAdminMode(true); Toast.makeText(requireContext(), getString(R.string.dashboard_unlocked_toast), Toast.LENGTH_SHORT).show() }
                 else Toast.makeText(requireContext(), getString(R.string.dashboard_wrong_pin_toast), Toast.LENGTH_SHORT).show()
             }.setNegativeButton(R.string.dialog_create_profile_btn_cancel, null).show()
-    }
-
-    private fun showLanguageDialog() {
-        val languages = arrayOf("Français", "English", "Español", "Deutsch", "Italiano", "Nederlands", "Polski")
-        val codes = arrayOf("fr", "en", "es", "de", "it", "nl", "pl")
-        MaterialAlertDialogBuilder(requireContext()).setTitle(R.string.dialog_lang_title).setItems(languages) { _, which -> viewModel.setLanguage(codes[which]) }.show()
     }
 
     private fun showSetPinDialog() {

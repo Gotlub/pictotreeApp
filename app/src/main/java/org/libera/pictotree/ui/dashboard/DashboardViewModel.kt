@@ -39,7 +39,7 @@ class DashboardViewModel(
     private val _isAdminMode = MutableStateFlow(false)
     val isAdminMode: StateFlow<Boolean> = _isAdminMode
 
-    private val _navigateToProfileEvent = Channel<Long>(Channel.BUFFERED)
+    private val _navigateToProfileEvent = Channel<Int>(Channel.BUFFERED)
     val navigateToProfileEvent = _navigateToProfileEvent.receiveAsFlow()
 
     private val _playProfileEvent = Channel<Int>(Channel.BUFFERED)
@@ -80,6 +80,18 @@ class DashboardViewModel(
         viewModelScope.launch { userConfigRepository.savePin(pin) }
     }
 
+    fun setGlobalDisplaySettings(startupView: String, orientation: String) {
+        viewModelScope.launch { userConfigRepository.saveGlobalDisplaySettings(startupView, orientation) }
+    }
+
+    fun setOfflineAccessAllowed(allowed: Boolean) {
+        viewModelScope.launch { userConfigRepository.saveOfflineAccessAllowed(allowed) }
+    }
+
+    fun setEnableSearch(enabled: Boolean) {
+        viewModelScope.launch { userConfigRepository.saveEnableSearch(enabled) }
+    }
+
     fun setAdminMode(isAdmin: Boolean) {
         _isAdminMode.value = isAdmin
     }
@@ -92,7 +104,7 @@ class DashboardViewModel(
     fun addProfile(name: String, avatarUrl: String? = null) {
         viewModelScope.launch {
             val id = profileRepository.insertProfile(Profile(name = name, avatarUrl = avatarUrl))
-            _navigateToProfileEvent.send(id)
+            _navigateToProfileEvent.send(id.toInt())
         }
     }
 
@@ -102,7 +114,7 @@ class DashboardViewModel(
             val currentCount = if (state is DashboardUiState.Success) state.profiles.size else 0
             val defaultName = "Profil ${currentCount + 1}"
             val id = profileRepository.insertProfile(Profile(name = defaultName))
-            _navigateToProfileEvent.send(id)
+            _navigateToProfileEvent.send(id.toInt())
         }
     }
 
@@ -136,12 +148,10 @@ class DashboardViewModel(
                 val token = sessionManager.getToken() ?: ""
                 val hostUrl = RetrofitClient.SERVER_URL
                 
-                // 1. Fetch full details (with tree list)
                 val response = treeApiService.getProfileDetails(remoteProfile.id)
                 if (!response.isSuccessful) return@launch
                 val detailedProfile = response.body() ?: return@launch
                 
-                // 2. Cascade Sync: Create Local Profile
                 var localAvatarUrl: String? = null
                 if (!detailedProfile.remoteAvatarUrl.isNullOrEmpty()) {
                     val engine = ImageSyncEngine(getApplication(), imageDao, username, hostUrl, token)
@@ -154,7 +164,6 @@ class DashboardViewModel(
                     remoteAvatarUrl = detailedProfile.remoteAvatarUrl
                 )).toInt()
                 
-                // 3. Cascade Sync: Download Trees
                 detailedProfile.trees?.forEachIndexed { index, treeConfig ->
                     val treeId = treeConfig.treeId
                     val treeResponse = treeApiService.getTree(treeId)
@@ -169,7 +178,6 @@ class DashboardViewModel(
                             )
                             treeDao.insertTree(entity)
                             
-                            // Associate with profile using the remote colorCode
                             profileRepository.insertProfileTreeCrossRef(
                                 org.libera.pictotree.data.database.entity.ProfileTreeCrossRef(
                                     profileId = localProfileId,
@@ -179,7 +187,6 @@ class DashboardViewModel(
                                 )
                             )
                             
-                            // Synchronize images for this tree
                             val engine = ImageSyncEngine(getApplication(), imageDao, username, hostUrl, token)
                             if (fullTree.rootNode != null) {
                                 engine.syncImagesFromNode(fullTree.rootNode, fullTree.treeId)
