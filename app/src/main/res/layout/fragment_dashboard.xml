@@ -121,11 +121,6 @@
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-    <!-- Hidden legacy card to avoid unresolved references during transition -->
-    <View android:id="@+id/cardUserSettings" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone" />
-    <View android:id="@+id/tvCurrentLanguage" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone" />
-    <View android:id="@+id/btnSetPin" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone" />
-
     <!-- Loading State -->
     <ProgressBar
         android:id="@+id/progressBar"

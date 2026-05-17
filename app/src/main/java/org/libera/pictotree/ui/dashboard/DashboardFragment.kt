@@ -26,6 +26,7 @@ import org.libera.pictotree.data.database.AppDatabase
 import org.libera.pictotree.data.repository.ProfileRepository
 import org.libera.pictotree.data.repository.UserConfigRepository
 import org.libera.pictotree.data.SessionManager
+import org.libera.pictotree.MainActivity
 
 class DashboardFragment : Fragment() {
 
@@ -116,7 +117,6 @@ class DashboardFragment : Fragment() {
 
                 launch {
                     viewModel.playProfileEvent.collect { profileId ->
-                        // Synchroniser l'orientation juste avant de naviguer
                         val config = viewModel.userConfig.value
                         if (config != null) {
                             val orientation = if (config.defaultOrientation == "LANDSCAPE") {
@@ -152,7 +152,7 @@ class DashboardFragment : Fragment() {
 
                 launch { viewModel.isImporting.collect { importing -> progressBar.visibility = if (importing) View.VISIBLE else View.GONE } }
                 
-                // Observer les changements de config pour mettre à jour SessionManager en temps réel
+                // FIXED: Observer les changements de config et appliquer IMMEDIATEMENT l'orientation
                 launch {
                     viewModel.userConfig.collect { config ->
                         if (config != null) {
@@ -162,6 +162,7 @@ class DashboardFragment : Fragment() {
                                 android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
                             }
                             sessionManager.setPreferredOrientation(username, orientation)
+                            (requireActivity() as? MainActivity)?.applyUserOrientation()
                         }
                     }
                 }
