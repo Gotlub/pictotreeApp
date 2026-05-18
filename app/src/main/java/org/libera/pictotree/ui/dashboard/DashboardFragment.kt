@@ -27,6 +27,8 @@ import org.libera.pictotree.data.repository.ProfileRepository
 import org.libera.pictotree.data.repository.UserConfigRepository
 import org.libera.pictotree.data.SessionManager
 import org.libera.pictotree.MainActivity
+import org.libera.pictotree.data.repository.AuthRepository
+import org.libera.pictotree.network.RetrofitClient
 
 class DashboardFragment : Fragment() {
 
@@ -36,18 +38,27 @@ class DashboardFragment : Fragment() {
     private lateinit var rvProfiles: RecyclerView
     private lateinit var progressBar: ProgressBar
     private lateinit var tvEmptyState: TextView
-    private lateinit var layoutDashboardControls: View
+    private lateinit var layoutAdminActions: View
     private lateinit var btnCreateProfile: MaterialButton
     private lateinit var btnImportProfile: MaterialButton
     private lateinit var btnGlobalMenu: MaterialButton
+    private lateinit var cardRotate: View
     private lateinit var ivAdminStatus: ImageView
     private lateinit var ivLogout: ImageView
+
+    // Suivi de la dernière orientation globale appliquée pour éviter le "snap-back"
+    // On l'initialise avec une valeur qui sera écrasée au premier émission du Flow
+    private var lastAppliedGlobalOrientation: String? = null
+    
+    // Flag pour savoir si on vient de restaurer l'état après rotation
+    private var isRestoredFromRotation = false
 
     override fun onCreateView(
             inflater: LayoutInflater,
             container: ViewGroup?,
             savedInstanceState: Bundle?
     ): View? {
+        isRestoredFromRotation = savedInstanceState != null
         return inflater.inflate(R.layout.fragment_dashboard, container, false)
     }
 
@@ -57,10 +68,11 @@ class DashboardFragment : Fragment() {
         rvProfiles = view.findViewById(R.id.rvProfiles)
         progressBar = view.findViewById(R.id.progressBar)
         tvEmptyState = view.findViewById(R.id.tvEmptyState)
-        layoutDashboardControls = view.findViewById(R.id.layout_dashboard_controls)
+        layoutAdminActions = view.findViewById(R.id.layout_admin_actions)
         btnCreateProfile = view.findViewById(R.id.btnCreateProfile)
         btnImportProfile = view.findViewById(R.id.btnImportProfile)
         btnGlobalMenu = view.findViewById(R.id.btnGlobalMenu)
+        cardRotate = view.findViewById(R.id.card_rotate)
         ivAdminStatus = view.findViewById(R.id.ivAdminStatus)
         ivLogout = view.findViewById(R.id.ivLogout)
 
@@ -69,31 +81,14 @@ class DashboardFragment : Fragment() {
         val username = sessionManager.getUsername() ?: "default"
         val database = AppDatabase.getDatabase(requireContext(), username)
         
-        val profileRepository = ProfileRepository(
-            requireContext(),
-            database.profileDao(),
-            database.treeDao(),
-            database.imageDao(),
-            username
-        )
+        val profileRepository = ProfileRepository(requireContext(), database.profileDao(), database.treeDao(), database.imageDao(), username)
         val userConfigRepository = UserConfigRepository(database.userConfigDao())
-        val treeDao = database.treeDao()
-        val imageDao = database.imageDao()
-        val treeApiService = org.libera.pictotree.network.RetrofitClient.treeApiService
+        val authRepository = AuthRepository(RetrofitClient.apiService)
         
-        val factory = DashboardViewModelFactory(
-            requireActivity().application, 
-            profileRepository, 
-            userConfigRepository,
-            treeDao,
-            imageDao,
-            treeApiService
-        )
+        val factory = DashboardViewModelFactory(requireActivity().application, profileRepository, userConfigRepository, database.treeDao(), database.imageDao(), RetrofitClient.treeApiService, authRepository)
         viewModel = ViewModelProvider(this, factory)[DashboardViewModel::class.java]
         
-        if (isOnline) {
-            viewModel.setAdminMode(true)
-        }
+        if (isOnline) viewModel.setAdminMode(true)
 
         adapter = ProfileAdapter(
                 onProfileClick = { profile -> viewModel.playProfile(profile.id) },
@@ -117,16 +112,6 @@ class DashboardFragment : Fragment() {
 
                 launch {
                     viewModel.playProfileEvent.collect { profileId ->
-                        val config = viewModel.userConfig.value
-                        if (config != null) {
-                            val orientation = if (config.defaultOrientation == "LANDSCAPE") {
-                                android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
-                            } else {
-                                android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
-                            }
-                            sessionManager.setPreferredOrientation(username, orientation)
-                        }
-                        
                         val bundle = Bundle().apply { putInt("profileId", profileId) }
                         findNavController().navigate(R.id.action_dashboardFragment_to_treeSelectionFragment, bundle)
                     }
@@ -145,24 +130,43 @@ class DashboardFragment : Fragment() {
                 launch {
                     viewModel.isAdminMode.collect { isAdmin ->
                         adapter.isAdminMode = isAdmin
-                        layoutDashboardControls.visibility = if (isAdmin) View.VISIBLE else View.GONE
+                        layoutAdminActions.visibility = if (isAdmin) View.VISIBLE else View.GONE
+                        btnGlobalMenu.visibility = if (isAdmin) View.VISIBLE else View.GONE
                         ivAdminStatus.setImageResource(if (isAdmin) android.R.drawable.ic_partial_secure else android.R.drawable.ic_secure)
                     }
                 }
 
                 launch { viewModel.isImporting.collect { importing -> progressBar.visibility = if (importing) View.VISIBLE else View.GONE } }
                 
-                // FIXED: Observer les changements de config et appliquer IMMEDIATEMENT l'orientation
                 launch {
                     viewModel.userConfig.collect { config ->
                         if (config != null) {
-                            val orientation = if (config.defaultOrientation == "LANDSCAPE") {
-                                android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
-                            } else {
-                                android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                            cardRotate.visibility = if (config.enableRotationButton) View.VISIBLE else View.GONE
+                            
+                            // LOGIQUE ANTI-SNAPBACK AMÉLIORÉE
+                            val globalSetting = config.defaultOrientation
+                            
+                            // On applique le réglage global SI :
+                            // 1. C'est la toute première fois qu'on charge (lastAppliedGlobalOrientation == null) ET qu'on n'est pas après une rotation (isRestoredFromRotation == false)
+                            // 2. OU si le réglage global dans la BDD a physiquement changé depuis la dernière fois qu'on l'a appliqué
+                            if ((lastAppliedGlobalOrientation == null && !isRestoredFromRotation) || 
+                                (lastAppliedGlobalOrientation != null && lastAppliedGlobalOrientation != globalSetting)) {
+                                
+                                lastAppliedGlobalOrientation = globalSetting
+                                val orientationInt = if (globalSetting == "LANDSCAPE") {
+                                    android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+                                } else {
+                                    android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                                }
+                                sessionManager.setPreferredOrientation(username, orientationInt)
+                                (requireActivity() as? MainActivity)?.applyUserOrientation()
                             }
-                            sessionManager.setPreferredOrientation(username, orientation)
-                            (requireActivity() as? MainActivity)?.applyUserOrientation()
+                            
+                            // Si on vient de restaurer après rotation, on marque lastAppliedGlobalOrientation 
+                            // pour ne pas écraser l'override manuel au prochain changement de config mineur
+                            if (lastAppliedGlobalOrientation == null && isRestoredFromRotation) {
+                                lastAppliedGlobalOrientation = globalSetting
+                            }
                         }
                     }
                 }
@@ -172,19 +176,27 @@ class DashboardFragment : Fragment() {
         btnCreateProfile.setOnClickListener { viewModel.createQuickProfile() }
         btnImportProfile.setOnClickListener { viewModel.fetchRemoteProfiles(); showImportProfileDialog() }
         btnGlobalMenu.setOnClickListener { showGlobalSettingsDialog() }
+        cardRotate.setOnClickListener { (requireActivity() as? MainActivity)?.toggleOrientation() }
         
         ivLogout.setOnClickListener {
             sessionManager.clearSession()
-            findNavController().navigate(R.id.action_dashboardFragment_to_loginFragment)
+            requireContext().getSharedPreferences("pictotree_session", android.content.Context.MODE_PRIVATE).edit().remove("USERNAME").apply()
+            findNavController().navigate(R.id.action_loginFragment_to_dashboardFragment)
         }
 
         ivAdminStatus.setOnClickListener { 
-            if (isOnline) {
-                Toast.makeText(requireContext(), getString(R.string.dashboard_admin_online_toast), Toast.LENGTH_SHORT).show()
+            if (viewModel.isAdminMode.value) {
+                MaterialAlertDialogBuilder(requireContext())
+                    .setTitle("Verrouiller l'édition ?")
+                    .setMessage("Le mode administrateur sera désactivé. Vous devrez vous reconnecter pour modifier les profils.")
+                    .setPositiveButton("Verrouiller") { _, _ ->
+                        viewModel.setAdminMode(false)
+                        Toast.makeText(requireContext(), "Édition verrouillée", Toast.LENGTH_SHORT).show()
+                    }
+                    .setNegativeButton("Annuler", null)
+                    .show()
             } else {
-                if (viewModel.isAdminMode.value) viewModel.setAdminMode(false)
-                else if (viewModel.userConfig.value?.offlineSettingsPin != null) showUnlockPinDialog()
-                else Toast.makeText(requireContext(), getString(R.string.dashboard_offline_pin_security_toast), Toast.LENGTH_LONG).show()
+                showUnlockLoginDialog()
             }
         }
     }
@@ -202,37 +214,33 @@ class DashboardFragment : Fragment() {
         dialog.show(childFragmentManager, "GlobalSettingsDialog")
     }
 
-    fun showSetPinDialogFromDialog() {
-        showSetPinDialog()
-    }
+    private fun showUnlockLoginDialog() {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_unlock_login, null)
+        val etPassword = dialogView.findViewById<TextInputEditText>(R.id.et_password)
+        val tvUser = dialogView.findViewById<TextView>(R.id.tv_unlock_user)
+        
+        val sessionManager = SessionManager(requireContext())
+        val username = sessionManager.getUsername() ?: "default"
+        tvUser.text = "Utilisateur : $username"
 
-    private fun showUnlockPinDialog() {
-        val input = TextInputEditText(requireContext())
-        input.inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_VARIATION_PASSWORD
-        val container = TextInputLayout(requireContext())
-        container.setPadding(40, 0, 40, 0)
-        container.addView(input)
-        container.hint = getString(R.string.dashboard_pin_btn)
-        MaterialAlertDialogBuilder(requireContext()).setTitle(R.string.dialog_unlock_title).setMessage(R.string.dialog_unlock_message).setView(container)
-            .setPositiveButton(R.string.dialog_unlock_validate) { _, _ ->
-                val pin = input.text?.toString()
-                if (viewModel.verifyPin(pin ?: "")) { viewModel.setAdminMode(true); Toast.makeText(requireContext(), getString(R.string.dashboard_unlocked_toast), Toast.LENGTH_SHORT).show() }
-                else Toast.makeText(requireContext(), getString(R.string.dashboard_wrong_pin_toast), Toast.LENGTH_SHORT).show()
-            }.setNegativeButton(R.string.dialog_create_profile_btn_cancel, null).show()
-    }
-
-    private fun showSetPinDialog() {
-        val input = TextInputEditText(requireContext())
-        input.inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_VARIATION_PASSWORD
-        val container = TextInputLayout(requireContext())
-        container.setPadding(40, 0, 40, 0)
-        container.addView(input)
-        container.hint = getString(R.string.dialog_pin_hint)
-        MaterialAlertDialogBuilder(requireContext()).setTitle(R.string.dialog_pin_title).setMessage(R.string.dialog_pin_message).setView(container)
-            .setPositiveButton(R.string.dialog_pin_save) { _, _ ->
-                val pin = input.text?.toString()
-                if (pin?.length == 4) { viewModel.setPin(pin); Toast.makeText(requireContext(), getString(R.string.dialog_pin_saved_toast), Toast.LENGTH_SHORT).show() }
-                else Toast.makeText(requireContext(), getString(R.string.dialog_pin_error_length), Toast.LENGTH_SHORT).show()
-            }.setNegativeButton(R.string.dialog_create_profile_btn_cancel, null).show()
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle("Déverrouiller l'édition")
+            .setView(dialogView)
+            .setPositiveButton("Déverrouiller") { _, _ ->
+                val password = etPassword.text?.toString() ?: ""
+                viewLifecycleOwner.lifecycleScope.launch {
+                    progressBar.visibility = View.VISIBLE
+                    val result = viewModel.tryUnlock(password)
+                    progressBar.visibility = View.GONE
+                    
+                    if (result.isSuccess) {
+                        Toast.makeText(requireContext(), "Accès autorisé", Toast.LENGTH_SHORT).show()
+                    } else {
+                        Toast.makeText(requireContext(), "Échec : ${result.exceptionOrNull()?.message}", Toast.LENGTH_LONG).show()
+                    }
+                }
+            }
+            .setNegativeButton("Annuler", null)
+            .show()
     }
 }

@@ -42,9 +42,12 @@ class GlobalSettingsDialogFragment : DialogFragment() {
         viewModel = ViewModelProvider(requireParentFragment())[DashboardViewModel::class.java]
 
         val spinnerLanguage = view.findViewById<Spinner>(R.id.spinnerLanguage)
-        val btnChangePin = view.findViewById<MaterialButton>(R.id.btnChangePin)
         val switchOfflineAccess = view.findViewById<MaterialSwitch>(R.id.switchOfflineAccess)
         val switchGlobalSearch = view.findViewById<MaterialSwitch>(R.id.switchGlobalSearch)
+        val switchEnableRotation = view.findViewById<MaterialSwitch>(R.id.switchEnableRotation)
+        val switchEnableTTS = view.findViewById<MaterialSwitch>(R.id.switchEnableTTS)
+        val switchEnableViewChange = view.findViewById<MaterialSwitch>(R.id.switchEnableViewChange)
+        
         val spinnerStartupView = view.findViewById<Spinner>(R.id.spinnerStartupView)
         val spinnerOrientation = view.findViewById<Spinner>(R.id.spinnerOrientation)
         val btnClose = view.findViewById<MaterialButton>(R.id.btnCloseSettings)
@@ -63,28 +66,31 @@ class GlobalSettingsDialogFragment : DialogFragment() {
         val orientationValues = arrayOf("PORTRAIT", "LANDSCAPE")
         spinnerOrientation.adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_dropdown_item, orientationOptions)
 
-        // Sync with ViewModel
+        // Sync with ViewModel (One-way binding to UI)
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.userConfig.collect { config ->
                     config?.let {
                         val langIdx = codes.indexOf(it.locale)
-                        if (langIdx != -1) spinnerLanguage.setSelection(langIdx)
+                        if (langIdx != -1 && spinnerLanguage.selectedItemPosition != langIdx) spinnerLanguage.setSelection(langIdx)
 
                         val startupIdx = startupViewValues.indexOf(it.startupView)
-                        if (startupIdx != -1) spinnerStartupView.setSelection(startupIdx)
+                        if (startupIdx != -1 && spinnerStartupView.selectedItemPosition != startupIdx) spinnerStartupView.setSelection(startupIdx)
 
                         val orientIdx = orientationValues.indexOf(it.defaultOrientation)
-                        if (orientIdx != -1) spinnerOrientation.setSelection(orientIdx)
+                        if (orientIdx != -1 && spinnerOrientation.selectedItemPosition != orientIdx) spinnerOrientation.setSelection(orientIdx)
 
-                        switchOfflineAccess.isChecked = it.isOfflineAccessAllowed
-                        switchGlobalSearch.isChecked = it.enableSearch
+                        if (switchOfflineAccess.isChecked != it.isOfflineAccessAllowed) switchOfflineAccess.isChecked = it.isOfflineAccessAllowed
+                        if (switchGlobalSearch.isChecked != it.enableSearch) switchGlobalSearch.isChecked = it.enableSearch
+                        if (switchEnableRotation.isChecked != it.enableRotationButton) switchEnableRotation.isChecked = it.enableRotationButton
+                        if (switchEnableTTS.isChecked != it.enableTTSButton) switchEnableTTS.isChecked = it.enableTTSButton
+                        if (switchEnableViewChange.isChecked != it.enableViewChangeButton) switchEnableViewChange.isChecked = it.enableViewChangeButton
                     }
                 }
             }
         }
 
-        // Listeners
+        // Listeners with change detection to avoid loops
         spinnerLanguage.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
                 if (viewModel.userConfig.value?.locale != codes[position]) {
@@ -114,20 +120,22 @@ class GlobalSettingsDialogFragment : DialogFragment() {
             override fun onNothingSelected(parent: AdapterView<*>?) {}
         }
 
-        switchOfflineAccess.setOnCheckedChangeListener { _, isChecked ->
-            if (viewModel.userConfig.value?.isOfflineAccessAllowed != isChecked) {
-                viewModel.setOfflineAccessAllowed(isChecked)
-            }
+        switchOfflineAccess.setOnClickListener {
+            viewModel.setOfflineAccessAllowed(switchOfflineAccess.isChecked)
         }
 
-        switchGlobalSearch.setOnCheckedChangeListener { _, isChecked ->
-            if (viewModel.userConfig.value?.enableSearch != isChecked) {
-                viewModel.setEnableSearch(isChecked)
-            }
+        switchGlobalSearch.setOnClickListener {
+            viewModel.setEnableSearch(switchGlobalSearch.isChecked)
         }
 
-        btnChangePin.setOnClickListener {
-            (parentFragment as? DashboardFragment)?.showSetPinDialogFromDialog()
+        switchEnableRotation.setOnClickListener {
+            viewModel.updateUIControls(switchEnableRotation.isChecked, switchEnableTTS.isChecked, switchEnableViewChange.isChecked)
+        }
+        switchEnableTTS.setOnClickListener {
+            viewModel.updateUIControls(switchEnableRotation.isChecked, switchEnableTTS.isChecked, switchEnableViewChange.isChecked)
+        }
+        switchEnableViewChange.setOnClickListener {
+            viewModel.updateUIControls(switchEnableRotation.isChecked, switchEnableTTS.isChecked, switchEnableViewChange.isChecked)
         }
 
         btnClose.setOnClickListener { dismiss() }

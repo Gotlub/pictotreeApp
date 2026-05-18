@@ -18,15 +18,6 @@ class UserConfigRepository(private val userConfigDao: UserConfigDao) {
         }
     }
 
-    suspend fun savePin(pin: String?) {
-        val current = userConfigDao.getUserConfig()
-        if (current == null) {
-            userConfigDao.insertUserConfig(UserConfig(locale = Locale.getDefault().language, offlineSettingsPin = pin))
-        } else {
-            userConfigDao.updateUserConfig(current.copy(offlineSettingsPin = pin))
-        }
-    }
-
     suspend fun saveGlobalDisplaySettings(startupView: String, orientation: String) {
         val current = userConfigDao.getUserConfig()
         if (current != null) {
@@ -51,9 +42,30 @@ class UserConfigRepository(private val userConfigDao: UserConfigDao) {
         }
     }
 
+    suspend fun updateUIControls(
+        enableRotation: Boolean,
+        enableTTS: Boolean,
+        enableViewChange: Boolean
+    ) {
+        val current = userConfigDao.getUserConfig()
+        if (current != null) {
+            userConfigDao.updateUserConfig(current.copy(
+                enableRotationButton = enableRotation,
+                enableTTSButton = enableTTS,
+                enableViewChangeButton = enableViewChange
+            ))
+        }
+    }
+
     suspend fun initializeDefaultIfNeeded() {
         if (userConfigDao.getUserConfig() == null) {
-            userConfigDao.insertUserConfig(UserConfig(locale = Locale.getDefault().language))
+            userConfigDao.insertUserConfig(UserConfig(
+                locale = Locale.getDefault().language,
+                enableSearch = true,
+                enableRotationButton = true,
+                enableTTSButton = true,
+                enableViewChangeButton = true
+            ))
         }
     }
 }

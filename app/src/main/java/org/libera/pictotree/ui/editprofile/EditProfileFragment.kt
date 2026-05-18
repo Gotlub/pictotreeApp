@@ -115,6 +115,15 @@ class EditProfileFragment : Fragment() {
             viewModel.loadProfile(profileId)
         }
 
+        // ================= RETOUR DASHBOARD =================
+        view.findViewById<View>(R.id.btnBackToDashboard).setOnClickListener {
+            val newName = editProfileName.text?.toString()?.trim() ?: ""
+            if (newName.isNotEmpty() && profileId != -1) {
+                viewModel.updateProfile(profileId, newName, currentSelectedAvatarUrl)
+            }
+            androidx.navigation.fragment.NavHostFragment.findNavController(this).popBackStack()
+        }
+
         // ================= OPTIONS DIALOG =================
         btnOpenOptions.setOnClickListener {
             if (profileId != -1) {

@@ -6,13 +6,25 @@
     android:layout_height="match_parent"
     android:padding="16dp">
 
+    <!-- BOUTON RETOUR -->
+    <ImageButton
+        android:id="@+id/btnBackToDashboard"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:src="@android:drawable/ic_menu_revert"
+        android:contentDescription="Retour au Dashboard"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
     <com.google.android.material.textfield.TextInputLayout
         android:id="@+id/parentProfileNameLayout"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
         android:hint="@string/dialog_create_profile_name_hint"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintStart_toEndOf="@id/btnBackToDashboard"
         app:layout_constraintEnd_toEndOf="parent">
         
         <com.google.android.material.textfield.TextInputEditText

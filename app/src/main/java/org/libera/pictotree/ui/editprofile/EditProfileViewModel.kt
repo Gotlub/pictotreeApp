@@ -73,7 +73,7 @@ class EditProfileViewModel(
                         try {
                             if (!tree.rootUrl.isNullOrEmpty()) {
                                 val hostUrl = org.libera.pictotree.network.RetrofitClient.SERVER_URL
-                                val normalizedUrl = org.libera.pictotree.utils.FileUtils.normalizeUrl(tree.rootUrl, hostUrl)
+                                val normalizedUrl = org.libera.pictotree.utils.FileUtils.normalizeUrl(tree.rootUrl!!, hostUrl)
                                 val cleanUrl = org.libera.pictotree.utils.FileUtils.getCleanUrl(normalizedUrl)
                                 val imageEntity = imageDao.getImageByRemotePath(cleanUrl)
                                 if (imageEntity != null) {
@@ -103,7 +103,7 @@ class EditProfileViewModel(
         }
     }
 
-    fun loadMoreTrees() { /* Implementation via scroll */ }
+    fun loadMoreTrees() { /* Pagination */ }
 
     fun openTreeSelection() {
         viewModelScope.launch { searchTrees(""); _showTreeSelectionEvent.send(Unit) }
@@ -174,17 +174,13 @@ class EditProfileViewModel(
                 var finalLocalAvatarUrl = avatarUrl
                 var finalRemoteAvatarUrl = currentProfile.remoteAvatarUrl
                 
-                // Déterminer si l'entrée est une nouvelle URL distante
                 val isInputRemote = avatarUrl != null && (avatarUrl.startsWith("http") || avatarUrl.contains("/api/v1/mobile/"))
                 
                 if (isInputRemote) {
-                    // Nouvel avatar distant -> On télécharge et on met à jour le lien remote
                     finalRemoteAvatarUrl = avatarUrl
                     val engine = ImageSyncEngine(getApplication(), imageDao, username, hostUrl, token)
                     finalLocalAvatarUrl = engine.downloadSingleImage(avatarUrl!!) ?: avatarUrl
                 } else {
-                    // L'entrée est soit file://, soit null, soit color:
-                    // On garde le remoteAvatarUrl actuel de la BDD pour ne pas le corrompre avec du local
                     finalLocalAvatarUrl = avatarUrl ?: currentProfile.avatarUrl
                 }
 
@@ -195,7 +191,6 @@ class EditProfileViewModel(
                     settingsJson = Gson().toJson(_settings.value)
                 )
                 
-                // Passer par le Repository pour un nettoyage sécurisé
                 profileRepository.updateProfile(updated)
                 loadProfile(profileId)
             } catch (e: Exception) { e.printStackTrace() }

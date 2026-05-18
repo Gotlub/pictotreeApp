@@ -77,20 +77,48 @@
         android:layout_height="wrap_content"
         android:padding="16dp"
         android:layout_marginBottom="32dp"
-        android:visibility="gone"
-        tools:visibility="visible"
         app:layout_constraintBottom_toBottomOf="parent">
 
-        <!-- Left: Menu button -->
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnGlobalMenu"
+        <!-- Left: Menu & Global Controls -->
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Menu"
-            app:icon="@android:drawable/ic_menu_manage"
-            style="?attr/materialButtonOutlinedStyle"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
             app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintStart_toStartOf="parent" />
+            app:layout_constraintStart_toStartOf="parent">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnGlobalMenu"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Menu"
+                app:icon="@android:drawable/ic_menu_manage"
+                style="?attr/materialButtonOutlinedStyle"
+                android:visibility="gone"
+                tools:visibility="visible" />
+
+            <!-- Global Rotation Button (Matches Navigation Fragments) -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_rotate"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_marginStart="16dp"
+                app:cardCornerRadius="12dp"
+                app:cardBackgroundColor="#FFF3E0"
+                app:cardElevation="2dp"
+                android:visibility="gone"
+                tools:visibility="visible">
+                <ImageView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:padding="10dp"
+                    android:src="@android:drawable/ic_menu_rotate"
+                    app:tint="#E65100"
+                    android:contentDescription="Changer orientation" />
+            </com.google.android.material.card.MaterialCardView>
+
+        </LinearLayout>
 
         <!-- Right: Admin actions stacked -->
         <LinearLayout
@@ -99,6 +127,8 @@
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:gravity="end"
+            android:visibility="gone"
+            tools:visibility="visible"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent">
 

@@ -12,7 +12,6 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import com.google.android.material.materialswitch.MaterialSwitch
 import kotlinx.coroutines.launch
 import org.libera.pictotree.R
 
@@ -52,29 +51,11 @@ class ProfileOptionsDialogFragment : DialogFragment() {
         profileId = arguments?.getInt("profileId") ?: -1
         viewModel = ViewModelProvider(requireParentFragment())[EditProfileViewModel::class.java]
 
-        val switchEnableSearch = view.findViewById<MaterialSwitch>(R.id.switchEnableSearch)
         val btnDeleteProfile = view.findViewById<MaterialButton>(R.id.btnDeleteProfile)
         val btnSyncProfile = view.findViewById<MaterialButton>(R.id.btnSyncProfile)
         val btnClose = view.findViewById<android.widget.ImageButton>(R.id.btnCloseOptions)
 
         btnClose.setOnClickListener { dismiss() }
-
-        // Sync with ViewModel
-        viewLifecycleOwner.lifecycleScope.launch {
-            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.settings.collect { settings ->
-                    switchEnableSearch.isChecked = settings.enableSearch
-                }
-            }
-        }
-
-        // Listeners
-        switchEnableSearch.setOnCheckedChangeListener { _, isChecked ->
-            val current = viewModel.settings.value
-            if (current.enableSearch != isChecked) {
-                viewModel.updateSettings(current.copy(enableSearch = isChecked), profileId)
-            }
-        }
 
         btnDeleteProfile.setOnClickListener {
             MaterialAlertDialogBuilder(requireContext())

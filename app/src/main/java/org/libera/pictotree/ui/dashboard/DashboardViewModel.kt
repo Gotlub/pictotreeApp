@@ -26,6 +26,7 @@ import org.libera.pictotree.data.database.dao.ImageDao
 import org.libera.pictotree.data.database.dao.TreeDao
 import org.libera.pictotree.data.SessionManager
 import org.libera.pictotree.network.RetrofitClient
+import org.libera.pictotree.data.repository.AuthRepository
 
 class DashboardViewModel(
     application: Application,
@@ -33,7 +34,8 @@ class DashboardViewModel(
     private val userConfigRepository: UserConfigRepository,
     private val treeDao: TreeDao,
     private val imageDao: ImageDao,
-    private val treeApiService: TreeApiService
+    private val treeApiService: TreeApiService,
+    private val authRepository: AuthRepository
 ) : AndroidViewModel(application) {
 
     private val _isAdminMode = MutableStateFlow(false)
@@ -76,10 +78,6 @@ class DashboardViewModel(
         viewModelScope.launch { userConfigRepository.saveLocale(lang) }
     }
 
-    fun setPin(pin: String?) {
-        viewModelScope.launch { userConfigRepository.savePin(pin) }
-    }
-
     fun setGlobalDisplaySettings(startupView: String, orientation: String) {
         viewModelScope.launch { userConfigRepository.saveGlobalDisplaySettings(startupView, orientation) }
     }
@@ -92,13 +90,27 @@ class DashboardViewModel(
         viewModelScope.launch { userConfigRepository.saveEnableSearch(enabled) }
     }
 
-    fun setAdminMode(isAdmin: Boolean) {
-        _isAdminMode.value = isAdmin
+    fun updateUIControls(rotation: Boolean, tts: Boolean, viewChange: Boolean) {
+        viewModelScope.launch { userConfigRepository.updateUIControls(rotation, tts, viewChange) }
     }
 
-    fun verifyPin(input: String): Boolean {
-        val storedPin = userConfig.value?.offlineSettingsPin
-        return storedPin != null && storedPin == input
+    fun setAdminMode(isAdmin: Boolean) {
+        _isAdminMode.value = isAdmin
+        if (!isAdmin) {
+            // Verrouillage : Suppression des tokens
+            SessionManager(getApplication()).clearSession()
+        }
+    }
+
+    suspend fun tryUnlock(password: String): Result<Unit> {
+        val sessionManager = SessionManager(getApplication())
+        val username = sessionManager.getUsername() ?: return Result.failure(Exception("Utilisateur non défini"))
+        
+        return authRepository.login(username, password).map { response ->
+            sessionManager.saveSession(username, response.accessToken, response.refreshToken)
+            setAdminMode(true)
+            Unit
+        }
     }
 
     fun addProfile(name: String, avatarUrl: String? = null) {
@@ -155,7 +167,7 @@ class DashboardViewModel(
                 var localAvatarUrl: String? = null
                 if (!detailedProfile.remoteAvatarUrl.isNullOrEmpty()) {
                     val engine = ImageSyncEngine(getApplication(), imageDao, username, hostUrl, token)
-                    localAvatarUrl = engine.downloadSingleImage(detailedProfile.remoteAvatarUrl)
+                    localAvatarUrl = engine.downloadSingleImage(detailedProfile.remoteAvatarUrl!!)
                 }
                 
                 val localProfileId = profileRepository.insertProfile(Profile(
@@ -189,7 +201,7 @@ class DashboardViewModel(
                             
                             val engine = ImageSyncEngine(getApplication(), imageDao, username, hostUrl, token)
                             if (fullTree.rootNode != null) {
-                                engine.syncImagesFromNode(fullTree.rootNode, fullTree.treeId)
+                                engine.syncImagesFromNode(fullTree.rootNode!!, fullTree.treeId)
                             }
                         }
                     }
@@ -210,12 +222,13 @@ class DashboardViewModelFactory(
     private val userConfigRepository: UserConfigRepository,
     private val treeDao: TreeDao,
     private val imageDao: ImageDao,
-    private val treeApiService: TreeApiService
+    private val treeApiService: TreeApiService,
+    private val authRepository: AuthRepository
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(DashboardViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST") 
-            return DashboardViewModel(application, profileRepository, userConfigRepository, treeDao, imageDao, treeApiService) as T
+            return DashboardViewModel(application, profileRepository, userConfigRepository, treeDao, imageDao, treeApiService, authRepository) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

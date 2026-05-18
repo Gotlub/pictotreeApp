@@ -37,15 +37,6 @@
             android:layout_marginTop="24dp"
             app:layout_constraintTop_toBottomOf="@id/tvOptionsTitle">
 
-            <!-- Enable Search -->
-            <com.google.android.material.materialswitch.MaterialSwitch
-                android:id="@+id/switchEnableSearch"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Activer la recherche (Loupe)"
-                android:textSize="16sp"
-                android:layout_marginBottom="24dp"/>
-
             <!-- ACTIONS -->
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
                 

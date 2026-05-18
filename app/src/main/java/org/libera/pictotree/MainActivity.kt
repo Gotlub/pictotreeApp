@@ -92,7 +92,10 @@ class MainActivity : AppCompatActivity() {
         if (isOrientationLockDisabled) return
         val sessionManager = SessionManager(this)
         val username = sessionManager.getUsername() ?: return
-        requestedOrientation = sessionManager.getPreferredOrientation(username)
+        val preferred = sessionManager.getPreferredOrientation(username)
+        if (requestedOrientation != preferred) {
+            requestedOrientation = preferred
+        }
     }
 
     fun restoreSystemOrientation() {

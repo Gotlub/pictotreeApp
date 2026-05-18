@@ -50,7 +50,6 @@ class TreeGlobalMapDialog : DialogFragment() {
     private lateinit var viewModel: TreeExplorerViewModel
     private lateinit var ttsManager: TTSManager
     
-    // CACHE DU CONTEXTE pour éviter IllegalStateException pendant les rotations
     private var appContext: android.content.Context? = null
     
     private var treeIds: IntArray = intArrayOf()
@@ -76,7 +75,6 @@ class TreeGlobalMapDialog : DialogFragment() {
 
     override fun onStart() {
         super.onStart()
-        // On capture le contexte de l'application dès le départ
         appContext = requireContext().applicationContext
         (requireActivity() as? org.libera.pictotree.MainActivity)?.applyUserOrientation()
     }
@@ -86,7 +84,6 @@ class TreeGlobalMapDialog : DialogFragment() {
         val root = inflater.inflate(R.layout.dialog_tree_global_map, container, false)
         webView = root.findViewById(R.id.web_view_map)
         
-        // Shared ViewModel at Activity level
         viewModel = ViewModelProvider(requireActivity())[TreeExplorerViewModel::class.java]
         ttsManager = TTSManager(requireContext())
 
@@ -102,7 +99,6 @@ class TreeGlobalMapDialog : DialogFragment() {
 
         root.findViewById<View>(R.id.btn_fullscreen_phrase).setOnClickListener {
             val navController = findNavController()
-            // Détection dynamique de l'action selon la vue parente pour éviter le crash
             val actionId = if (navController.currentDestination?.id == R.id.treeSelectionFragment) {
                 R.id.action_treeSelectionFragment_to_phraseFullscreenFragment
             } else {
@@ -119,13 +115,11 @@ class TreeGlobalMapDialog : DialogFragment() {
         val treeDao = database.treeDao()
         val imageDao = database.imageDao()
 
-        // Setup Phrase Bar
         val rvPhrase = root.findViewById<RecyclerView>(R.id.rv_phrase)
         val phraseAdapter = PhraseAdapter(username = username)
         rvPhrase.adapter = phraseAdapter
         rvPhrase.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
 
-        // Drag & Drop / Swipe to Delete
         val itemTouchHelper = androidx.recyclerview.widget.ItemTouchHelper(object : androidx.recyclerview.widget.ItemTouchHelper.SimpleCallback(
             androidx.recyclerview.widget.ItemTouchHelper.LEFT or androidx.recyclerview.widget.ItemTouchHelper.RIGHT,
             androidx.recyclerview.widget.ItemTouchHelper.UP
@@ -160,10 +154,8 @@ class TreeGlobalMapDialog : DialogFragment() {
 
         val ivPreview = root.findViewById<android.widget.ImageView>(R.id.iv_selection_preview)
 
-        // Observe State (Synchronisé avec les fragments)
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                // Phrase observation
                 launch {
                     var lastPhraseSize = 0
                     viewModel.phraseList.collect { phrase ->
@@ -175,27 +167,25 @@ class TreeGlobalMapDialog : DialogFragment() {
                     }
                 }
 
-                // Global State observation (Colors & Preview Node)
                 launch {
                     viewModel.uiState.collect { state ->
                         injectCaaStyle(state.colorCode)
-                        
-                        // MISE À JOUR RÉACTIVE DE LA PREVIEW
                         state.previewNode?.let { node ->
                             ivPreview.visibility = View.VISIBLE
                             loadPreviewImage(node.imageUrl, ivPreview)
                             applyCaaColorToPreview(state.colorCode, ivPreview)
-                        } ?: run {
-                            ivPreview.visibility = View.GONE
-                        }
+                        } ?: run { ivPreview.visibility = View.GONE }
                     }
                 }
 
-                // Observation des réglages de recherche globaux
                 launch {
                     viewModel.userConfig.collect { config ->
-                        root.findViewById<View>(R.id.card_search)?.visibility = 
-                            if (config?.enableSearch == true) View.VISIBLE else View.GONE
+                        if (config != null) {
+                            root.findViewById<View>(R.id.card_search)?.visibility = if (config.enableSearch) View.VISIBLE else View.GONE
+                            root.findViewById<View>(R.id.card_speak)?.visibility = if (config.enableTTSButton) View.VISIBLE else View.GONE
+                            root.findViewById<View>(R.id.card_rotate)?.visibility = if (config.enableRotationButton) View.VISIBLE else View.GONE
+                            root.findViewById<View>(R.id.btn_back_to_nav)?.visibility = if (config.enableViewChangeButton) View.VISIBLE else View.GONE
+                        }
                     }
                 }
             }
@@ -204,7 +194,6 @@ class TreeGlobalMapDialog : DialogFragment() {
         val bridge = object {
             @JavascriptInterface
             fun onNodeSelected(prefixedNodeId: String, imageUrl: String?) {
-                // On met à jour DIRECTEMENT le ViewModel, qui est notre seule source de vérité
                 viewModel.selectNodeWithoutNavigatingById(prefixedNodeId)
                 Log.d(TAG, "TREANT_SELECT: Node $prefixedNodeId selected")
             }
@@ -225,14 +214,11 @@ class TreeGlobalMapDialog : DialogFragment() {
             val treeId = treeIds[index]
             val orientation = "NORTH"
             
-            // On informe le ViewModel qu'on change d'arbre (pour la couleur CAA)
             viewModel.updateCurrentTreeContext(treeId)
 
             lifecycleScope.launch(Dispatchers.IO) {
                 treeDao.getTreeById(treeId)?.let { entity ->
                     withContext(Dispatchers.Main) {
-                        // On récupère l'ID du picto sélectionné depuis le ViewModel
-                        // S'il appartient à cet arbre, on le passe au moteur de rendu pour le highlight
                         val previewNode = viewModel.uiState.value.previewNode
                         val highlightId = if (previewNode != null && TreeNode.parseTreeId(previewNode.id) == treeId) {
                             previewNode.id
@@ -251,7 +237,6 @@ class TreeGlobalMapDialog : DialogFragment() {
                 if (currentIndex != -1) loadTree(currentIndex)
             }
             override fun shouldInterceptRequest(view: WebView?, request: WebResourceRequest?): WebResourceResponse? {
-                // UTILISATION DU CONTEXTE CACHÉ pour éviter le crash en cas de fragment détaché
                 val ctx = appContext ?: return null
                 return WebViewImageInterceptor.intercept(ctx, username, imageDao, request?.url, strictOffline = true)
             }
@@ -267,18 +252,16 @@ class TreeGlobalMapDialog : DialogFragment() {
         }
 
         root.findViewById<View>(R.id.btn_add_to_basket).setOnClickListener {
-            viewModel.addToPhrase() // Utilise directement previewNode du ViewModel
+            viewModel.addToPhrase()
         }
 
         root.findViewById<View>(R.id.btn_back_to_nav).setOnClickListener {
-            // RETOUR À LA NAVIGATION NATIVE
             val previewNode = viewModel.uiState.value.previewNode
             if (previewNode != null) {
                 val treeId = TreeNode.parseTreeId(previewNode.id) ?: -1
                 viewModel.jumpToTreeAndNode(treeId, previewNode.id)
                 
                 val navController = findNavController()
-                // FIX STARTUP MAP : Si on vient de la sélection, on saute vers l'explorateur
                 if (navController.currentDestination?.id == R.id.treeSelectionFragment) {
                     val bundle = Bundle().apply {
                         putInt("treeId", treeId)
@@ -315,7 +298,6 @@ class TreeGlobalMapDialog : DialogFragment() {
         root.findViewById<View>(R.id.card_back_to_trees).setOnClickListener {
             dismiss()
             val navController = findNavController()
-            // On s'assure de revenir à la sélection d'arbres si on n'y est pas déjà
             if (navController.currentDestination?.id != R.id.treeSelectionFragment) {
                 navController.popBackStack(R.id.treeSelectionFragment, false)
             }
@@ -329,9 +311,7 @@ class TreeGlobalMapDialog : DialogFragment() {
         com.google.android.material.dialog.MaterialAlertDialogBuilder(ctx)
             .setTitle("Effacer le bandeau ?")
             .setMessage("Voulez-vous vraiment vider toute la phrase ?")
-            .setPositiveButton("Oui") { _, _ ->
-                viewModel.clearPhrase()
-            }
+            .setPositiveButton("Oui") { _, _ -> viewModel.clearPhrase() }
             .setNegativeButton("Non", null)
             .setIcon(android.R.drawable.ic_menu_delete)
             .show()

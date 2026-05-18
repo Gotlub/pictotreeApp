@@ -67,8 +67,11 @@ class PictoSearchDialog : DialogFragment() {
 
     private fun setupUI(root: View) {
         val etSearch = root.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.etSearch)
+        val btnCloseSearch = root.findViewById<android.widget.ImageButton>(R.id.btnCloseSearch)
         tabLayout = root.findViewById(R.id.tabLayout)
         viewPager = root.findViewById(R.id.viewPager)
+
+        btnCloseSearch.setOnClickListener { dismiss() }
 
         updateAdapter()
 

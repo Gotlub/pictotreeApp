@@ -101,6 +101,10 @@
             app:layout_constraintBottom_toBottomOf="parent"
             tools:listitem="@layout/item_sibling_node" />
 
+        <!-- Indicateurs Enfants -->
+        <View android:id="@+id/children_gradient_left" android:layout_width="40dp" android:layout_height="0dp" android:background="@drawable/scroll_gradient_left" android:visibility="invisible" app:layout_constraintStart_toStartOf="parent" app:layout_constraintTop_toTopOf="@id/rv_children_preview" app:layout_constraintBottom_toBottomOf="@id/rv_children_preview" />
+        <View android:id="@+id/children_gradient_right" android:layout_width="40dp" android:layout_height="0dp" android:background="@drawable/scroll_gradient_right" android:visibility="invisible" app:layout_constraintEnd_toEndOf="parent" app:layout_constraintTop_toTopOf="@id/rv_children_preview" app:layout_constraintBottom_toBottomOf="@id/rv_children_preview" />
+
         <!-- Bloc Ajouter (Bas droite - MARGE DE SÉCURITÉ 100dp) -->
         <LinearLayout
             android:id="@+id/layout_action"

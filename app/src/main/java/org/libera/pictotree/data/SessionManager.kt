@@ -55,7 +55,6 @@ class SessionManager(context: Context) {
         prefs.edit()
             .remove("USER_TOKEN")
             .remove("REFRESH_TOKEN")
-            .remove("USERNAME")
             .remove("IS_ONLINE")
             .apply()
     }

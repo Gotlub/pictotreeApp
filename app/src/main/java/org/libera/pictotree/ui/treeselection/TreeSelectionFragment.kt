@@ -37,6 +37,10 @@ class TreeSelectionFragment : Fragment() {
     private lateinit var rvPhrase: RecyclerView
     private lateinit var progressBar: ProgressBar
     private lateinit var btnFullscreenPhrase: View
+    
+    private lateinit var cardSearch: View
+    private lateinit var cardSpeak: View
+    private lateinit var cardRotate: View
 
     private var isDraggingPhrase = false
 
@@ -101,10 +105,13 @@ class TreeSelectionFragment : Fragment() {
         rvPhrase = view.findViewById(R.id.rv_phrase)
         progressBar = view.findViewById(R.id.progressBar)
         btnFullscreenPhrase = view.findViewById(R.id.btn_fullscreen_phrase)
+        
+        cardSearch = view.findViewById(R.id.card_search)
+        cardSpeak = view.findViewById(R.id.card_speak)
+        cardRotate = view.findViewById(R.id.card_rotate)
 
         val hostUrl = org.libera.pictotree.network.RetrofitClient.SERVER_URL
         adapter = TreeAdapter(username, hostUrl, allowNetwork = false) { tree ->
-            // LIRE LES PRÉFÉRENCES GLOBALES DEPUIS USERCONFIG
             viewLifecycleOwner.lifecycleScope.launch {
                 val profileId = arguments?.getInt("profileId", -1) ?: -1
                 val database = AppDatabase.getDatabase(requireContext(), username)
@@ -171,14 +178,14 @@ class TreeSelectionFragment : Fragment() {
         })
         itemTouchHelper.attachToRecyclerView(rvPhrase)
 
-        view.findViewById<View>(R.id.card_speak)?.setOnClickListener {
+        cardSpeak.setOnClickListener {
             val phrase = explorerViewModel.phraseList.value
             if (phrase.isNotEmpty()) {
                 ttsManager.stop()
                 phrase.forEachIndexed { index, node -> ttsManager.speak(node.label, index.toString()) }
             }
         }
-        view.findViewById<View>(R.id.card_rotate)?.setOnClickListener {
+        cardRotate.setOnClickListener {
             (requireActivity() as? org.libera.pictotree.MainActivity)?.toggleOrientation()
         }
         view.findViewById<View>(R.id.btn_fullscreen_phrase).setOnClickListener {
@@ -186,6 +193,14 @@ class TreeSelectionFragment : Fragment() {
         }
         view.findViewById<View>(R.id.btn_clear_phrase)?.setOnClickListener {
             showClearPhraseConfirmation()
+        }
+        cardSearch.setOnClickListener {
+            val searchDialog = org.libera.pictotree.ui.common.PictoSearchDialog()
+            searchDialog.onPictoSelected = { result ->
+                val searchNode = org.libera.pictotree.ui.explorer.TreeNode("search_${result.id}_recherche", result.name, result.imageUrl, emptyList())
+                explorerViewModel.addToPhrase(searchNode)
+            }
+            searchDialog.show(childFragmentManager, "PictoSearch")
         }
     }
 
@@ -204,8 +219,11 @@ class TreeSelectionFragment : Fragment() {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 launch {
                     explorerViewModel.userConfig.collect { config ->
-                        view?.findViewById<View>(R.id.card_search)?.visibility = 
-                            if (config?.enableSearch == true) View.VISIBLE else View.GONE
+                        if (config != null) {
+                            cardSearch.visibility = if (config.enableSearch) View.VISIBLE else View.GONE
+                            cardSpeak.visibility = if (config.enableTTSButton) View.VISIBLE else View.GONE
+                            cardRotate.visibility = if (config.enableRotationButton) View.VISIBLE else View.GONE
+                        }
                     }
                 }
 
