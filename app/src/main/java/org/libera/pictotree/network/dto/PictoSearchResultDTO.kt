@@ -4,7 +4,7 @@ import com.google.gson.annotations.SerializedName
 
 data class PictoSearchResultDTO(
     @SerializedName("id") val id: Int,
-    @SerializedName("name") val name: String,
-    @SerializedName("image_url") val imageUrl: String,
+    @SerializedName("name") val name: String?,
+    @SerializedName("image_url") val imageUrl: String?,
     @SerializedName("thumbnail_url") val thumbnailUrl: String? = null
 )

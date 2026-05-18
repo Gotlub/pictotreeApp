@@ -46,11 +46,7 @@ class DashboardFragment : Fragment() {
     private lateinit var ivAdminStatus: ImageView
     private lateinit var ivLogout: ImageView
 
-    // Suivi de la dernière orientation globale appliquée pour éviter le "snap-back"
-    // On l'initialise avec une valeur qui sera écrasée au premier émission du Flow
     private var lastAppliedGlobalOrientation: String? = null
-    
-    // Flag pour savoir si on vient de restaurer l'état après rotation
     private var isRestoredFromRotation = false
 
     override fun onCreateView(
@@ -138,35 +134,34 @@ class DashboardFragment : Fragment() {
 
                 launch { viewModel.isImporting.collect { importing -> progressBar.visibility = if (importing) View.VISIBLE else View.GONE } }
                 
+                // OBSERVATION DES RÉSULTATS DE SYNCHRONISATION
+                launch {
+                    viewModel.syncResultEvent.collect { result ->
+                        if (result.errors > 0) {
+                            MaterialAlertDialogBuilder(requireContext())
+                                .setTitle("Importation partielle")
+                                .setMessage("Le profil a été importé, mais ${result.errors} image(s) n'ont pas pu être téléchargées. Vous pourrez les réparer plus tard dans l'édition du profil.")
+                                .setPositiveButton("OK", null)
+                                .show()
+                        } else {
+                            Toast.makeText(requireContext(), "Profil importé avec succès !", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+
                 launch {
                     viewModel.userConfig.collect { config ->
                         if (config != null) {
                             cardRotate.visibility = if (config.enableRotationButton) View.VISIBLE else View.GONE
-                            
-                            // LOGIQUE ANTI-SNAPBACK AMÉLIORÉE
                             val globalSetting = config.defaultOrientation
-                            
-                            // On applique le réglage global SI :
-                            // 1. C'est la toute première fois qu'on charge (lastAppliedGlobalOrientation == null) ET qu'on n'est pas après une rotation (isRestoredFromRotation == false)
-                            // 2. OU si le réglage global dans la BDD a physiquement changé depuis la dernière fois qu'on l'a appliqué
                             if ((lastAppliedGlobalOrientation == null && !isRestoredFromRotation) || 
                                 (lastAppliedGlobalOrientation != null && lastAppliedGlobalOrientation != globalSetting)) {
-                                
                                 lastAppliedGlobalOrientation = globalSetting
-                                val orientationInt = if (globalSetting == "LANDSCAPE") {
-                                    android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
-                                } else {
-                                    android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
-                                }
+                                val orientationInt = if (globalSetting == "LANDSCAPE") android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE else android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
                                 sessionManager.setPreferredOrientation(username, orientationInt)
                                 (requireActivity() as? MainActivity)?.applyUserOrientation()
                             }
-                            
-                            // Si on vient de restaurer après rotation, on marque lastAppliedGlobalOrientation 
-                            // pour ne pas écraser l'override manuel au prochain changement de config mineur
-                            if (lastAppliedGlobalOrientation == null && isRestoredFromRotation) {
-                                lastAppliedGlobalOrientation = globalSetting
-                            }
+                            if (lastAppliedGlobalOrientation == null && isRestoredFromRotation) lastAppliedGlobalOrientation = globalSetting
                         }
                     }
                 }
@@ -218,7 +213,6 @@ class DashboardFragment : Fragment() {
         val dialogView = layoutInflater.inflate(R.layout.dialog_unlock_login, null)
         val etPassword = dialogView.findViewById<TextInputEditText>(R.id.et_password)
         val tvUser = dialogView.findViewById<TextView>(R.id.tv_unlock_user)
-        
         val sessionManager = SessionManager(requireContext())
         val username = sessionManager.getUsername() ?: "default"
         tvUser.text = "Utilisateur : $username"
@@ -232,12 +226,8 @@ class DashboardFragment : Fragment() {
                     progressBar.visibility = View.VISIBLE
                     val result = viewModel.tryUnlock(password)
                     progressBar.visibility = View.GONE
-                    
-                    if (result.isSuccess) {
-                        Toast.makeText(requireContext(), "Accès autorisé", Toast.LENGTH_SHORT).show()
-                    } else {
-                        Toast.makeText(requireContext(), "Échec : ${result.exceptionOrNull()?.message}", Toast.LENGTH_LONG).show()
-                    }
+                    if (result.isSuccess) Toast.makeText(requireContext(), "Accès autorisé", Toast.LENGTH_SHORT).show()
+                    else Toast.makeText(requireContext(), "Échec : ${result.exceptionOrNull()?.message}", Toast.LENGTH_LONG).show()
                 }
             }
             .setNegativeButton("Annuler", null)

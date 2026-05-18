@@ -12,5 +12,6 @@ data class ImageEntity(
     val remotePath: String,
     @ColumnInfo(name = "local_path")
     val localPath: String,
-    val name: String? = null
+    val name: String? = null,
+    val description: String? = null
 )

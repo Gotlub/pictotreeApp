@@ -18,7 +18,9 @@ import org.libera.pictotree.data.database.entity.Profile
 import org.libera.pictotree.data.database.entity.ProfileTreeCrossRef
 import org.libera.pictotree.data.database.entity.TreeEntity
 import org.libera.pictotree.network.dto.TreeMetadataDTO
+import org.libera.pictotree.network.dto.TreeFullDTO
 import org.libera.pictotree.data.repository.ImageSyncEngine
+import org.libera.pictotree.data.repository.SyncResult
 import org.libera.pictotree.data.repository.ProfileRepository
 import org.libera.pictotree.network.TreeApiService
 import org.libera.pictotree.data.model.ProfileSettings
@@ -44,6 +46,9 @@ class EditProfileViewModel(
 
     private val _showTreeSelectionEvent = Channel<Unit>(Channel.BUFFERED)
     val showTreeSelectionEvent = _showTreeSelectionEvent.receiveAsFlow()
+
+    private val _syncResultEvent = Channel<SyncResult>(Channel.BUFFERED)
+    val syncResultEvent = _syncResultEvent.receiveAsFlow()
 
     private val _remoteTrees = MutableStateFlow<List<TreeMetadataDTO>>(emptyList())
     val remoteTrees: StateFlow<List<TreeMetadataDTO>> = _remoteTrees.asStateFlow()
@@ -103,7 +108,9 @@ class EditProfileViewModel(
         }
     }
 
-    fun loadMoreTrees() { /* Pagination */ }
+    fun loadMoreTrees() {
+        // Version simplifiée : on pourrait ajouter de la pagination réelle ici
+    }
 
     fun openTreeSelection() {
         viewModelScope.launch { searchTrees(""); _showTreeSelectionEvent.send(Unit) }
@@ -130,14 +137,39 @@ class EditProfileViewModel(
                     treeDao.insertTree(treeEntity)
 
                     val engine = ImageSyncEngine(getApplication(), imageDao, username, hostUrl, authToken)
-                    fullTree.rootNode?.let { engine.syncImagesFromNode(it, fullTree.treeId) }
+                    val result = fullTree.rootNode?.let { engine.syncImagesFromNode(it, fullTree.treeId) } ?: SyncResult(0, 0)
                     
                     val maxOrder = profileDao.getMaxDisplayOrderForProfile(profileId) ?: -1
                     profileRepository.insertProfileTreeCrossRef(ProfileTreeCrossRef(profileId, treeEntity.id, maxOrder + 1))
                     
+                    _syncResultEvent.send(result)
                     loadProfile(profileId)
                 }
             } catch (e: Exception) { e.printStackTrace() }
+        }
+    }
+
+    /**
+     * Tente de réparer un arbre en téléchargeant les images manquantes.
+     */
+    fun repairTree(treeId: Int, username: String) {
+        viewModelScope.launch {
+            try {
+                val treeEntity = treeDao.getTreeById(treeId) ?: return@launch
+                val fullTree = Gson().fromJson(treeEntity.jsonPayload, TreeFullDTO::class.java)
+                
+                val sessionManager = SessionManager(getApplication())
+                val authToken = sessionManager.getToken() ?: ""
+                val hostUrl = org.libera.pictotree.network.RetrofitClient.SERVER_URL
+                
+                val engine = ImageSyncEngine(getApplication(), imageDao, username, hostUrl, authToken)
+                val result = fullTree.rootNode?.let { engine.syncImagesFromNode(it, treeId) } ?: SyncResult(0, 0)
+                
+                _syncResultEvent.send(result)
+                loadProfile(profileId)
+            } catch (e: Exception) {
+                Log.e(TAG, "Repair failed for tree $treeId", e)
+            }
         }
     }
 

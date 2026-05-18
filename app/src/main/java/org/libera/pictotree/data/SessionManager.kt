@@ -67,6 +67,14 @@ class SessionManager(context: Context) {
         return prefs.getInt("ORIENTATION_$username", android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT)
     }
 
+    fun setOfflineAccessAllowed(username: String, allowed: Boolean) {
+        prefs.edit().putBoolean("OFFLINE_ALLOWED_$username", allowed).apply()
+    }
+
+    fun isOfflineAccessAllowed(username: String): Boolean {
+        return prefs.getBoolean("OFFLINE_ALLOWED_$username", false)
+    }
+
     fun switchToOfflineMode() {
         prefs.edit()
             .remove("USER_TOKEN")

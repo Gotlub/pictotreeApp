@@ -24,6 +24,7 @@ import org.libera.pictotree.data.repository.UserConfigRepository
 import org.libera.pictotree.utils.TTSManager
 import org.libera.pictotree.ui.explorer.PhraseAdapter
 import org.libera.pictotree.ui.explorer.TreeExplorerViewModel
+import org.libera.pictotree.ui.explorer.TreeNode
 
 class TreeSelectionFragment : Fragment() {
 
@@ -197,7 +198,7 @@ class TreeSelectionFragment : Fragment() {
         cardSearch.setOnClickListener {
             val searchDialog = org.libera.pictotree.ui.common.PictoSearchDialog()
             searchDialog.onPictoSelected = { result ->
-                val searchNode = org.libera.pictotree.ui.explorer.TreeNode("search_${result.id}_recherche", result.name, result.imageUrl, emptyList())
+                val searchNode = TreeNode("search_${result.id}_recherche", result.name ?: "", result.imageUrl ?: "", emptyList())
                 explorerViewModel.addToPhrase(searchNode)
             }
             searchDialog.show(childFragmentManager, "PictoSearch")

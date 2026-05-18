@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Update
 import org.libera.pictotree.data.database.entity.ImageEntity
 import org.libera.pictotree.data.database.entity.TreeImageCrossRef
 
@@ -11,6 +12,9 @@ import org.libera.pictotree.data.database.entity.TreeImageCrossRef
 interface ImageDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertImage(image: ImageEntity): Long
+
+    @Update
+    suspend fun updateImage(image: ImageEntity)
 
     @Query("SELECT * FROM images WHERE remote_path = :remotePath LIMIT 1")
     suspend fun getImageByRemotePath(remotePath: String): ImageEntity?
@@ -30,7 +34,7 @@ interface ImageDao {
     @Query("SELECT images.* FROM images INNER JOIN tree_image_cross_ref ON images.id = tree_image_cross_ref.imageId WHERE tree_image_cross_ref.treeId = :treeId")
     suspend fun getImagesForTree(treeId: Int): List<ImageEntity>
 
-    @Query("SELECT * FROM images WHERE name LIKE '%' || :query || '%' LIMIT 100")
+    @Query("SELECT * FROM images WHERE name LIKE :query LIMIT 100")
     suspend fun searchImages(query: String): List<ImageEntity>
 
     @Query("SELECT * FROM images")

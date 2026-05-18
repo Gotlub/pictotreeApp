@@ -14,7 +14,6 @@ import org.libera.pictotree.network.TreeApiService
 import org.libera.pictotree.network.dto.PictoSearchResultDTO
 import org.libera.pictotree.utils.ConnectivityObserver
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow as KStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.firstOrNull
 
@@ -45,7 +44,6 @@ class PictoSearchViewModel(
     private val _arasaacResults = MutableStateFlow<SearchUiState>(SearchUiState.Idle)
     val arasaacResults: StateFlow<SearchUiState> = _arasaacResults.asStateFlow()
 
-    // Observation du statut réseau en temps réel
     val networkStatus = connectivityObserver.observe().stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
@@ -66,11 +64,8 @@ class PictoSearchViewModel(
 
     fun search(type: Int) {
         if (currentGlobalQuery.isBlank()) return
-        
-        // Si on a déjà cherché ce mot clé pour ce type, on ne fait rien
         if (lastQueries[type] == currentGlobalQuery) return
         
-        // Pour les types "Online", on vérifie la connexion avant de lancer
         if (type != SearchTabFragment.TYPE_LOCAL && networkStatus.value != ConnectivityObserver.Status.Available) {
             val errorState = SearchUiState.Error("Hors-ligne : Vérifiez votre connexion internet.")
             if (type == SearchTabFragment.TYPE_BASE) _baseResults.value = errorState
@@ -91,12 +86,15 @@ class PictoSearchViewModel(
         viewModelScope.launch {
             _localResults.value = SearchUiState.Loading
             try {
-                val entities = imageDao.searchImages(query)
+                // AJOUT DES WILDCARDS POUR ROOM
+                val fuzzyQuery = "%$query%"
+                val entities = imageDao.searchImages(fuzzyQuery)
                 val results = entities.map {
                     val file = java.io.File(getApplication<Application>().filesDir, "$username/${it.localPath}")
                     PictoSearchResultDTO(
                         id = it.id,
-                        name = it.name ?: "Picto",
+                        // Priorité au nom, puis description
+                        name = it.name ?: it.description ?: "Picto",
                         imageUrl = "file://${file.absolutePath}"
                     )
                 }
@@ -115,7 +113,7 @@ class PictoSearchViewModel(
                 if (response.isSuccessful) {
                     _baseResults.value = SearchUiState.Success(response.body() ?: emptyList())
                 } else {
-                    _baseResults.value = SearchUiState.Error("Erreur serveur")
+                    _baseResults.value = SearchUiState.Error("Erreur serveur : ${response.code()}")
                 }
             } catch (e: Exception) {
                 _baseResults.value = SearchUiState.Error("Erreur réseau")

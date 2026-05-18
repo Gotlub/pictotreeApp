@@ -27,6 +27,7 @@ import org.libera.pictotree.R
 import org.libera.pictotree.data.database.AppDatabase
 import org.libera.pictotree.utils.WebViewImageInterceptor
 import org.libera.pictotree.utils.TTSManager
+import org.libera.pictotree.utils.FileUtils
 import org.json.JSONObject
 
 class TreeGlobalMapDialog : DialogFragment() {
@@ -277,7 +278,7 @@ class TreeGlobalMapDialog : DialogFragment() {
         root.findViewById<View>(R.id.card_search).setOnClickListener {
             val searchDialog = org.libera.pictotree.ui.common.PictoSearchDialog()
             searchDialog.onPictoSelected = { result ->
-                val searchNode = TreeNode("search_${result.id}_recherche", result.name, result.imageUrl, emptyList())
+                val searchNode = TreeNode("search_${result.id}_recherche", result.name ?: "", result.imageUrl ?: "", emptyList())
                 viewModel.addToPhrase(searchNode)
             }
             searchDialog.show(childFragmentManager, "PictoSearch")
@@ -344,11 +345,21 @@ class TreeGlobalMapDialog : DialogFragment() {
         } catch (e: Exception) {}
     }
 
-    private fun loadPreviewImage(url: String, imageView: android.widget.ImageView) {
+    private fun loadPreviewImage(url: String?, imageView: android.widget.ImageView) {
         val ctx = appContext ?: return
-        val fileName = org.libera.pictotree.utils.FileUtils.getLocalFileNameFromUrl(url)
+        if (url.isNullOrBlank()) {
+            imageView.setImageResource(R.drawable.ic_launcher_foreground)
+            return
+        }
+        
+        val cleanUrl = FileUtils.getCleanUrl(url)
+        val fileName = FileUtils.getLocalFileNameFromUrl(cleanUrl)
         val localFile = java.io.File(ctx.filesDir, "$username/images/$fileName")
-        val finalSource: Any = if (localFile.exists()) localFile else url
+        
+        var finalSource: Any = if (localFile.exists()) localFile else url
+        if (finalSource is String && !finalSource.startsWith("http") && !finalSource.startsWith("file")) {
+            finalSource = "${org.libera.pictotree.network.RetrofitClient.SERVER_URL.removeSuffix("/")}/${finalSource.removePrefix("/")}"
+        }
         
         val imageLoader = org.libera.pictotree.network.RetrofitClient.getImageLoader(ctx)
         imageView.load(finalSource, imageLoader) {

@@ -22,6 +22,7 @@ import kotlinx.coroutines.launch
 import org.libera.pictotree.R
 import org.libera.pictotree.data.database.AppDatabase
 import org.libera.pictotree.utils.TTSManager
+import org.libera.pictotree.utils.FileUtils
 
 class TreeExplorerFragment : Fragment() {
 
@@ -59,7 +60,6 @@ class TreeExplorerFragment : Fragment() {
     private var ignoreScrollEvents = false 
     private var userIsSwiping = false 
 
-    // Indicateurs (Nullable pour supporter les variations de layout sans crash)
     private var siblingsGradLeft: View? = null
     private var siblingsGradRight: View? = null
     private var siblingsArrowLeft: View? = null
@@ -276,7 +276,7 @@ class TreeExplorerFragment : Fragment() {
         }
         cardSearch.setOnClickListener {
             val dialog = org.libera.pictotree.ui.common.PictoSearchDialog()
-            dialog.onPictoSelected = { result -> viewModel.addToPhrase(TreeNode("search_${result.id}_recherche", result.name, result.imageUrl, emptyList())) }
+            dialog.onPictoSelected = { result -> viewModel.addToPhrase(TreeNode("search_${result.id}_recherche", result.name ?: "", result.imageUrl ?: "", emptyList())) }
             dialog.show(childFragmentManager, "PictoSearch")
         }
         cardSpeak.setOnClickListener {
@@ -323,22 +323,31 @@ class TreeExplorerFragment : Fragment() {
         if (state.isLoading) return
         siblingAdapter.setColorCode(state.colorCode); childrenAdapter.setColorCode(state.colorCode)
         try { containerParent.strokeColor = android.graphics.Color.parseColor(state.colorCode); containerParent.strokeWidth = (3 * resources.displayMetrics.density).toInt() } catch (e: Exception) { containerParent.strokeColor = android.graphics.Color.BLACK }
-        if (state.parent != null) { 
-            containerParent.visibility = View.VISIBLE; tvParentLabel.text = state.parent.label
-            val cleanUrl = org.libera.pictotree.utils.FileUtils.getCleanUrl(state.parent.imageUrl)
-            val fileName = org.libera.pictotree.utils.FileUtils.getLocalFileNameFromUrl(cleanUrl)
+        
+        state.parent?.let { parent ->
+            containerParent.visibility = View.VISIBLE; tvParentLabel.text = parent.label
+            val rawUrl = parent.imageUrl
+            val cleanUrl = FileUtils.getCleanUrl(rawUrl)
+            val fileName = FileUtils.getLocalFileNameFromUrl(cleanUrl)
             val username = org.libera.pictotree.data.SessionManager(requireContext()).getUsername() ?: "default"
             val localFile = java.io.File(requireContext().filesDir, "$username/images/$fileName")
-            var finalSource: Any = if (localFile.exists()) localFile else state.parent.imageUrl
-            if (finalSource is String && !finalSource.startsWith("http") && !finalSource.startsWith("file")) finalSource = "${org.libera.pictotree.network.RetrofitClient.SERVER_URL.removeSuffix("/")}/${(finalSource as String).removePrefix("/")}"
-            ivParent.load(finalSource) { placeholder(R.drawable.ic_launcher_background); error(R.drawable.ic_launcher_background); diskCachePolicy(coil.request.CachePolicy.ENABLED); networkCachePolicy(coil.request.CachePolicy.DISABLED)
-                if (finalSource is String && ((finalSource as String).contains("/api/v1/mobile/") || (finalSource as String).contains("/pictograms/"))) {
+            
+            var finalSource: Any = if (localFile.exists()) localFile else rawUrl
+            if (finalSource is String && !finalSource.startsWith("http") && !finalSource.startsWith("file")) {
+                finalSource = "${org.libera.pictotree.network.RetrofitClient.SERVER_URL.removeSuffix("/")}/${finalSource.removePrefix("/")}"
+            }
+            
+            ivParent.load(finalSource) { 
+                placeholder(R.drawable.ic_launcher_background); error(R.drawable.ic_launcher_background); diskCachePolicy(coil.request.CachePolicy.ENABLED); networkCachePolicy(coil.request.CachePolicy.DISABLED)
+                if (finalSource is String && (finalSource.contains("/api/v1/mobile/") || finalSource.contains("/pictograms/"))) {
                     val token = org.libera.pictotree.data.SessionManager(requireContext()).getToken()
                     if (!token.isNullOrEmpty()) addHeader("Authorization", "Bearer $token")
                 }
             } 
-        } else containerParent.visibility = View.INVISIBLE
+        } ?: run { containerParent.visibility = View.INVISIBLE }
+        
         breadcrumbAdapter.submitList(state.breadcrumbs) { rvBreadcrumbs.post { updateVerticalScrollIndicators(rvBreadcrumbs, scrollTopIndicator, scrollBottomIndicator) } }
+        
         siblingAdapter.submitList(state.siblings) {
             val navPos = state.siblings.indexOfFirst { it.id == state.navigationNode?.id }
             var highlightPos = state.siblings.indexOfFirst { it.id == state.previewNode?.id }
@@ -349,20 +358,28 @@ class TreeExplorerFragment : Fragment() {
             } else siblingAdapter.setSelectedPosition(highlightPos)
             rvSiblings.post { updateHorizontalScrollIndicators(rvSiblings, siblingsGradLeft, siblingsArrowLeft, siblingsGradRight, siblingsArrowRight); positionChildrenArrow() }
         }
+        
         state.previewNode?.let { node -> 
-            val cleanUrl = org.libera.pictotree.utils.FileUtils.getCleanUrl(node.imageUrl)
-            val fileName = org.libera.pictotree.utils.FileUtils.getLocalFileNameFromUrl(cleanUrl)
+            val rawUrl = node.imageUrl
+            val cleanUrl = FileUtils.getCleanUrl(rawUrl)
+            val fileName = FileUtils.getLocalFileNameFromUrl(cleanUrl)
             val username = org.libera.pictotree.data.SessionManager(requireContext()).getUsername() ?: "default"
             val localFile = java.io.File(requireContext().filesDir, "$username/images/$fileName")
-            var finalSource: Any = if (localFile.exists()) localFile else node.imageUrl
-            if (finalSource is String && !finalSource.startsWith("http") && !finalSource.startsWith("file")) finalSource = "${org.libera.pictotree.network.RetrofitClient.SERVER_URL.removeSuffix("/")}/${(finalSource as String).removePrefix("/")}"
-            ivSelectedLarge.load(finalSource) { placeholder(R.drawable.ic_launcher_foreground); error(R.drawable.ic_launcher_foreground); diskCachePolicy(coil.request.CachePolicy.ENABLED); networkCachePolicy(coil.request.CachePolicy.DISABLED)
-                if (finalSource is String && ((finalSource as String).contains("/api/v1/mobile/") || (finalSource as String).contains("/pictograms/"))) {
+            
+            var finalSource: Any = if (localFile.exists()) localFile else rawUrl
+            if (finalSource is String && !finalSource.startsWith("http") && !finalSource.startsWith("file")) {
+                finalSource = "${org.libera.pictotree.network.RetrofitClient.SERVER_URL.removeSuffix("/")}/${finalSource.removePrefix("/")}"
+            }
+            
+            ivSelectedLarge.load(finalSource) { 
+                placeholder(R.drawable.ic_launcher_foreground); error(R.drawable.ic_launcher_foreground); diskCachePolicy(coil.request.CachePolicy.ENABLED); networkCachePolicy(coil.request.CachePolicy.DISABLED)
+                if (finalSource is String && (finalSource.contains("/api/v1/mobile/") || finalSource.contains("/pictograms/"))) {
                     val token = org.libera.pictotree.data.SessionManager(requireContext()).getToken()
                     if (!token.isNullOrEmpty()) addHeader("Authorization", "Bearer $token")
                 }
             } 
         }
+        
         childrenAdapter.submitList(state.children) {
             childrenAdapter.setSelectedPosition(state.children.indexOfFirst { it.id == state.previewNode?.id })
             rvChildren.post { updateHorizontalScrollIndicators(rvChildren, childrenGradLeft, childrenArrowLeft, childrenGradRight, childrenArrowRight) }

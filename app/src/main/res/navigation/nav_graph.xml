@@ -45,6 +45,9 @@
         <argument
             android:name="profileId"
             app:argType="integer" />
+        <action
+            android:id="@+id/action_editProfileFragment_to_treeExplorerFragment"
+            app:destination="@id/treeExplorerFragment" />
     </fragment>
 
     <fragment

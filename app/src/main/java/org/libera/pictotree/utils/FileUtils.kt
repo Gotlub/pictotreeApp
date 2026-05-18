@@ -6,15 +6,16 @@ object FileUtils {
     /**
      * Enlève les paramètres de requête (?123456) pour obtenir une clé stable.
      */
-    fun getCleanUrl(url: String): String {
+    fun getCleanUrl(url: String?): String {
+        if (url == null) return ""
         return url.substringBefore('?')
     }
 
     /**
      * Assure que l'URL est absolue et pointe sur le bon host (émulateur).
      */
-    fun normalizeUrl(url: String, hostUrl: String): String {
-        if (url.isBlank()) return url
+    fun normalizeUrl(url: String?, hostUrl: String): String {
+        if (url.isNullOrBlank()) return ""
         
         // 1. Gérer les URLs déjà absolues
         if (url.startsWith("http")) {
@@ -36,7 +37,8 @@ object FileUtils {
      * Remplace 127.0.0.1 par l'adresse réelle du serveur (ex: 10.0.2.2) 
      * pour que l'émulateur puisse communiquer avec le backend.
      */
-    fun normalizeServerAddress(url: String): String {
+    fun normalizeServerAddress(url: String?): String {
+        if (url == null) return ""
         if (!url.contains("127.0.0.1")) return url
         
         val serverUri = android.net.Uri.parse(org.libera.pictotree.network.RetrofitClient.SERVER_URL)
@@ -48,8 +50,8 @@ object FileUtils {
      * Génère un nom de fichier déterministe basé sur l'URL distante.
      * Utilisé par ImageSyncEngine (Sync) et TreeExplorerViewModel (Visualisation).
      */
-    fun getLocalFileNameFromUrl(remoteUrl: String): String {
-        if (remoteUrl.isBlank()) return ""
+    fun getLocalFileNameFromUrl(remoteUrl: String?): String {
+        if (remoteUrl.isNullOrBlank()) return ""
         
         // Nettoyer l'URL : supprimer les paramètres de requête (ex: ?123456) pour le hash
         val cleanUrl = getCleanUrl(remoteUrl)

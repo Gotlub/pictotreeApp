@@ -13,8 +13,6 @@
         android:layout_height="wrap_content"
         android:padding="8dp">
 
-
-
         <TextView
             android:id="@+id/textOrderNumber"
             android:layout_width="wrap_content"
@@ -53,6 +51,7 @@
             app:layout_constraintEnd_toStartOf="@+id/indicator_tree_color"
             app:layout_constraintBottom_toBottomOf="@id/imageTreeIcon" />
 
+        <!-- COLOR INDICATOR -->
         <View
             android:id="@+id/indicator_tree_color"
             android:layout_width="24dp"
@@ -64,12 +63,24 @@
             android:foreground="?attr/selectableItemBackgroundBorderless"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@+id/buttonRepairTree" />
+
+        <!-- REPAIR BUTTON (Added) -->
+        <ImageButton
+            android:id="@+id/buttonRepairTree"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@android:drawable/ic_popup_sync"
+            android:contentDescription="Réparer les images"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toStartOf="@+id/buttonViewTree" />
 
         <ImageButton
             android:id="@+id/buttonViewTree"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@android:drawable/ic_menu_view"
             android:contentDescription="Visualiser l\'arbre"
@@ -79,8 +90,8 @@
 
         <ImageButton
             android:id="@+id/buttonDeleteTree"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@android:drawable/ic_menu_delete"
             app:layout_constraintTop_toTopOf="parent"

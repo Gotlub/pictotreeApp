@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.first
 import org.libera.pictotree.network.RetrofitClient
 import org.libera.pictotree.data.repository.AuthRepository
 import org.libera.pictotree.data.database.AppDatabase
+import org.libera.pictotree.data.SessionManager
 
 /**
  * UI State for the Login Screen
@@ -26,7 +27,9 @@ data class LoginUiState(
     val isLoginSuccessful: Boolean = false,
     val token: String? = null,
     val refreshToken: String? = null,
-    val username: String? = null
+    val username: String? = null,
+    // NOUVEAU : Information sur la disponibilité du mode hors-ligne
+    val isOfflineAvailable: Boolean = true 
 )
 
 class LoginViewModel(
@@ -48,10 +51,15 @@ class LoginViewModel(
             val isKnownUser = currentState.availableUsers.contains(username)
             val isNewUser = !isKnownUser && username.isNotBlank()
             
+            // VERIFIER SI LE MODE HORS LIGNE EST AUTORISÉ POUR CETTE PERSONNE
+            val sessionManager = SessionManager(getApplication())
+            val offlineAllowed = if (isKnownUser) sessionManager.isOfflineAccessAllowed(username) else false
+
             currentState.copy(
                 selectedUser = username,
-                isOnlineMode = if (isNewUser) true else currentState.isOnlineMode,
-                isPasswordVisible = if (isNewUser) true else currentState.isPasswordVisible
+                isOnlineMode = if (isNewUser || !offlineAllowed) true else currentState.isOnlineMode,
+                isPasswordVisible = if (isNewUser || !offlineAllowed) true else currentState.isPasswordVisible,
+                isOfflineAvailable = offlineAllowed
             )
         }
     }
@@ -80,11 +88,10 @@ class LoginViewModel(
             viewModelScope.launch {
                 val knownUsers = _uiState.value.availableUsers
                 if (knownUsers.contains(username)) {
-                    // VERIFIER L'AUTORISATION HORS LIGNE
-                    val db = AppDatabase.getDatabase(getApplication(), username)
-                    val config = db.userConfigDao().getUserConfigFlow().first()
+                    val sessionManager = SessionManager(getApplication())
+                    val isAllowed = sessionManager.isOfflineAccessAllowed(username)
                     
-                    if (config?.isOfflineAccessAllowed == true) {
+                    if (isAllowed) {
                         _uiState.update { it.copy(
                             isLoading = false,
                             isLoginSuccessful = true,

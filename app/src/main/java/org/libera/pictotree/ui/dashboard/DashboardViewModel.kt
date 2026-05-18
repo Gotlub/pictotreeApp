@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.combine
 import org.libera.pictotree.data.database.entity.UserConfig
 import org.libera.pictotree.data.repository.UserConfigRepository
 import org.libera.pictotree.data.repository.ImageSyncEngine
+import org.libera.pictotree.data.repository.SyncResult
 import org.libera.pictotree.data.database.dao.ImageDao
 import org.libera.pictotree.data.database.dao.TreeDao
 import org.libera.pictotree.data.SessionManager
@@ -46,6 +47,9 @@ class DashboardViewModel(
 
     private val _playProfileEvent = Channel<Int>(Channel.BUFFERED)
     val playProfileEvent = _playProfileEvent.receiveAsFlow()
+
+    private val _syncResultEvent = Channel<SyncResult>(Channel.BUFFERED)
+    val syncResultEvent = _syncResultEvent.receiveAsFlow()
 
     private val _remoteProfiles = MutableStateFlow<List<ProfileDTO>>(emptyList())
     val remoteProfiles: StateFlow<List<ProfileDTO>> = _remoteProfiles
@@ -83,7 +87,11 @@ class DashboardViewModel(
     }
 
     fun setOfflineAccessAllowed(allowed: Boolean) {
-        viewModelScope.launch { userConfigRepository.saveOfflineAccessAllowed(allowed) }
+        viewModelScope.launch { 
+            userConfigRepository.saveOfflineAccessAllowed(allowed) 
+            val username = SessionManager(getApplication()).getUsername() ?: "default"
+            SessionManager(getApplication()).setOfflineAccessAllowed(username, allowed)
+        }
     }
 
     fun setEnableSearch(enabled: Boolean) {
@@ -97,7 +105,6 @@ class DashboardViewModel(
     fun setAdminMode(isAdmin: Boolean) {
         _isAdminMode.value = isAdmin
         if (!isAdmin) {
-            // Verrouillage : Suppression des tokens
             SessionManager(getApplication()).clearSession()
         }
     }
@@ -154,6 +161,8 @@ class DashboardViewModel(
     fun importRemoteProfile(remoteProfile: ProfileDTO) {
         viewModelScope.launch {
             _isImporting.value = true
+            var totalSynced = 0
+            var totalErrors = 0
             try {
                 val sessionManager = SessionManager(getApplication())
                 val username = sessionManager.getUsername() ?: "default"
@@ -201,11 +210,15 @@ class DashboardViewModel(
                             
                             val engine = ImageSyncEngine(getApplication(), imageDao, username, hostUrl, token)
                             if (fullTree.rootNode != null) {
-                                engine.syncImagesFromNode(fullTree.rootNode!!, fullTree.treeId)
+                                val result = engine.syncImagesFromNode(fullTree.rootNode!!, fullTree.treeId)
+                                totalSynced += result.total
+                                totalErrors += result.errors
                             }
                         }
                     }
                 }
+                
+                _syncResultEvent.send(SyncResult(totalSynced, totalErrors))
                 
             } catch (e: Exception) {
                 e.printStackTrace()
