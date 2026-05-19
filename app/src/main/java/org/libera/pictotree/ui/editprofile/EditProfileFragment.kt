@@ -30,6 +30,7 @@ import org.libera.pictotree.data.repository.ProfileRepository
 import org.libera.pictotree.data.repository.UserConfigRepository
 import org.libera.pictotree.data.SessionManager
 import org.libera.pictotree.network.RetrofitClient
+import org.libera.pictotree.ui.explorer.TreeGlobalMapDialog
 import java.io.File
 
 class EditProfileFragment : Fragment() {
@@ -127,12 +128,16 @@ class EditProfileFragment : Fragment() {
             onTreeDelete = { tree -> viewModel.deleteTreeFromProfile(profileId, tree.id) },
             onOrderChanged = { newList -> viewModel.updateTreesOrder(profileId, newList) },
             onViewTree = { tree ->
-                val bundle = Bundle().apply {
-                    putInt("treeId", tree.id)
-                    putInt("profileId", profileId)
-                    putString("username", SessionManager(requireContext()).getUsername())
-                }
-                NavHostFragment.findNavController(this).navigate(R.id.action_editProfileFragment_to_treeExplorerFragment, bundle)
+                // RESTAURATION DE LA VUE SIMPLE TREANT.JS (DIALOGUE)
+                val username = SessionManager(requireContext()).getUsername() ?: "default"
+                val dialog = TreeGlobalMapDialog.newInstance(
+                    intArrayOf(tree.id),
+                    tree.id,
+                    username,
+                    "",
+                    isSimplePreview = true // Nouveau mode
+                )
+                dialog.show(childFragmentManager, "TreePreview")
             },
             onColorClick = { tree, currentColor -> showColorPickerDialog(tree, currentColor) },
             onStartDrag = { viewHolder -> itemTouchHelper.startDrag(viewHolder) },
@@ -155,6 +160,9 @@ class EditProfileFragment : Fragment() {
         }
 
         fabAddTree.setOnClickListener {
+            // Déclencher une recherche vide immédiate pour charger tous les arbres
+            viewModel.searchTrees("")
+            
             val dialog = TreeSelectionDialogFragment(
                 remoteTreesFlow = viewModel.remoteTrees,
                 onSearchRequested = { query -> viewModel.searchTrees(query) },
@@ -213,9 +221,7 @@ class EditProfileFragment : Fragment() {
                             MaterialAlertDialogBuilder(requireContext())
                                 .setTitle("Importation incomplète")
                                 .setMessage("Il manque ${result.errors} image(s) sur un total de ${result.total}. Voulez-vous réessayer ?")
-                                .setPositiveButton("Réessayer") { _, _ ->
-                                    // Relance la réparation globale si besoin ou laisse l'utilisateur cliquer sur l'arbre
-                                }
+                                .setPositiveButton("Réessayer") { _, _ -> }
                                 .setNegativeButton("Plus tard", null)
                                 .show()
                         } else if (result.total > 0) {

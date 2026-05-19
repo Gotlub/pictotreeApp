@@ -1,23 +1,26 @@
 package org.libera.pictotree.ui.explorer
 
+import android.app.AlarmManager
 import android.app.Application
+import android.app.PendingIntent
+import android.content.Context
+import android.content.Intent
+import android.os.SystemClock
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import org.json.JSONObject
-import org.libera.pictotree.data.database.dao.TreeDao
-import org.libera.pictotree.data.database.dao.ProfileDao
-import java.io.File
 import com.google.gson.Gson
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
+import org.json.JSONObject
+import org.libera.pictotree.data.database.dao.ProfileDao
+import org.libera.pictotree.data.database.dao.TreeDao
+import org.libera.pictotree.data.model.CardTimeConfig
 import org.libera.pictotree.data.model.ProfileSettings
+import org.libera.pictotree.data.model.TimeMode
+import java.io.File
 
 /**
  * Représente un noeud de l'arbre avec un ID unique au monde (treeId_nodeId_path).
@@ -27,6 +30,7 @@ class TreeNode(
     val label: String,
     val imageUrl: String,
     val children: List<TreeNode>,
+    val description: String? = null,
     var parent: TreeNode? = null
 ) {
     override fun equals(other: Any?): Boolean {
@@ -40,8 +44,8 @@ class TreeNode(
 
     fun copy(
         id: String = this.id, label: String = this.label, imageUrl: String = this.imageUrl,
-        children: List<TreeNode> = this.children, parent: TreeNode? = this.parent
-    ): TreeNode = TreeNode(id, label, imageUrl, children, parent)
+        children: List<TreeNode> = this.children, description: String? = this.description, parent: TreeNode? = this.parent
+    ): TreeNode = TreeNode(id, label, imageUrl, children, description, parent)
 
     companion object {
         fun parseTreeId(uniqueId: String): Int? = uniqueId.split("_").firstOrNull()?.toIntOrNull()
@@ -78,7 +82,7 @@ class TreeExplorerViewModel(
 ) : AndroidViewModel(application) {
 
     companion object {
-        private const val TAG = "PictoTreeNav"
+        private const val TAG = "TreeExplorerViewModel"
     }
 
     private val _uiState = MutableStateFlow(HierarchicalUiState())
@@ -87,8 +91,21 @@ class TreeExplorerViewModel(
     private val _settings = MutableStateFlow(ProfileSettings())
     val settings: StateFlow<ProfileSettings> = _settings.asStateFlow()
 
-    private val _phraseList = MutableStateFlow<List<TreeNode>>(emptyList())
-    val phraseList: StateFlow<List<TreeNode>> = _phraseList.asStateFlow()
+    // BANDEAU DE PHRASE ENRICHI
+    private val _phraseList = MutableStateFlow<List<PhraseCard>>(emptyList())
+    val phraseList: StateFlow<List<PhraseCard>> = _phraseList.asStateFlow()
+
+    // ÉTATS DE CONFIGURATION (Master/Detail)
+    val isClockModeActive = MutableStateFlow(false)
+    val selectedIndexForConfig = MutableStateFlow<Int?>(null)
+
+    // BATTEMENT DE CŒUR (Pulse)
+    val currentTimeFlow = flow {
+        while (true) {
+            emit(SystemClock.elapsedRealtime())
+            delay(1000)
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), SystemClock.elapsedRealtime())
 
     val userConfig = userConfigRepository.userConfig.stateIn(
         scope = viewModelScope,
@@ -131,17 +148,13 @@ class TreeExplorerViewModel(
     }
 
     fun loadTree(treeId: Int) {
-        if (currentTreeId == treeId && rootNode != null) {
-            Log.d(TAG, "LOAD_TREE: Already loaded Tree $treeId, skipping reset (Survive Rotation)")
-            return 
-        }
+        if (currentTreeId == treeId && rootNode != null) return 
 
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             currentTreeId = treeId
 
             try {
-                // Charger les préférences du profil
                 if (profileId != -1) {
                     profileDao.getProfileById(profileId)?.let { profile ->
                         profile.settingsJson?.let {
@@ -153,11 +166,7 @@ class TreeExplorerViewModel(
                     }
                 }
 
-                val color = profileTreeColorsCache[treeId] ?: if (profileId != -1) {
-                    val dbColor = profileDao.getProfileTreeCrossRef(profileId, treeId)?.colorCode ?: "#000000"
-                    profileTreeColorsCache[treeId] = dbColor
-                    dbColor
-                } else "#000000"
+                val color = profileTreeColorsCache[treeId] ?: "#000000"
                 _uiState.value = _uiState.value.copy(colorCode = color)
 
                 treeDao.getTreeById(treeId)?.let { entity ->
@@ -170,11 +179,7 @@ class TreeExplorerViewModel(
                         val firstChild = parsedRoot.children.firstOrNull()
                         val startNode = firstChild ?: parsedRoot
                         
-                        if (_uiState.value.previewNode == null) {
-                            focusOnNode(startNode, updatePreview = true)
-                        } else {
-                            focusOnNode(startNode, updatePreview = false)
-                        }
+                        focusOnNode(startNode, updatePreview = _uiState.value.previewNode == null)
                     } ?: run { _uiState.value = _uiState.value.copy(isLoading = false, error = "Format invalide.") }
                 } ?: run { _uiState.value = _uiState.value.copy(isLoading = false, error = "Arbre introuvable.") }
             } catch (e: Exception) {
@@ -193,6 +198,7 @@ class TreeExplorerViewModel(
         val rawId = json.optString("node_id", json.optString("id", "unsaved"))
         val id = "${treeId}_${rawId}_$path"
         val label = json.optString("label", json.optString("text", json.optString("name", "Sans Titre")))
+        val description = json.optString("description", null)
         var rawUrl = json.optString("image_url", json.optString("image", json.optString("url", "")))
 
         if (rawUrl.isNotEmpty() && !rawUrl.startsWith("http") && !rawUrl.startsWith("file")) {
@@ -212,18 +218,14 @@ class TreeExplorerViewModel(
             json.optJSONArray("children")?.optJSONObject(i)?.let { parseAndSortNode(it, null, treeId, "${path}_$i") }
         }
 
-        val node = TreeNode(id, label, rawUrl, childrenList, parentRef)
+        val node = TreeNode(id, label, rawUrl, childrenList, description, parentRef)
         childrenList.forEach { it.parent = node }
         return node
     }
 
     fun focusOnNode(node: TreeNode, updatePreview: Boolean = true) {
-        Log.d(TAG, "NAV_MOVE: ${node.id} (UpdatePreview: $updatePreview)")
         val roots = profileTreeIds.mapNotNull { profileTreeRootsCache[it] }
-        
-        TreeNode.parseTreeId(node.id)?.let { treeId ->
-            updateCurrentTreeContext(treeId)
-        }
+        TreeNode.parseTreeId(node.id)?.let { updateCurrentTreeContext(it) }
         
         val newState = TreeNavigator.computeHierarchicalState(node, roots)
         _uiState.value = _uiState.value.copy(
@@ -239,21 +241,11 @@ class TreeExplorerViewModel(
 
     fun updateFocusWithinSiblings(node: TreeNode) {
         if (_uiState.value.navigationNode?.id == node.id) {
-            if (_uiState.value.previewNode?.id != node.id) {
-                _uiState.value = _uiState.value.copy(previewNode = node)
-            }
+            if (_uiState.value.previewNode?.id != node.id) _uiState.value = _uiState.value.copy(previewNode = node)
             return
         }
-        
-        TreeNode.parseTreeId(node.id)?.let { treeId ->
-            updateCurrentTreeContext(treeId)
-        }
-
-        _uiState.value = _uiState.value.copy(
-            navigationNode = node,
-            previewNode = node,
-            children = node.children
-        )
+        TreeNode.parseTreeId(node.id)?.let { updateCurrentTreeContext(it) }
+        _uiState.value = _uiState.value.copy(navigationNode = node, previewNode = node, children = node.children)
     }
 
     fun selectNodeWithoutNavigating(node: TreeNode) {
@@ -266,11 +258,7 @@ class TreeExplorerViewModel(
             val treeId = TreeNode.parseTreeId(uniqueId) ?: -1
             target = findNodeRecursively(profileTreeRootsCache[treeId], uniqueId)
         }
-        target?.let { node ->
-            selectNodeWithoutNavigating(node)
-        } ?: run {
-            Log.w(TAG, "SELECT_BY_ID: Node $uniqueId NOT FOUND in current or cached trees")
-        }
+        target?.let { selectNodeWithoutNavigating(it) }
     }
 
     fun resetSelection() {
@@ -278,9 +266,7 @@ class TreeExplorerViewModel(
     }
 
     fun updatePhraseSize(size: Int) {
-        if (size in 0..2) {
-            _uiState.value = _uiState.value.copy(phraseSize = size)
-        }
+        if (size in 0..2) _uiState.value = _uiState.value.copy(phraseSize = size)
     }
 
     private suspend fun fetchRootNodePreview(treeId: Int): TreeNode? {
@@ -291,32 +277,71 @@ class TreeExplorerViewModel(
 
     fun addToPhrase(externalNode: TreeNode? = null) {
         val nodeToAdd = externalNode ?: _uiState.value.previewNode ?: return
-        
-        val uniqueInstanceNode = nodeToAdd.copy(
-            id = "${nodeToAdd.id}_${System.currentTimeMillis()}_${(0..999).random()}"
-        )
+        val uniqueInstanceNode = nodeToAdd.copy(id = "${nodeToAdd.id}_${System.currentTimeMillis()}_${(0..999).random()}")
         
         if (nodeToAdd.imageUrl.startsWith("http") || nodeToAdd.imageUrl.contains("/api/v1/mobile/")) {
             viewModelScope.launch {
-                val sessionManager = org.libera.pictotree.data.SessionManager(getApplication())
-                val token = sessionManager.getToken()
-                val engine = org.libera.pictotree.data.repository.ImageSyncEngine(getApplication(), imageDao, username, hostUrl, token)
-                engine.downloadSingleImage(nodeToAdd.imageUrl, nodeToAdd.label)
+                val token = org.libera.pictotree.data.SessionManager(getApplication()).getToken()
+                org.libera.pictotree.data.repository.ImageSyncEngine(getApplication(), imageDao, username, hostUrl, token)
+                    .downloadSingleImage(nodeToAdd.imageUrl, nodeToAdd.label)
             }
         }
-        _phraseList.value = _phraseList.value + uniqueInstanceNode
+        _phraseList.value = _phraseList.value + PhraseCard(uniqueInstanceNode)
     }
 
     fun addToPhraseById(uniqueId: String): Boolean {
         return findNodeRecursively(rootNode, uniqueId)?.let { addToPhrase(it); true } ?: false
     }
 
-    fun jumpToNodeId(uniqueId: String): Boolean {
-        findNodeRecursively(rootNode, uniqueId)?.let { focusOnNode(it); return true }
-        TreeNode.parseTreeId(uniqueId)?.let { treeId ->
-            if (profileTreeIds.contains(treeId)) { jumpToTreeAndNode(treeId, uniqueId); return true }
+    // LOGIQUE SÉQUENTIELLE DU TIMER
+    fun startTimerForFirstCard() {
+        val list = _phraseList.value.toMutableList()
+        if (list.isEmpty()) return
+
+        val firstCard = list[0]
+        if (firstCard.timeConfig.mode == TimeMode.TIMER && firstCard.timeConfig.endTimeMillis == 0L) {
+            val durationMs = firstCard.timeConfig.durationMinutes * 60 * 1000L
+            val endTime = SystemClock.elapsedRealtime() + durationMs
+            
+            list[0] = firstCard.copy(timeConfig = firstCard.timeConfig.copy(
+                startTimeMillis = SystemClock.elapsedRealtime(),
+                endTimeMillis = endTime
+            ))
+            _phraseList.value = list
+            scheduleSystemAlarm(endTime, firstCard.node.label)
         }
-        return false
+    }
+
+    private fun scheduleSystemAlarm(triggerAtMillis: Long, label: String) {
+        val intent = Intent(getApplication(), org.libera.pictotree.utils.TimerReceiver::class.java).apply {
+            putExtra("EXTRA_LABEL", label)
+        }
+        val pendingIntent = PendingIntent.getBroadcast(
+            getApplication(), label.hashCode(), intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        val alarmManager = getApplication<Application>().getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        alarmManager.setExactAndAllowWhileIdle(AlarmManager.ELAPSED_REALTIME_WAKEUP, triggerAtMillis, pendingIntent)
+    }
+
+    fun updateCardTimeConfig(index: Int, config: CardTimeConfig) {
+        val list = _phraseList.value.toMutableList()
+        if (index in list.indices) {
+            list[index] = list[index].copy(timeConfig = config)
+            _phraseList.value = list
+            // Si on modifie la carte 0, on redémarre peut-être le timer
+            if (index == 0) startTimerForFirstCard()
+        }
+    }
+
+    fun removeItemFromPhrase(position: Int) {
+        val list = _phraseList.value.toMutableList()
+        if (position in list.indices) {
+            list.removeAt(position)
+            _phraseList.value = list
+            // Passage automatique à la carte suivante
+            if (position == 0) startTimerForFirstCard()
+        }
     }
 
     fun jumpToTreeAndNode(treeId: Int, uniqueId: String, addToBasket: Boolean = false) {
@@ -339,9 +364,7 @@ class TreeExplorerViewModel(
 
     private fun findNodeRecursively(current: TreeNode?, targetId: String): TreeNode? {
         if (current == null || current.id == targetId) return current
-        for (child in current.children) {
-            findNodeRecursively(child, targetId)?.let { return it }
-        }
+        for (child in current.children) findNodeRecursively(child, targetId)?.let { return it }
         return null
     }
 
@@ -356,15 +379,7 @@ class TreeExplorerViewModel(
         }
     }
 
-    fun updatePhraseListSilently(newList: List<TreeNode>) {
+    fun updatePhraseListSilently(newList: List<PhraseCard>) {
         _phraseList.value = newList
-    }
-
-    fun removeItemFromPhrase(position: Int) {
-        val list = _phraseList.value.toMutableList()
-        if (position in list.indices) {
-            list.removeAt(position)
-            _phraseList.value = list
-        }
     }
 }

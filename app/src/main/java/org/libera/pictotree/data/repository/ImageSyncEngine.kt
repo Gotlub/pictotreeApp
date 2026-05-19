@@ -29,16 +29,21 @@ class ImageSyncEngine(
 
     /**
      * Synchronise les images d'un noeud et de ses enfants.
-     * @return SyncResult contenant le nombre total d'images traitées et le nombre d'erreurs.
+     * @return SyncResult contenant uniquement les vraies images téléchargées ou vérifiées.
      */
     suspend fun syncImagesFromNode(node: TreeNodeDTO, treeId: Int): SyncResult {
         var total = 0
         var errors = 0
         
-        if (node.imageUrl.isNotBlank()) {
+        val url = node.imageUrl
+        // On ne traite QUE les vraies URLs distantes (pas de color:, pas de file:// déjà local)
+        if (url.isNotBlank() && !url.startsWith("color:") && !url.startsWith("file://")) {
             total++
-            val success = downloadAndHashImage(node.imageUrl, treeId, node.label, node.description)
-            if (!success) errors++
+            val success = downloadAndHashImage(url, treeId, node.label, node.description)
+            if (!success) {
+                errors++
+                Log.w(TAG, "Sync error for image: $url")
+            }
         }
         
         for (child in node.children) {
@@ -111,6 +116,8 @@ class ImageSyncEngine(
                                             description = finalDesc
                                     )
                             )
+                        } else {
+                            imageDao.updateImage(existing.copy(name = finalName, description = finalDesc))
                         }
                         return@withContext localUrl
                     } else if (connection.responseCode == 401) {
@@ -127,6 +134,9 @@ class ImageSyncEngine(
      */
     private suspend fun downloadAndHashImage(remoteUrl: String, treeId: Int, name: String? = null, description: String? = null): Boolean =
             withContext(Dispatchers.IO) {
+                // SÉCURITÉ SUPPLÉMENTAIRE : On ignore les protocoles non-HTTP
+                if (remoteUrl.startsWith("color:") || remoteUrl.startsWith("file://")) return@withContext true
+
                 val absoluteUrl = normalizeUrl(remoteUrl)
                 val cleanUrl = getCleanUrl(absoluteUrl)
                 
@@ -151,8 +161,8 @@ class ImageSyncEngine(
                 try {
                     val connection = URL(absoluteUrl).openConnection() as java.net.HttpURLConnection
                     connection.setRequestProperty("User-Agent", "Mozilla/5.0")
-                    connection.connectTimeout = 5000
-                    connection.readTimeout = 5000
+                    connection.connectTimeout = 10000
+                    connection.readTimeout = 10000
 
                     if (absoluteUrl.contains("/api/v1/mobile/") && !authToken.isNullOrBlank()) {
                         connection.setRequestProperty("Authorization", "Bearer $authToken")
@@ -206,6 +216,8 @@ class ImageSyncEngine(
                             org.libera.pictotree.data.database.entity.TreeImageCrossRef(treeId, imageId)
                         )
                         return@withContext true
+                    } else {
+                        Log.e(TAG, "Server returned ${connection.responseCode} for $absoluteUrl")
                     }
                 } catch (e: Exception) {
                     Log.e(TAG, "Failed to sync image $cleanUrl: ${e.message}")

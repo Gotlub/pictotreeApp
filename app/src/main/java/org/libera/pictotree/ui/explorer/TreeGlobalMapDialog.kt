@@ -35,12 +35,19 @@ class TreeGlobalMapDialog : DialogFragment() {
     companion object {
         private const val TAG = "TreeGlobalMapDialog"
 
-        fun newInstance(treeIds: IntArray, currentTreeId: Int, username: String, selectedNodeId: String = ""): TreeGlobalMapDialog {
+        fun newInstance(
+            treeIds: IntArray, 
+            currentTreeId: Int, 
+            username: String, 
+            selectedNodeId: String = "",
+            isSimplePreview: Boolean = false
+        ): TreeGlobalMapDialog {
             val dialog = TreeGlobalMapDialog()
             val args = Bundle().apply {
                 putIntArray("treeIds", treeIds)
                 putInt("currentTreeId", currentTreeId)
                 putString("username", username)
+                putBoolean("isSimplePreview", isSimplePreview)
             }
             dialog.arguments = args
             return dialog
@@ -50,12 +57,15 @@ class TreeGlobalMapDialog : DialogFragment() {
     private lateinit var webView: WebView
     private lateinit var viewModel: TreeExplorerViewModel
     private lateinit var ttsManager: TTSManager
+    private var phraseAdapter: PhraseAdapter? = null
+    private var rvPhrase: RecyclerView? = null
     
     private var appContext: android.content.Context? = null
     
     private var treeIds: IntArray = intArrayOf()
     private var currentIndex: Int = -1
     private var username: String = ""
+    private var isSimplePreview: Boolean = false
 
     private var isDraggingPhrase = false
 
@@ -85,11 +95,30 @@ class TreeGlobalMapDialog : DialogFragment() {
         val root = inflater.inflate(R.layout.dialog_tree_global_map, container, false)
         webView = root.findViewById(R.id.web_view_map)
         
-        viewModel = ViewModelProvider(requireActivity())[TreeExplorerViewModel::class.java]
+        username = arguments?.getString("username") ?: "default"
+        val database = AppDatabase.getDatabase(requireContext(), username)
+        val userConfigRepository = org.libera.pictotree.data.repository.UserConfigRepository(database.userConfigDao())
+        
+        val factory = object : ViewModelProvider.Factory {
+            @Suppress("UNCHECKED_CAST")
+            override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
+                return TreeExplorerViewModel(
+                    requireActivity().application,
+                    database.treeDao(),
+                    database.profileDao(),
+                    database.imageDao(),
+                    userConfigRepository,
+                    org.libera.pictotree.network.RetrofitClient.SERVER_URL,
+                    username
+                ) as T
+            }
+        }
+        
+        viewModel = ViewModelProvider(requireActivity(), factory)[TreeExplorerViewModel::class.java]
         ttsManager = TTSManager(requireContext())
 
         treeIds = arguments?.getIntArray("treeIds") ?: intArrayOf()
-        username = arguments?.getString("username") ?: ""
+        isSimplePreview = arguments?.getBoolean("isSimplePreview") ?: false
 
         if (savedInstanceState != null) {
             currentIndex = savedInstanceState.getInt("saved_currentIndex", -1)
@@ -98,94 +127,177 @@ class TreeGlobalMapDialog : DialogFragment() {
             currentIndex = treeIds.indexOf(startTreeId)
         }
 
-        root.findViewById<View>(R.id.btn_fullscreen_phrase).setOnClickListener {
-            val navController = findNavController()
-            val actionId = if (navController.currentDestination?.id == R.id.treeSelectionFragment) {
-                R.id.action_treeSelectionFragment_to_phraseFullscreenFragment
-            } else {
-                R.id.action_treeExplorerFragment_to_phraseFullscreenFragment
-            }
-            navController.navigate(actionId)
-        }
-
-        root.findViewById<View>(R.id.btn_clear_phrase)?.setOnClickListener {
-            showClearPhraseConfirmation()
-        }
-
-        val database = AppDatabase.getDatabase(requireContext(), username)
-        val treeDao = database.treeDao()
-        val imageDao = database.imageDao()
-
-        val rvPhrase = root.findViewById<RecyclerView>(R.id.rv_phrase)
-        val phraseAdapter = PhraseAdapter(username = username)
-        rvPhrase.adapter = phraseAdapter
-        rvPhrase.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
-
-        val itemTouchHelper = androidx.recyclerview.widget.ItemTouchHelper(object : androidx.recyclerview.widget.ItemTouchHelper.SimpleCallback(
-            androidx.recyclerview.widget.ItemTouchHelper.LEFT or androidx.recyclerview.widget.ItemTouchHelper.RIGHT,
-            androidx.recyclerview.widget.ItemTouchHelper.UP
-        ) {
-            override fun onMove(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder, target: RecyclerView.ViewHolder): Boolean {
-                phraseAdapter.moveItem(viewHolder.bindingAdapterPosition, target.bindingAdapterPosition)
-                return true
+        if (isSimplePreview) {
+            root.findViewById<View>(R.id.panel_phrase).visibility = View.GONE
+            root.findViewById<View>(R.id.panel_selection_preview).visibility = View.GONE
+            root.findViewById<View>(R.id.btn_prev_tree).visibility = View.GONE
+            root.findViewById<View>(R.id.btn_next_tree).visibility = View.GONE
+            root.findViewById<View>(R.id.card_search).visibility = View.GONE
+            root.findViewById<View>(R.id.card_speak).visibility = View.GONE
+            root.findViewById<View>(R.id.card_rotate).visibility = View.GONE
+            root.findViewById<View>(R.id.btn_back_to_nav).visibility = View.GONE
+            
+            val btnClose = root.findViewById<View>(R.id.card_back_to_trees)
+            btnClose.visibility = View.VISIBLE
+            btnClose.setOnClickListener { dismiss() }
+        } else {
+            root.findViewById<View>(R.id.btn_fullscreen_phrase).setOnClickListener {
+                val navController = findNavController()
+                val actionId = if (navController.currentDestination?.id == R.id.treeSelectionFragment) {
+                    R.id.action_treeSelectionFragment_to_phraseFullscreenFragment
+                } else {
+                    R.id.action_treeExplorerFragment_to_phraseFullscreenFragment
+                }
+                navController.navigate(actionId)
             }
 
-            override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
-                if (direction == androidx.recyclerview.widget.ItemTouchHelper.UP) {
-                    viewModel.removeItemFromPhrase(viewHolder.bindingAdapterPosition)
+            root.findViewById<View>(R.id.btn_clear_phrase)?.setOnClickListener {
+                showClearPhraseConfirmation()
+            }
+
+            rvPhrase = root.findViewById(R.id.rv_phrase)
+            phraseAdapter = PhraseAdapter(username = username, onItemClick = { position ->
+                val card = phraseAdapter?.getCurrentList()?.getOrNull(position)
+                card?.let { ttsManager.speak(it.node.label) }
+            })
+            rvPhrase?.adapter = phraseAdapter
+            rvPhrase?.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
+
+            val itemTouchHelper = androidx.recyclerview.widget.ItemTouchHelper(object : androidx.recyclerview.widget.ItemTouchHelper.SimpleCallback(
+                androidx.recyclerview.widget.ItemTouchHelper.LEFT or androidx.recyclerview.widget.ItemTouchHelper.RIGHT,
+                androidx.recyclerview.widget.ItemTouchHelper.UP
+            ) {
+                override fun onMove(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder, target: RecyclerView.ViewHolder): Boolean {
+                    phraseAdapter?.moveItem(viewHolder.bindingAdapterPosition, target.bindingAdapterPosition)
+                    return true
+                }
+                override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
+                    if (direction == androidx.recyclerview.widget.ItemTouchHelper.UP) {
+                        viewModel.removeItemFromPhrase(viewHolder.bindingAdapterPosition)
+                    }
+                }
+                override fun onSelectedChanged(viewHolder: RecyclerView.ViewHolder?, actionState: Int) {
+                    super.onSelectedChanged(viewHolder, actionState)
+                    if (actionState == androidx.recyclerview.widget.ItemTouchHelper.ACTION_STATE_DRAG) {
+                        isDraggingPhrase = true
+                        viewHolder?.itemView?.apply { alpha = 0.8f; scaleX = 1.05f; scaleY = 1.05f }
+                    }
+                }
+                override fun clearView(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder) {
+                    super.clearView(recyclerView, viewHolder)
+                    isDraggingPhrase = false
+                    viewHolder.itemView.apply { alpha = 1.0f; scaleX = 1.0f; scaleY = 1.0f }
+                    phraseAdapter?.let { viewModel.updatePhraseListSilently(it.getCurrentList().toList()) }
+                }
+            })
+            rvPhrase?.let { itemTouchHelper.attachToRecyclerView(it) }
+
+            root.findViewById<View>(R.id.btn_add_to_basket).setOnClickListener {
+                viewModel.addToPhrase()
+            }
+
+            root.findViewById<View>(R.id.btn_back_to_nav).setOnClickListener {
+                val previewNode = viewModel.uiState.value.previewNode
+                if (previewNode != null) {
+                    val treeId = TreeNode.parseTreeId(previewNode.id) ?: -1
+                    viewModel.jumpToTreeAndNode(treeId, previewNode.id)
+                    val navController = findNavController()
+                    if (navController.currentDestination?.id == R.id.treeSelectionFragment) {
+                        val bundle = Bundle().apply {
+                            putInt("treeId", treeId)
+                            putInt("profileId", viewModel.getProfileId())
+                            putString("username", username)
+                        }
+                        navController.navigate(R.id.action_treeSelectionFragment_to_treeExplorerFragment, bundle)
+                    }
+                }
+                dismiss()
+            }
+
+            root.findViewById<View>(R.id.card_back_to_trees).setOnClickListener {
+                dismiss()
+                val navController = findNavController()
+                if (navController.currentDestination?.id != R.id.treeSelectionFragment) {
+                    navController.popBackStack(R.id.treeSelectionFragment, false)
                 }
             }
 
-            override fun onSelectedChanged(viewHolder: RecyclerView.ViewHolder?, actionState: Int) {
-                super.onSelectedChanged(viewHolder, actionState)
-                if (actionState == androidx.recyclerview.widget.ItemTouchHelper.ACTION_STATE_DRAG) {
-                    isDraggingPhrase = true
-                    viewHolder?.itemView?.apply { alpha = 0.8f; scaleX = 1.05f; scaleY = 1.05f }
+            root.findViewById<View>(R.id.card_search).setOnClickListener {
+                val searchDialog = org.libera.pictotree.ui.common.PictoSearchDialog()
+                searchDialog.onPictoSelected = { result ->
+                    val searchNode = TreeNode("search_${result.id}_recherche", result.name ?: "", result.imageUrl ?: "", emptyList())
+                    viewModel.addToPhrase(searchNode)
+                }
+                searchDialog.show(childFragmentManager, "PictoSearch")
+            }
+
+            root.findViewById<View>(R.id.card_speak).setOnClickListener {
+                val phrase = viewModel.phraseList.value
+                if (phrase.isNotEmpty()) {
+                    ttsManager.stop()
+                    phrase.forEachIndexed { index, card -> ttsManager.speak(card.node.label, index.toString()) }
                 }
             }
 
-            override fun clearView(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder) {
-                super.clearView(recyclerView, viewHolder)
-                isDraggingPhrase = false
-                viewHolder.itemView.apply { alpha = 1.0f; scaleX = 1.0f; scaleY = 1.0f }
-                viewModel.updatePhraseListSilently(phraseAdapter.getCurrentList().toList())
+            root.findViewById<View>(R.id.card_rotate).setOnClickListener {
+                (requireActivity() as? org.libera.pictotree.MainActivity)?.toggleOrientation()
             }
-        })
-        itemTouchHelper.attachToRecyclerView(rvPhrase)
+
+            root.findViewById<ImageButton>(R.id.btn_prev_tree).setOnClickListener {
+                if (currentIndex > 0) { currentIndex--; loadTree(currentIndex) }
+            }
+            root.findViewById<ImageButton>(R.id.btn_next_tree).setOnClickListener {
+                if (currentIndex < treeIds.size - 1) { currentIndex++; loadTree(currentIndex) }
+            }
+        }
 
         val ivPreview = root.findViewById<android.widget.ImageView>(R.id.iv_selection_preview)
 
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                launch {
-                    var lastPhraseSize = 0
-                    viewModel.phraseList.collect { phrase ->
-                        if (!isDraggingPhrase) {
-                            phraseAdapter.submitList(phrase)
-                            if (phrase.size > lastPhraseSize) rvPhrase.smoothScrollToPosition(phrase.size - 1)
+                if (!isSimplePreview) {
+                    launch {
+                        var lastPhraseSize = 0
+                        viewModel.phraseList.collect { phrase ->
+                            if (!isDraggingPhrase) {
+                                phraseAdapter?.submitList(phrase)
+                                if (phrase.size > lastPhraseSize) rvPhrase?.smoothScrollToPosition(phrase.size - 1)
+                            }
+                            lastPhraseSize = phrase.size
                         }
-                        lastPhraseSize = phrase.size
+                    }
+                    
+                    // PULSE DU TIMER (Mise à jour visuelle du premier picto si timer actif)
+                    launch {
+                        viewModel.currentTimeFlow.collect {
+                            val firstCard = viewModel.phraseList.value.firstOrNull()
+                            if (firstCard?.timeConfig?.mode == org.libera.pictotree.data.model.TimeMode.TIMER && firstCard.timeConfig.endTimeMillis > 0) {
+                                phraseAdapter?.notifyItemChanged(0)
+                            }
+                        }
+                    }
+
+                    launch {
+                        viewModel.userConfig.collect { config ->
+                            if (config != null) {
+                                root.findViewById<View>(R.id.card_search)?.visibility = if (config.enableSearch) View.VISIBLE else View.GONE
+                                root.findViewById<View>(R.id.card_speak)?.visibility = if (config.enableTTSButton) View.VISIBLE else View.GONE
+                                root.findViewById<View>(R.id.card_rotate)?.visibility = if (config.enableRotationButton) View.VISIBLE else View.GONE
+                                root.findViewById<View>(R.id.btn_back_to_nav)?.visibility = if (config.enableViewChangeButton) View.VISIBLE else View.GONE
+                            }
+                        }
                     }
                 }
 
                 launch {
                     viewModel.uiState.collect { state ->
                         injectCaaStyle(state.colorCode)
-                        state.previewNode?.let { node ->
-                            ivPreview.visibility = View.VISIBLE
-                            loadPreviewImage(node.imageUrl, ivPreview)
-                            applyCaaColorToPreview(state.colorCode, ivPreview)
-                        } ?: run { ivPreview.visibility = View.GONE }
-                    }
-                }
-
-                launch {
-                    viewModel.userConfig.collect { config ->
-                        if (config != null) {
-                            root.findViewById<View>(R.id.card_search)?.visibility = if (config.enableSearch) View.VISIBLE else View.GONE
-                            root.findViewById<View>(R.id.card_speak)?.visibility = if (config.enableTTSButton) View.VISIBLE else View.GONE
-                            root.findViewById<View>(R.id.card_rotate)?.visibility = if (config.enableRotationButton) View.VISIBLE else View.GONE
-                            root.findViewById<View>(R.id.btn_back_to_nav)?.visibility = if (config.enableViewChangeButton) View.VISIBLE else View.GONE
+                        if (!isSimplePreview) {
+                            state.previewNode?.let { node ->
+                                ivPreview.visibility = View.VISIBLE
+                                loadPreviewImage(node.imageUrl, ivPreview)
+                                applyCaaColorToPreview(state.colorCode, ivPreview)
+                            } ?: run { ivPreview.visibility = View.GONE }
                         }
                     }
                 }
@@ -195,7 +307,9 @@ class TreeGlobalMapDialog : DialogFragment() {
         val bridge = object {
             @JavascriptInterface
             fun onNodeSelected(prefixedNodeId: String, imageUrl: String?) {
-                viewModel.selectNodeWithoutNavigatingById(prefixedNodeId)
+                if (!isSimplePreview) {
+                    viewModel.selectNodeWithoutNavigatingById(prefixedNodeId)
+                }
                 Log.d(TAG, "TREANT_SELECT: Node $prefixedNodeId selected")
             }
         }
@@ -210,101 +324,51 @@ class TreeGlobalMapDialog : DialogFragment() {
         }
         webView.addJavascriptInterface(bridge, "AndroidBridge")
 
-        fun loadTree(index: Int) {
-            if (treeIds.isEmpty() || index !in treeIds.indices) return
-            val treeId = treeIds[index]
-            val orientation = "NORTH"
-            
-            viewModel.updateCurrentTreeContext(treeId)
-
-            lifecycleScope.launch(Dispatchers.IO) {
-                treeDao.getTreeById(treeId)?.let { entity ->
-                    withContext(Dispatchers.Main) {
-                        val previewNode = viewModel.uiState.value.previewNode
-                        val highlightId = if (previewNode != null && TreeNode.parseTreeId(previewNode.id) == treeId) {
-                            previewNode.id
-                        } else ""
-                        
-                        val safeJson = android.util.Base64.encodeToString(entity.jsonPayload.toByteArray(), android.util.Base64.NO_WRAP)
-                        webView.evaluateJavascript("javascript:renderTreeBase64('$safeJson', '$highlightId', false, $treeId, '$orientation');", null)
-                        injectCaaStyle(viewModel.uiState.value.colorCode)
-                    }
-                }
-            }
-        }
-
         webView.webViewClient = object : WebViewClient() {
             override fun onPageFinished(view: WebView?, url: String?) {
                 if (currentIndex != -1) loadTree(currentIndex)
             }
             override fun shouldInterceptRequest(view: WebView?, request: WebResourceRequest?): WebResourceResponse? {
                 val ctx = appContext ?: return null
-                return WebViewImageInterceptor.intercept(ctx, username, imageDao, request?.url, strictOffline = true)
+                val db = AppDatabase.getDatabase(ctx, username)
+                return WebViewImageInterceptor.intercept(ctx, username, db.imageDao(), request?.url, strictOffline = true)
             }
         }
 
         webView.loadUrl("file:///android_asset/tree_viewer.html")
 
-        root.findViewById<ImageButton>(R.id.btn_prev_tree).setOnClickListener {
-            if (currentIndex > 0) { currentIndex--; loadTree(currentIndex) }
-        }
-        root.findViewById<ImageButton>(R.id.btn_next_tree).setOnClickListener {
-            if (currentIndex < treeIds.size - 1) { currentIndex++; loadTree(currentIndex) }
+        return root
+    }
+
+    private fun loadTree(index: Int) {
+        if (treeIds.isEmpty() || index !in treeIds.indices) return
+        val treeId = treeIds[index]
+        val orientation = "NORTH"
+        
+        val ctx = context ?: return
+        val database = AppDatabase.getDatabase(ctx, username)
+        
+        if (!isSimplePreview) {
+            viewModel.updateCurrentTreeContext(treeId)
         }
 
-        root.findViewById<View>(R.id.btn_add_to_basket).setOnClickListener {
-            viewModel.addToPhrase()
-        }
-
-        root.findViewById<View>(R.id.btn_back_to_nav).setOnClickListener {
-            val previewNode = viewModel.uiState.value.previewNode
-            if (previewNode != null) {
-                val treeId = TreeNode.parseTreeId(previewNode.id) ?: -1
-                viewModel.jumpToTreeAndNode(treeId, previewNode.id)
-                
-                val navController = findNavController()
-                if (navController.currentDestination?.id == R.id.treeSelectionFragment) {
-                    val bundle = Bundle().apply {
-                        putInt("treeId", treeId)
-                        putInt("profileId", viewModel.getProfileId())
-                        putString("username", username)
+        lifecycleScope.launch(Dispatchers.IO) {
+            database.treeDao().getTreeById(treeId)?.let { entity ->
+                withContext(Dispatchers.Main) {
+                    val previewNode = if (!isSimplePreview) viewModel.uiState.value.previewNode else null
+                    val highlightId = if (previewNode != null && TreeNode.parseTreeId(previewNode.id) == treeId) {
+                        previewNode.id
+                    } else ""
+                    
+                    val safeJson = android.util.Base64.encodeToString(entity.jsonPayload.toByteArray(), android.util.Base64.NO_WRAP)
+                    webView.evaluateJavascript("javascript:renderTreeBase64('$safeJson', '$highlightId', false, $treeId, '$orientation');", null)
+                    
+                    if (!isSimplePreview) {
+                        injectCaaStyle(viewModel.uiState.value.colorCode)
                     }
-                    navController.navigate(R.id.action_treeSelectionFragment_to_treeExplorerFragment, bundle)
                 }
             }
-            dismiss()
         }
-
-        root.findViewById<View>(R.id.card_search).setOnClickListener {
-            val searchDialog = org.libera.pictotree.ui.common.PictoSearchDialog()
-            searchDialog.onPictoSelected = { result ->
-                val searchNode = TreeNode("search_${result.id}_recherche", result.name ?: "", result.imageUrl ?: "", emptyList())
-                viewModel.addToPhrase(searchNode)
-            }
-            searchDialog.show(childFragmentManager, "PictoSearch")
-        }
-
-        root.findViewById<View>(R.id.card_speak).setOnClickListener {
-            val phrase = viewModel.phraseList.value
-            if (phrase.isNotEmpty()) {
-                ttsManager.stop()
-                phrase.forEachIndexed { index, node -> ttsManager.speak(node.label, index.toString()) }
-            }
-        }
-
-        root.findViewById<View>(R.id.card_rotate).setOnClickListener {
-            (requireActivity() as? org.libera.pictotree.MainActivity)?.toggleOrientation()
-        }
-
-        root.findViewById<View>(R.id.card_back_to_trees).setOnClickListener {
-            dismiss()
-            val navController = findNavController()
-            if (navController.currentDestination?.id != R.id.treeSelectionFragment) {
-                navController.popBackStack(R.id.treeSelectionFragment, false)
-            }
-        }
-
-        return root
     }
 
     private fun showClearPhraseConfirmation() {

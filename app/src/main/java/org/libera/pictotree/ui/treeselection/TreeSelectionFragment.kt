@@ -145,7 +145,10 @@ class TreeSelectionFragment : Fragment() {
 
         phraseAdapter = PhraseAdapter(
             username = username,
-            onItemClick = { node -> ttsManager.speak(node.label) }
+            onItemClick = { position -> 
+                val card = phraseAdapter.getCurrentList()[position]
+                ttsManager.speak(card.node.label) 
+            }
         )
         rvPhrase.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
         rvPhrase.adapter = phraseAdapter
@@ -183,7 +186,7 @@ class TreeSelectionFragment : Fragment() {
             val phrase = explorerViewModel.phraseList.value
             if (phrase.isNotEmpty()) {
                 ttsManager.stop()
-                phrase.forEachIndexed { index, node -> ttsManager.speak(node.label, index.toString()) }
+                phrase.forEachIndexed { index, card -> ttsManager.speak(card.node.label, index.toString()) }
             }
         }
         cardRotate.setOnClickListener {
@@ -255,6 +258,16 @@ class TreeSelectionFragment : Fragment() {
                             if (phrase.size > lastPhraseSize) rvPhrase.smoothScrollToPosition(phrase.size - 1)
                         }
                         lastPhraseSize = phrase.size
+                    }
+                }
+                
+                // PULSE DU TIMER (Mise à jour visuelle du premier picto si timer actif)
+                launch {
+                    explorerViewModel.currentTimeFlow.collect {
+                        val firstCard = explorerViewModel.phraseList.value.firstOrNull()
+                        if (firstCard?.timeConfig?.mode == org.libera.pictotree.data.model.TimeMode.TIMER && firstCard.timeConfig.endTimeMillis > 0) {
+                            phraseAdapter.notifyItemChanged(0)
+                        }
                     }
                 }
 

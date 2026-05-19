@@ -4,7 +4,14 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Button
 import android.widget.ImageButton
+import android.widget.ImageView
+import android.widget.RadioGroup
+import android.widget.Toast
+import android.graphics.Color
+import androidx.core.view.GravityCompat
+import androidx.drawerlayout.widget.DrawerLayout
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModelProvider
@@ -15,10 +22,14 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.button.MaterialButtonToggleGroup
+import com.google.android.material.slider.Slider
+import com.google.android.material.materialswitch.MaterialSwitch
 import kotlinx.coroutines.launch
 import org.libera.pictotree.R
 import org.libera.pictotree.data.SessionManager
 import org.libera.pictotree.data.database.AppDatabase
+import org.libera.pictotree.data.model.CardTimeConfig
+import org.libera.pictotree.data.model.TimeMode
 import org.libera.pictotree.network.RetrofitClient
 import org.libera.pictotree.utils.TTSManager
 
@@ -32,6 +43,10 @@ class PhraseFullscreenFragment : DialogFragment() {
     private lateinit var rv: RecyclerView
     private var isDraggingPhrase = false
     private var itemTouchHelper: ItemTouchHelper? = null
+
+    // NOUVEAU : Références pour le Timer
+    private lateinit var drawerLayout: DrawerLayout
+    private lateinit var cardClockMode: View
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -60,16 +75,19 @@ class PhraseFullscreenFragment : DialogFragment() {
         ttsManager = TTSManager(requireContext())
         
         setupUI(root)
+        setupTimerConfigPanel(root)
         observeViewModel()
         
         return root
     }
 
     private fun setupUI(root: View) {
+        drawerLayout = root.findViewById(R.id.drawer_layout_fullscreen)
         rv = root.findViewById(R.id.rv_phrase_fullscreen)
         val btnClose = root.findViewById<ImageButton>(R.id.btn_close_fullscreen)
         val fabSpeak = root.findViewById<FloatingActionButton>(R.id.fab_speak_fullscreen)
         val toggleSize = root.findViewById<MaterialButtonToggleGroup>(R.id.toggle_phrase_size)
+        cardClockMode = root.findViewById(R.id.card_clock_mode_fullscreen)
 
         val username = SessionManager(requireContext()).getUsername() ?: "default"
         
@@ -111,7 +129,60 @@ class PhraseFullscreenFragment : DialogFragment() {
             val phrase = viewModel.phraseList.value
             if (phrase.isEmpty()) return@setOnClickListener
             ttsManager.stop()
-            phrase.forEachIndexed { index, node -> ttsManager.speak(node.label, index.toString()) }
+            phrase.forEachIndexed { index, card -> ttsManager.speak(card.node.label, index.toString()) }
+        }
+
+        cardClockMode.setOnClickListener {
+            val newState = !viewModel.isClockModeActive.value
+            viewModel.isClockModeActive.value = newState
+            cardClockMode.setBackgroundColor(if (newState) Color.parseColor("#BBDEFB") else Color.parseColor("#F5F5F5"))
+            if (!newState) drawerLayout.closeDrawer(GravityCompat.END)
+        }
+    }
+
+    private fun setupTimerConfigPanel(root: View) {
+        val configPanel = root.findViewById<View>(R.id.include_timer_config_fullscreen)
+        val rgMode = configPanel.findViewById<RadioGroup>(R.id.rg_time_mode)
+        val sliderDuration = configPanel.findViewById<Slider>(R.id.slider_duration)
+        val swSound = configPanel.findViewById<MaterialSwitch>(R.id.switch_play_sound)
+        val swAutoRemove = configPanel.findViewById<MaterialSwitch>(R.id.switch_auto_remove)
+        val btnApply = configPanel.findViewById<Button>(R.id.btn_apply_time_config)
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.selectedIndexForConfig.collect { index ->
+                    if (index != null && index in viewModel.phraseList.value.indices) {
+                        val card = viewModel.phraseList.value[index]
+                        val config = card.timeConfig
+                        when(config.mode) {
+                            TimeMode.NONE -> rgMode.check(R.id.rb_mode_none)
+                            TimeMode.TIMER -> rgMode.check(R.id.rb_mode_timer)
+                            TimeMode.JALON -> rgMode.check(R.id.rb_mode_jalon)
+                        }
+                        sliderDuration.value = config.durationMinutes.toFloat().coerceIn(1f, 60f)
+                        swSound.isChecked = config.playSoundAtEnd
+                        swAutoRemove.isChecked = config.autoRemove
+                    }
+                }
+            }
+        }
+
+        btnApply.setOnClickListener {
+            val index = viewModel.selectedIndexForConfig.value ?: return@setOnClickListener
+            val mode = when(rgMode.checkedRadioButtonId) {
+                R.id.rb_mode_timer -> TimeMode.TIMER
+                R.id.rb_mode_jalon -> TimeMode.JALON
+                else -> TimeMode.NONE
+            }
+            val newConfig = CardTimeConfig(
+                mode = mode,
+                durationMinutes = sliderDuration.value.toInt(),
+                playSoundAtEnd = swSound.isChecked,
+                autoRemove = swAutoRemove.isChecked
+            )
+            viewModel.updateCardTimeConfig(index, newConfig)
+            drawerLayout.closeDrawer(GravityCompat.END)
+            Toast.makeText(requireContext(), "Configuration appliquée", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -122,7 +193,15 @@ class PhraseFullscreenFragment : DialogFragment() {
             else -> R.layout.item_phrase_picto_large
         }
         
-        adapter = PhraseAdapter(username, layoutRes, onItemClick = { node -> ttsManager.speak(node.label) })
+        adapter = PhraseAdapter(username, layoutRes, onItemClick = { position -> 
+            if (viewModel.isClockModeActive.value) {
+                viewModel.selectedIndexForConfig.value = position
+                drawerLayout.openDrawer(GravityCompat.END)
+            } else {
+                val card = adapter.getCurrentList()[position]
+                ttsManager.speak(card.node.label)
+            }
+        })
         rv.adapter = adapter
         rv.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
         adapter.submitList(viewModel.phraseList.value)
@@ -163,6 +242,17 @@ class PhraseFullscreenFragment : DialogFragment() {
                 launch {
                     viewModel.phraseList.collect { phrase -> if (!isDraggingPhrase) adapter.submitList(phrase) }
                 }
+                
+                // PULSE DU TIMER (Mise à jour visuelle du premier picto si timer actif)
+                launch {
+                    viewModel.currentTimeFlow.collect {
+                        val firstCard = viewModel.phraseList.value.firstOrNull()
+                        if (firstCard?.timeConfig?.mode == org.libera.pictotree.data.model.TimeMode.TIMER && firstCard.timeConfig.endTimeMillis > 0) {
+                            adapter.notifyItemChanged(0)
+                        }
+                    }
+                }
+
                 launch {
                     viewModel.uiState.collect { state ->
                         val targetLayout = when(state.phraseSize) {

@@ -11,31 +11,43 @@
     app:strokeWidth="1dp"
     app:strokeColor="@color/material_dynamic_neutral90">
 
-    <LinearLayout
+    <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="vertical"
-        android:padding="10dp"
-        android:gravity="center">
+        android:layout_height="match_parent">
 
-        <ImageView
-            android:id="@+id/iv_picto"
-            android:layout_width="150dp"
-            android:layout_height="150dp"
-            android:scaleType="centerInside"
-            android:contentDescription="Pictogram"
-            app:srcCompat="@drawable/ic_launcher_foreground" />
-
-        <TextView
-            android:id="@+id/tv_label"
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
-            android:gravity="center"
-            android:textSize="13sp"
-            android:textStyle="bold"
-            android:maxLines="3"
-            android:ellipsize="none" />
-    </LinearLayout>
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:padding="10dp"
+            android:gravity="center">
+
+            <ImageView
+                android:id="@+id/iv_picto"
+                android:layout_width="150dp"
+                android:layout_height="150dp"
+                android:scaleType="centerInside"
+                android:contentDescription="Pictogram"
+                app:srcCompat="@drawable/ic_launcher_foreground" />
+
+            <TextView
+                android:id="@+id/tv_label"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:gravity="center"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:maxLines="3"
+                android:ellipsize="none" />
+        </LinearLayout>
+
+        <org.libera.pictotree.ui.common.TimeTimerView
+            android:id="@+id/time_timer_view"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:visibility="gone" />
+
+    </FrameLayout>
 
 </com.google.android.material.card.MaterialCardView>
