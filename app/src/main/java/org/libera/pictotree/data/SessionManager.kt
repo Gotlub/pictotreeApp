@@ -82,4 +82,12 @@ class SessionManager(context: Context) {
             .putBoolean("IS_ONLINE", false)
             .apply()
     }
+
+    fun getTimerColor(): String {
+        return prefs.getString("TIMER_COLOR", "red") ?: "red"
+    }
+
+    fun setTimerColor(color: String) {
+        prefs.edit().putString("TIMER_COLOR", color).apply()
+    }
 }

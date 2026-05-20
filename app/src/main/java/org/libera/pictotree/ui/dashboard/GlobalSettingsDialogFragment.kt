@@ -50,6 +50,7 @@ class GlobalSettingsDialogFragment : DialogFragment() {
         
         val spinnerStartupView = view.findViewById<Spinner>(R.id.spinnerStartupView)
         val spinnerOrientation = view.findViewById<Spinner>(R.id.spinnerOrientation)
+        val spinnerTimerColor = view.findViewById<Spinner>(R.id.spinnerTimerColor)
         val btnClose = view.findViewById<MaterialButton>(R.id.btnCloseSettings)
 
         // Setup Languages
@@ -65,6 +66,16 @@ class GlobalSettingsDialogFragment : DialogFragment() {
         val orientationOptions = arrayOf("Portrait", "Paysage")
         val orientationValues = arrayOf("PORTRAIT", "LANDSCAPE")
         spinnerOrientation.adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_dropdown_item, orientationOptions)
+
+        // Setup Timer color preference
+        val timerColorOptions = arrayOf("Rouge", "Vert")
+        val timerColorValues = arrayOf("red", "green")
+        spinnerTimerColor.adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_dropdown_item, timerColorOptions)
+
+        val sessionManager = org.libera.pictotree.data.SessionManager(requireContext())
+        val currentTimerColor = sessionManager.getTimerColor()
+        val timerColorIdx = timerColorValues.indexOf(currentTimerColor)
+        if (timerColorIdx != -1) spinnerTimerColor.setSelection(timerColorIdx)
 
         // Sync with ViewModel (One-way binding to UI)
         viewLifecycleOwner.lifecycleScope.launch {
@@ -136,6 +147,13 @@ class GlobalSettingsDialogFragment : DialogFragment() {
         }
         switchEnableViewChange.setOnClickListener {
             viewModel.updateUIControls(switchEnableRotation.isChecked, switchEnableTTS.isChecked, switchEnableViewChange.isChecked)
+        }
+
+        spinnerTimerColor.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                sessionManager.setTimerColor(timerColorValues[position])
+            }
+            override fun onNothingSelected(parent: AdapterView<*>?) {}
         }
 
         btnClose.setOnClickListener { dismiss() }

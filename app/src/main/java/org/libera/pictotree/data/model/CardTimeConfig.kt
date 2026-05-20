@@ -8,10 +8,11 @@ enum class TimeMode { NONE, TIMER, JALON }
  * Configuration temporelle pour une carte du bandeau.
  */
 data class CardTimeConfig(
-    @SerializedName("mode") val mode: TimeMode = TimeMode.NONE,
+    @SerializedName("mode") val mode: TimeMode = TimeMode.JALON,
     @SerializedName("duration_minutes") val durationMinutes: Int = 0,
     @SerializedName("play_sound") val playSoundAtEnd: Boolean = true,
     @SerializedName("auto_remove") val autoRemove: Boolean = false,
+    @SerializedName("visual_pulse") val visualPulse: Boolean = false,
     
     // État d'exécution (non persisté sur le serveur, géré localement par Session)
     var startTimeMillis: Long = 0L,

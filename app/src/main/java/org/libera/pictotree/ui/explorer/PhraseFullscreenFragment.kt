@@ -150,10 +150,55 @@ class PhraseFullscreenFragment : Fragment() {
     private fun setupTimerConfigPanel(root: View) {
         val configPanel = root.findViewById<View>(R.id.include_timer_config_fullscreen)
         val rgMode = configPanel.findViewById<RadioGroup>(R.id.rg_time_mode)
-        val sliderDuration = configPanel.findViewById<Slider>(R.id.slider_duration)
+        
+        val etDuration = configPanel.findViewById<android.widget.EditText>(R.id.et_duration)
+        val btnMinus = configPanel.findViewById<View>(R.id.btn_duration_minus)
+        val btnPlus = configPanel.findViewById<View>(R.id.btn_duration_plus)
+        val tvLabelDuration = configPanel.findViewById<View>(R.id.tv_label_duration)
+        val layoutDurationContainer = configPanel.findViewById<View>(R.id.layout_duration_container)
+        
         val swSound = configPanel.findViewById<MaterialSwitch>(R.id.switch_play_sound)
         val swAutoRemove = configPanel.findViewById<MaterialSwitch>(R.id.switch_auto_remove)
+        val swVisualPulse = configPanel.findViewById<MaterialSwitch>(R.id.switch_visual_pulse)
         val btnApply = configPanel.findViewById<Button>(R.id.btn_apply_time_config)
+
+        // Masquer l'option 'None' qui est désormais retirée
+        configPanel.findViewById<View>(R.id.rb_mode_none)?.visibility = View.GONE
+
+        fun updateConfigPanelUi(mode: TimeMode) {
+            if (mode == TimeMode.TIMER) {
+                configPanel.setBackgroundColor(Color.parseColor("#FFEBEE")) // Rouge doux
+                swSound.isEnabled = true
+                swAutoRemove.isEnabled = true
+                tvLabelDuration.visibility = View.VISIBLE
+                layoutDurationContainer.visibility = View.VISIBLE
+            } else {
+                configPanel.setBackgroundColor(Color.parseColor("#E3F2FD")) // Bleu doux (Jalon par défaut)
+                swSound.isEnabled = false
+                swAutoRemove.isEnabled = false
+                tvLabelDuration.visibility = View.GONE
+                layoutDurationContainer.visibility = View.GONE
+            }
+        }
+
+        btnMinus.setOnClickListener {
+            val current = etDuration.text.toString().toIntOrNull() ?: 1
+            if (current > 1) {
+                etDuration.setText((current - 1).toString())
+            }
+        }
+
+        btnPlus.setOnClickListener {
+            val current = etDuration.text.toString().toIntOrNull() ?: 1
+            if (current < 60) {
+                etDuration.setText((current + 1).toString())
+            }
+        }
+
+        rgMode.setOnCheckedChangeListener { _, checkedId ->
+            val mode = if (checkedId == R.id.rb_mode_timer) TimeMode.TIMER else TimeMode.JALON
+            updateConfigPanelUi(mode)
+        }
 
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -161,14 +206,16 @@ class PhraseFullscreenFragment : Fragment() {
                     if (index != null && index in viewModel.phraseList.value.indices) {
                         val card = viewModel.phraseList.value[index]
                         val config = card.timeConfig
-                        when(config.mode) {
-                            TimeMode.NONE -> rgMode.check(R.id.rb_mode_none)
+                        val targetMode = if (config.mode == TimeMode.NONE) TimeMode.JALON else config.mode
+                        when(targetMode) {
                             TimeMode.TIMER -> rgMode.check(R.id.rb_mode_timer)
-                            TimeMode.JALON -> rgMode.check(R.id.rb_mode_jalon)
+                            else -> rgMode.check(R.id.rb_mode_jalon)
                         }
-                        sliderDuration.value = config.durationMinutes.toFloat().coerceIn(1f, 60f)
+                        etDuration.setText(config.durationMinutes.coerceIn(1, 60).toString())
                         swSound.isChecked = config.playSoundAtEnd
                         swAutoRemove.isChecked = config.autoRemove
+                        swVisualPulse.isChecked = config.visualPulse
+                        updateConfigPanelUi(targetMode)
                     }
                 }
             }
@@ -178,14 +225,17 @@ class PhraseFullscreenFragment : Fragment() {
             val index = viewModel.selectedIndexForConfig.value ?: return@setOnClickListener
             val mode = when(rgMode.checkedRadioButtonId) {
                 R.id.rb_mode_timer -> TimeMode.TIMER
-                R.id.rb_mode_jalon -> TimeMode.JALON
-                else -> TimeMode.NONE
+                else -> TimeMode.JALON
             }
+            val inputMinutes = etDuration.text.toString().toIntOrNull() ?: 1
+            val coercedMinutes = inputMinutes.coerceIn(1, 60)
+            
             val newConfig = CardTimeConfig(
                 mode = mode,
-                durationMinutes = sliderDuration.value.toInt(),
+                durationMinutes = coercedMinutes,
                 playSoundAtEnd = swSound.isChecked,
-                autoRemove = swAutoRemove.isChecked
+                autoRemove = swAutoRemove.isChecked,
+                visualPulse = swVisualPulse.isChecked
             )
             viewModel.updateCardTimeConfig(index, newConfig)
             drawerLayout.closeDrawer(GravityCompat.END)
@@ -209,6 +259,7 @@ class PhraseFullscreenFragment : Fragment() {
                 ttsManager.speak(card.node.label)
             }
         })
+        adapter.isClockModeActive = viewModel.isClockModeActive.value
         rv.adapter = adapter
         rv.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
         adapter.submitList(viewModel.phraseList.value)
@@ -248,6 +299,13 @@ class PhraseFullscreenFragment : Fragment() {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 launch {
                     viewModel.phraseList.collect { phrase -> if (!isDraggingPhrase) adapter.submitList(phrase) }
+                }
+
+                launch {
+                    viewModel.isClockModeActive.collect { active ->
+                        adapter.isClockModeActive = active
+                        adapter.notifyDataSetChanged()
+                    }
                 }
                 
                 launch {

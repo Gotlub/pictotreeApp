@@ -21,6 +21,7 @@ class PhraseAdapter(
 
     private val items = mutableListOf<PhraseCard>()
     private var highlightedPosition: Int = -1
+    var isClockModeActive: Boolean = false
 
     init {
         setHasStableIds(true)
@@ -60,7 +61,7 @@ class PhraseAdapter(
     }
 
     override fun onBindViewHolder(holder: PhraseViewHolder, position: Int) {
-        holder.bind(items[position], position == highlightedPosition)
+        holder.bind(items[position], position == highlightedPosition, position == 0, isClockModeActive)
     }
 
     class PhraseViewHolder(
@@ -76,36 +77,87 @@ class PhraseAdapter(
         // Nullable pour supporter les anciens layouts ou les erreurs de merge
         private val timerView: TimeTimerView? = itemView.findViewById(R.id.time_timer_view)
 
-        fun bind(phraseCard: PhraseCard, isHighlighted: Boolean) {
+        fun bind(phraseCard: PhraseCard, isHighlighted: Boolean, isActiveCard: Boolean, isClockModeActive: Boolean) {
             val node = phraseCard.node
             val timeConfig = phraseCard.timeConfig
             
             tvLabel.text = node.label
+            card.setCardBackgroundColor(itemView.context.getColor(android.R.color.white))
             
-            // 1. GESTION DU HIGHLIGHT ET BORDURE (JALON)
-            if (phraseCard.isSelectedForConfig) {
-                card.strokeColor = itemView.context.getColor(R.color.highlight_stroke)
-                card.strokeWidth = 8
-            } else if (timeConfig.mode == TimeMode.JALON) {
-                card.strokeColor = android.graphics.Color.parseColor("#2196F3")
-                card.strokeWidth = 10
-            } else if (isHighlighted) {
-                card.setCardBackgroundColor(itemView.context.getColor(R.color.highlight_bg))
-                card.strokeColor = itemView.context.getColor(R.color.highlight_stroke)
-                card.strokeWidth = 6
+            // Récupération de la couleur personnalisée du Timer
+            val timerColorStr = org.libera.pictotree.data.SessionManager(itemView.context).getTimerColor()
+            val timerColorHex = if (timerColorStr.equals("green", ignoreCase = true)) "#4CAF50" else "#E53935"
+            val timerColor = android.graphics.Color.parseColor(timerColorHex)
+
+            // 1. GESTION DU VISUEL, DE LA BORDURE ET DU ZOOM
+            if (isClockModeActive) {
+                if (isActiveCard) {
+                    itemView.scaleX = 1.05f
+                    itemView.scaleY = 1.05f
+                    card.strokeWidth = 12
+                    card.strokeColor = if (timeConfig.mode == TimeMode.TIMER) timerColor else android.graphics.Color.parseColor("#2196F3")
+                    
+                    if (timeConfig.visualPulse && timeConfig.mode == TimeMode.TIMER) {
+                        val pulseState = (android.os.SystemClock.elapsedRealtime() / 1000) % 2 == 0L
+                        if (pulseState) {
+                            card.setCardBackgroundColor(android.graphics.Color.parseColor("#ECEFF1"))
+                        } else {
+                            card.setCardBackgroundColor(android.graphics.Color.WHITE)
+                        }
+                    } else {
+                        card.setCardBackgroundColor(android.graphics.Color.WHITE)
+                    }
+                } else {
+                    itemView.scaleX = 1.0f
+                    itemView.scaleY = 1.0f
+                    if (phraseCard.isSelectedForConfig) {
+                        card.strokeColor = itemView.context.getColor(R.color.highlight_stroke)
+                        card.strokeWidth = 8
+                    } else if (timeConfig.mode == TimeMode.JALON) {
+                        card.strokeColor = android.graphics.Color.parseColor("#2196F3")
+                        card.strokeWidth = 6
+                    } else if (timeConfig.mode == TimeMode.TIMER) {
+                        card.strokeColor = timerColor
+                        card.strokeWidth = 6
+                    } else {
+                        card.strokeColor = android.graphics.Color.parseColor("#DDDDDD")
+                        card.strokeWidth = 2
+                    }
+                }
             } else {
-                card.setCardBackgroundColor(itemView.context.getColor(android.R.color.white))
-                card.strokeColor = android.graphics.Color.parseColor("#DDDDDD")
-                card.strokeWidth = 2
+                itemView.scaleX = 1.0f
+                itemView.scaleY = 1.0f
+                if (phraseCard.isSelectedForConfig) {
+                    card.strokeColor = itemView.context.getColor(R.color.highlight_stroke)
+                    card.strokeWidth = 8
+                } else if (timeConfig.mode == TimeMode.JALON) {
+                    card.strokeColor = android.graphics.Color.parseColor("#2196F3")
+                    card.strokeWidth = 6
+                } else if (timeConfig.mode == TimeMode.TIMER) {
+                    card.strokeColor = timerColor
+                    card.strokeWidth = 6
+                } else if (isHighlighted) {
+                    card.setCardBackgroundColor(itemView.context.getColor(R.color.highlight_bg))
+                    card.strokeColor = itemView.context.getColor(R.color.highlight_stroke)
+                    card.strokeWidth = 6
+                } else {
+                    card.strokeColor = android.graphics.Color.parseColor("#DDDDDD")
+                    card.strokeWidth = 2
+                }
             }
 
             // 2. GESTION DU TIME TIMER
             timerView?.let { tv ->
                 tv.setMode(timeConfig.mode)
-                if (timeConfig.mode == TimeMode.TIMER && timeConfig.endTimeMillis > 0) {
-                    val remaining = timeConfig.endTimeMillis - SystemClock.elapsedRealtime()
-                    val total = timeConfig.durationMinutes * 60 * 1000L
-                    tv.updateProgress(remaining, total)
+                if (timeConfig.mode == TimeMode.TIMER) {
+                    if (timeConfig.endTimeMillis > 0) {
+                        val remaining = timeConfig.endTimeMillis - SystemClock.elapsedRealtime()
+                        val total = timeConfig.durationMinutes * 60 * 1000L
+                        tv.updateProgress(remaining, total)
+                    } else {
+                        val total = timeConfig.durationMinutes * 60 * 1000L
+                        tv.updateProgress(total, total)
+                    }
                 }
             }
 

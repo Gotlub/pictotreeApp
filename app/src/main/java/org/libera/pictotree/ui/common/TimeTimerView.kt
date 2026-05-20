@@ -7,77 +7,110 @@ import android.view.View
 import kotlin.math.min
 
 /**
- * Composant visuel pour le Time Timer et les Jalons.
- * Dessine un camembert rouge qui se vide ou une bordure bleue.
+ * Composant visuel pour le Time Timer.
+ * Dessine un cadran transparent au-dessus du pictogramme avec :
+ * - Des numéros de 0 à 55 dans le sens anti-horaire, lisibles grâce à un ombrage blanc.
+ * - Un arc de cercle coloré (rouge ou vert) anti-horaire pointant directement vers le temps restant.
  */
 class TimeTimerView @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
 ) : View(context, attrs, defStyleAttr) {
 
     private val piePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.parseColor("#E53935") // Rouge Time Timer
         style = Paint.Style.FILL
     }
     
-    private val jalonPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.parseColor("#2196F3") // Bleu Jalon
-        style = Paint.Style.STROKE
-        strokeWidth = 12f
-    }
-    
-    private val backgroundPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.parseColor("#EEEEEE")
-        style = Paint.Style.FILL
+    private val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.parseColor("#212121")
+        textAlign = Paint.Align.CENTER
+        typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+        // Ombrage blanc pour assurer la lisibilité sur tous les pictogrammes (clairs ou sombres)
+        setShadowLayer(6f, 0f, 0f, Color.WHITE)
     }
 
-    private var progress: Float = 0f // 1.0 = plein, 0.0 = vide
-    private var isJalonMode: Boolean = false
+    private var remainingMinutes: Float = 0f // Temps restant en minutes
 
     /**
-     * Définit le mode d'affichage.
+     * Définit le mode d'affichage. Affiche le timer uniquement en mode TIMER.
      */
     fun setMode(mode: org.libera.pictotree.data.model.TimeMode) {
-        isJalonMode = (mode == org.libera.pictotree.data.model.TimeMode.JALON)
-        if (mode == org.libera.pictotree.data.model.TimeMode.NONE) {
-            visibility = GONE
-        } else {
+        if (mode == org.libera.pictotree.data.model.TimeMode.TIMER) {
             visibility = VISIBLE
+        } else {
+            visibility = GONE
         }
         invalidate()
     }
 
     /**
-     * Met à jour le niveau du camembert rouge.
+     * Met à jour le niveau du camembert.
      * @param remainingMs Temps restant en ms
      * @param totalMs Durée totale initiale en ms
      */
     fun updateProgress(remainingMs: Long, totalMs: Long) {
-        if (isJalonMode) return
-        this.progress = if (totalMs > 0) (remainingMs.toFloat() / totalMs.toFloat()).coerceIn(0f, 1f) else 0f
+        val remaining = remainingMs.coerceAtLeast(0L)
+        this.remainingMinutes = remaining.toFloat() / (60f * 1000f)
         invalidate()
     }
 
     override fun onDraw(canvas: Canvas) {
+        super.onDraw(canvas)
+        
         val centerX = width / 2f
         val centerY = height / 2f
-        val radius = min(width, height) / 2f - 6f
+        val minDim = min(width, height)
+        val outerRadius = minDim / 2f
         
-        if (isJalonMode) {
-            // Mode JALON : Cercle bleu épais
-            canvas.drawCircle(centerX, centerY, radius, jalonPaint)
-            return
+        // Rayon du cadran de l'horloge et rayon pour placer le texte
+        val dialRadius = outerRadius - 16f
+        val textRadius = dialRadius - 22f
+        
+        // 1. Tracé du contour du cadran (fin et discret)
+        val outlinePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.parseColor("#CCCCCC")
+            style = Paint.Style.STROKE
+            strokeWidth = 3f
+            setShadowLayer(4f, 0f, 0f, Color.WHITE)
         }
-
-        // Mode TIMER : Camembert rouge
-        val rect = RectF(centerX - radius, centerY - radius, centerX + radius, centerY + radius)
+        canvas.drawCircle(centerX, centerY, dialRadius, outlinePaint)
         
-        // 1. Fond gris
-        canvas.drawCircle(centerX, centerY, radius, backgroundPaint)
+        // 2. Détermination de la couleur du Timer (Rouge ou Vert)
+        val timerColorStr = org.libera.pictotree.data.SessionManager(context).getTimerColor()
+        val isGreen = timerColorStr.equals("green", ignoreCase = true)
         
-        // 2. Arc rouge (Le temps restant)
-        // Départ à midi (-90°)
-        // Le sweepAngle diminue vers 0 pour vider le camembert
-        val sweepAngle = progress * 360f
+        val translucentColor = if (isGreen) Color.parseColor("#444CAF50") else Color.parseColor("#44E53935") // Opacité ~27%
+        val solidColor = if (isGreen) Color.parseColor("#FF4CAF50") else Color.parseColor("#FFE53935")
+        
+        // 3. Tracé de l'arc restant (sens anti-horaire, donc sweepAngle négatif)
+        // Départ à -90 degrés (midi).
+        piePaint.color = translucentColor
+        val rect = RectF(centerX - dialRadius, centerY - dialRadius, centerX + dialRadius, centerY + dialRadius)
+        val sweepAngle = -(remainingMinutes / 60f) * 360f
+        
         canvas.drawArc(rect, -90f, sweepAngle, true, piePaint)
+        
+        // Tracé de la ligne de découpe solide au bout de l'arc pour un rendu aiguisé
+        val arcStrokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = solidColor
+            style = Paint.Style.STROKE
+            strokeWidth = 5f
+        }
+        canvas.drawArc(rect, -90f, sweepAngle, false, arcStrokePaint)
+        
+        // 4. Tracé des numéros de 0 à 55 (par pas de 5) disposés en sens anti-horaire
+        textPaint.textSize = (minDim * 0.095f).coerceIn(20f, 32f)
+        
+        val fontMetrics = textPaint.fontMetrics
+        val yOffset = (fontMetrics.descent + fontMetrics.ascent) / 2f
+        
+        for (minute in 0..55 step 5) {
+            // Formule mathématique anti-horaire : départ à midi (-90°)
+            val angle = -90f - (minute / 60f) * 360f
+            val rad = Math.toRadians(angle.toDouble())
+            val numX = centerX + textRadius * Math.cos(rad)
+            val numY = centerY + textRadius * Math.sin(rad)
+            
+            canvas.drawText(minute.toString(), numX.toFloat(), (numY - yOffset).toFloat(), textPaint)
+        }
     }
 }
