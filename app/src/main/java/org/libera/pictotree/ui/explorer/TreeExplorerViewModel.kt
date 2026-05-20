@@ -313,6 +313,25 @@ class TreeExplorerViewModel(
     }
 
     private fun scheduleSystemAlarm(triggerAtMillis: Long, label: String) {
+        val alarmManager = getApplication<Application>().getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        
+        // SÉCURITÉ ANDROID 12+ : Vérifier si on a le droit de programmer une alarme exacte
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+            if (!alarmManager.canScheduleExactAlarms()) {
+                // Si pas de permission, on utilise une alarme inexacte (ou on pourrait ouvrir les réglages)
+                Log.e(TAG, "Missing SCHEDULE_EXACT_ALARM permission, falling back to inexact alarm")
+                val intent = Intent(getApplication(), org.libera.pictotree.utils.TimerReceiver::class.java).apply {
+                    putExtra("EXTRA_LABEL", label)
+                }
+                val pendingIntent = PendingIntent.getBroadcast(
+                    getApplication(), label.hashCode(), intent,
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                )
+                alarmManager.setAndAllowWhileIdle(AlarmManager.ELAPSED_REALTIME_WAKEUP, triggerAtMillis, pendingIntent)
+                return
+            }
+        }
+
         val intent = Intent(getApplication(), org.libera.pictotree.utils.TimerReceiver::class.java).apply {
             putExtra("EXTRA_LABEL", label)
         }
@@ -320,7 +339,6 @@ class TreeExplorerViewModel(
             getApplication(), label.hashCode(), intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        val alarmManager = getApplication<Application>().getSystemService(Context.ALARM_SERVICE) as AlarmManager
         alarmManager.setExactAndAllowWhileIdle(AlarmManager.ELAPSED_REALTIME_WAKEUP, triggerAtMillis, pendingIntent)
     }
 

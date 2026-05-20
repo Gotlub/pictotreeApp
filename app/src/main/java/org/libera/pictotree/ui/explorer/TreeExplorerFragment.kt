@@ -145,6 +145,12 @@ class TreeExplorerFragment : Fragment() {
             }
         })
 
+        rvBreadcrumbs.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                updateVerticalScrollIndicators(rvBreadcrumbs, scrollTopIndicator, scrollBottomIndicator)
+            }
+        })
+
         siblingAdapter = NodeAdapter(username, R.layout.item_sibling_node) { node ->
             val position = siblingAdapter.currentList.indexOf(node)
             if (position != -1) {
@@ -168,6 +174,7 @@ class TreeExplorerFragment : Fragment() {
             }
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
                 positionChildrenArrow() 
+                updateHorizontalScrollIndicators(rvSiblings, siblingsGradLeft, siblingsArrowLeft, siblingsGradRight, siblingsArrowRight)
             }
         })
 
@@ -176,6 +183,11 @@ class TreeExplorerFragment : Fragment() {
         }
         rvChildren.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
         rvChildren.adapter = childrenAdapter
+        rvChildren.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                updateHorizontalScrollIndicators(rvChildren, childrenGradLeft, null, childrenGradRight, null)
+            }
+        })
 
         phraseAdapter = PhraseAdapter(username, onItemClick = { position -> 
             val cardList = phraseAdapter.getCurrentList()
@@ -201,6 +213,56 @@ class TreeExplorerFragment : Fragment() {
             }
         })
         itemTouchHelper.attachToRecyclerView(rvPhrase)
+    }
+
+    private fun positionChildrenArrow() {
+        if (!::ivArrowToChildren.isInitialized || !::rvSiblings.isInitialized) return
+        val state = viewModel.uiState.value
+        val targetNode = state.navigationNode ?: return
+        
+        var position = siblingAdapter.currentList.indexOfFirst { it.id == targetNode.id }
+        if (position != -1) {
+            val layoutManager = rvSiblings.layoutManager as LinearLayoutManager
+            val view = layoutManager.findViewByPosition(position)
+            if (view != null) {
+                // Rendre visible UNIQUEMENT s'il y a des enfants
+                ivArrowToChildren.visibility = if (state.children.isNotEmpty()) View.VISIBLE else View.INVISIBLE
+                
+                val viewCenter = (view.left + view.right) / 2
+                val rvCenter = rvSiblings.width / 2
+                ivArrowToChildren.translationX = (viewCenter - rvCenter).toFloat()
+            } else {
+                ivArrowToChildren.visibility = View.INVISIBLE
+            }
+        } else {
+            ivArrowToChildren.visibility = View.INVISIBLE
+        }
+    }
+
+    private fun updateHorizontalScrollIndicators(rv: RecyclerView, gradL: View?, arrowL: View?, gradR: View?, arrowR: View?) {
+        val canLeft = rv.canScrollHorizontally(-1)
+        val canRight = rv.canScrollHorizontally(1)
+        gradL?.visibility = if (canLeft) View.VISIBLE else View.INVISIBLE
+        arrowL?.visibility = if (canLeft) View.VISIBLE else View.INVISIBLE
+        gradR?.visibility = if (canRight) View.VISIBLE else View.INVISIBLE
+        arrowR?.visibility = if (canRight) View.VISIBLE else View.INVISIBLE
+    }
+
+    private fun updateVerticalScrollIndicators(rv: RecyclerView, gradTop: View?, gradBottom: View?) {
+        val canUp = rv.canScrollVertically(-1)
+        val canDown = rv.canScrollVertically(1)
+        gradTop?.visibility = if (canUp) View.VISIBLE else View.INVISIBLE
+        gradBottom?.visibility = if (canDown) View.VISIBLE else View.INVISIBLE
+    }
+
+    private fun updateFocusFromFirstVisible() {
+        if (ignoreScrollEvents) return
+        val layoutManager = rvSiblings.layoutManager as LinearLayoutManager
+        val position = layoutManager.findFirstVisibleItemPosition()
+        if (position != RecyclerView.NO_POSITION && position < siblingAdapter.currentList.size) {
+            val navTargetNode = siblingAdapter.currentList[position]
+            viewModel.updateFocusWithinSiblings(navTargetNode)
+        }
     }
 
     private fun setupViewModelLogic(isFreshEntry: Boolean) {
@@ -242,6 +304,11 @@ class TreeExplorerFragment : Fragment() {
         view.findViewById<View>(R.id.btn_fullscreen_phrase)?.setOnClickListener { findNavController().navigate(R.id.action_treeExplorerFragment_to_phraseFullscreenFragment) }
         view.findViewById<View>(R.id.btn_clear_phrase)?.setOnClickListener { showClearPhraseConfirmation() }
         containerParent.setOnClickListener { viewModel.uiState.value.parent?.let { viewModel.focusOnNode(it) } }
+    }
+
+    private fun showClearPhraseConfirmation() {
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext()).setTitle("Effacer le bandeau ?").setMessage("Voulez-vous vraiment vider toute la phrase ?")
+            .setPositiveButton("Oui") { _, _ -> viewModel.clearPhrase() }.setNegativeButton("Non", null).setIcon(android.R.drawable.ic_menu_delete).show()
     }
 
     private fun setupObservers() {
@@ -296,7 +363,22 @@ class TreeExplorerFragment : Fragment() {
         } ?: run { containerParent.visibility = View.INVISIBLE }
         
         breadcrumbAdapter.submitList(state.breadcrumbs)
-        siblingAdapter.submitList(state.siblings)
+        siblingAdapter.submitList(state.siblings) {
+            val navPos = state.siblings.indexOfFirst { it.id == state.navigationNode?.id }
+            if (navPos != -1) { 
+                ignoreScrollEvents = true
+                rvSiblings.post { 
+                    rvSiblings.scrollToPosition(navPos)
+                    rvSiblings.postDelayed({ 
+                        ignoreScrollEvents = false 
+                        positionChildrenArrow() // Recalculer après défilement
+                    }, 200) 
+                }
+            } else {
+                positionChildrenArrow()
+            }
+        }
+        
         state.previewNode?.let { node -> ivSelectedLarge.load(getFinalUrl(node.imageUrl)) }
         childrenAdapter.submitList(state.children)
     }
@@ -308,12 +390,6 @@ class TreeExplorerFragment : Fragment() {
         val localFile = File(requireContext().filesDir, "$username/images/$fileName")
         return if (localFile.exists()) localFile else rawUrl
     }
-
-    private fun positionChildrenArrow() { /* Implementation... */ }
-    private fun updateHorizontalScrollIndicators(rv: RecyclerView, gradL: View?, arrowL: View?, gradR: View?, arrowR: View?) { /* Implementation... */ }
-    private fun updateVerticalScrollIndicators(rv: RecyclerView, gradTop: View?, gradBottom: View?) { /* Implementation... */ }
-    private fun updateFocusFromFirstVisible() { /* Implementation... */ }
-    private fun showClearPhraseConfirmation() { /* Implementation... */ }
 
     override fun onDestroyView() { super.onDestroyView(); if (::ttsManager.isInitialized) ttsManager.shutdown() }
 }
