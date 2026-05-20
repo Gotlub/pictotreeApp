@@ -32,10 +32,15 @@ import org.libera.pictotree.data.model.CardTimeConfig
 import org.libera.pictotree.data.model.TimeMode
 import org.libera.pictotree.network.RetrofitClient
 import org.libera.pictotree.utils.TTSManager
+import androidx.navigation.fragment.findNavController
+import android.content.pm.ActivityInfo
 
-import androidx.fragment.app.DialogFragment
-
-class PhraseFullscreenFragment : DialogFragment() {
+/**
+ * Fragment pour l'affichage plein écran du bandeau de phrase.
+ * Utilisé pour la configuration et la visualisation du Time Timer.
+ * Forcé en mode Paysage et 100% opaque pour éviter les stimuli visuels.
+ */
+class PhraseFullscreenFragment : Fragment() {
 
     private lateinit var viewModel: TreeExplorerViewModel
     private lateinit var ttsManager: TTSManager
@@ -44,42 +49,32 @@ class PhraseFullscreenFragment : DialogFragment() {
     private var isDraggingPhrase = false
     private var itemTouchHelper: ItemTouchHelper? = null
 
-    // NOUVEAU : Références pour le Timer
     private lateinit var drawerLayout: DrawerLayout
     private lateinit var cardClockMode: View
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setStyle(STYLE_NORMAL, android.R.style.Theme_DeviceDefault_Light_NoActionBar_Fullscreen)
-    }
-
-    override fun onStart() {
-        super.onStart()
-        dialog?.window?.apply {
-            setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
-            setBackgroundDrawable(android.graphics.drawable.ColorDrawable(android.graphics.Color.WHITE))
-            setDimAmount(0f) // Supprimer l'assombrissement pour un vrai plein écran
-        }
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
+        // 1. FORCER LE PAYSAGE AVANT TOUTE CHOSE
         val mainActivity = requireActivity() as? org.libera.pictotree.MainActivity
         mainActivity?.disableOrientationLock()
-        mainActivity?.applyUserOrientation()
-    }
-
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
-        requireActivity().requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+        requireActivity().requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
         
         val root = inflater.inflate(R.layout.fragment_phrase_fullscreen, container, false)
 
         val username = SessionManager(requireContext()).getUsername() ?: "dummy"
         val database = AppDatabase.getDatabase(requireContext(), username)
-        val treeDao = database.treeDao()
-        val profileDao = database.profileDao()
-        val userConfigRepository = org.libera.pictotree.data.repository.UserConfigRepository(database.userConfigDao())
-
+        
         val factory = object : ViewModelProvider.Factory {
             override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
                 @Suppress("UNCHECKED_CAST")
-                return TreeExplorerViewModel(requireActivity().application, treeDao, profileDao, database.imageDao(), userConfigRepository, RetrofitClient.SERVER_URL, username) as T
+                return TreeExplorerViewModel(
+                    requireActivity().application, 
+                    database.treeDao(), 
+                    database.profileDao(), 
+                    database.imageDao(), 
+                    org.libera.pictotree.data.repository.UserConfigRepository(database.userConfigDao()), 
+                    RetrofitClient.SERVER_URL, 
+                    username
+                ) as T
             }
         }
         viewModel = ViewModelProvider(requireActivity(), factory)[TreeExplorerViewModel::class.java]
@@ -123,7 +118,8 @@ class PhraseFullscreenFragment : DialogFragment() {
             }
         }
 
-        btnClose.setOnClickListener { dismiss() }
+        // Utiliser popBackStack pour quitter le mode plein écran
+        btnClose.setOnClickListener { findNavController().popBackStack() }
 
         ttsManager.setListeners(
             onStart = { utteranceId ->
@@ -254,7 +250,6 @@ class PhraseFullscreenFragment : DialogFragment() {
                     viewModel.phraseList.collect { phrase -> if (!isDraggingPhrase) adapter.submitList(phrase) }
                 }
                 
-                // PULSE DU TIMER (Mise à jour visuelle du premier picto si timer actif)
                 launch {
                     viewModel.currentTimeFlow.collect {
                         val firstCard = viewModel.phraseList.value.firstOrNull()

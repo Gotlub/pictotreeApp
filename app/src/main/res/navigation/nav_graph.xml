@@ -83,7 +83,7 @@
             app:destination="@id/phraseFullscreenFragment" />
     </fragment>
 
-    <dialog
+    <fragment
         android:id="@+id/phraseFullscreenFragment"
         android:name="org.libera.pictotree.ui.explorer.PhraseFullscreenFragment"
         android:label="Phrase Fullscreen"
