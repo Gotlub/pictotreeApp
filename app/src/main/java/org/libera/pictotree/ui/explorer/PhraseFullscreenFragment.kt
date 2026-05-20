@@ -53,8 +53,19 @@ class PhraseFullscreenFragment : DialogFragment() {
         setStyle(STYLE_NORMAL, android.R.style.Theme_DeviceDefault_Light_NoActionBar_Fullscreen)
     }
 
+    override fun onStart() {
+        super.onStart()
+        dialog?.window?.apply {
+            setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+            setBackgroundDrawable(android.graphics.drawable.ColorDrawable(android.graphics.Color.WHITE))
+            setDimAmount(0f) // Supprimer l'assombrissement pour un vrai plein écran
+        }
+        val mainActivity = requireActivity() as? org.libera.pictotree.MainActivity
+        mainActivity?.disableOrientationLock()
+        mainActivity?.applyUserOrientation()
+    }
+
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
-        (requireActivity() as? org.libera.pictotree.MainActivity)?.disableOrientationLock()
         requireActivity().requestedOrientation = android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
         
         val root = inflater.inflate(R.layout.fragment_phrase_fullscreen, container, false)
