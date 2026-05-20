@@ -26,7 +26,7 @@
             android:layout_marginTop="4dp"
             app:cardCornerRadius="12dp"
             app:strokeWidth="2dp"
-            app:strokeColor="@color/material_dynamic_neutral90"
+            app:strokeColor="#DDDDDD"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent">
             <androidx.constraintlayout.widget.ConstraintLayout android:layout_width="match_parent" android:layout_height="match_parent" android:padding="4dp">

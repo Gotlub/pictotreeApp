@@ -9,9 +9,8 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:elevation="16dp"
         android:orientation="vertical"
-        android:padding="20dp"
+        android:padding="16dp"
         android:clickable="true"
         android:focusable="true">
 
@@ -19,25 +18,26 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Configuration du temps"
-            android:textSize="20sp"
+            android:textSize="18sp"
             android:textStyle="bold"
             android:textColor="?attr/colorPrimary"
-            android:layout_marginBottom="24dp" />
+            android:layout_marginBottom="16dp" />
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Mode"
+            android:textSize="14sp"
             android:textStyle="bold" />
         <RadioGroup
             android:id="@+id/rg_time_mode"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:layout_marginBottom="16dp">
-            <RadioButton android:id="@+id/rb_mode_none" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Aucun" />
-            <RadioButton android:id="@+id/rb_mode_timer" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Time Timer" />
-            <RadioButton android:id="@+id/rb_mode_jalon" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Jalon (Bordure)" />
+            android:layout_marginBottom="12dp">
+            <RadioButton android:id="@+id/rb_mode_none" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Aucun" android:textSize="14sp" />
+            <RadioButton android:id="@+id/rb_mode_timer" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Time Timer" android:textSize="14sp" />
+            <RadioButton android:id="@+id/rb_mode_jalon" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Jalon (Bordure)" android:textSize="14sp" />
         </RadioGroup>
 
         <TextView
@@ -45,6 +45,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Durée (minutes)"
+            android:textSize="14sp"
             android:textStyle="bold" />
         <com.google.android.material.slider.Slider
             android:id="@+id/slider_duration"
@@ -53,33 +54,35 @@
             android:valueFrom="1"
             android:valueTo="60"
             android:stepSize="1"
-            android:layout_marginBottom="16dp" />
+            android:layout_marginBottom="12dp" />
 
         <com.google.android.material.materialswitch.MaterialSwitch
             android:id="@+id/switch_play_sound"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Sonner à la fin"
-            android:layout_marginBottom="12dp" />
+            android:textSize="14sp"
+            android:layout_marginBottom="8dp" />
 
         <com.google.android.material.materialswitch.MaterialSwitch
             android:id="@+id/switch_auto_remove"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Supprimer auto. à la fin"
-            android:layout_marginBottom="32dp" />
-
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1" />
+            android:text="Supprimer auto."
+            android:textSize="14sp"
+            android:layout_marginBottom="24dp" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_apply_time_config"
             android:layout_width="match_parent"
-            android:layout_height="60dp"
+            android:layout_height="56dp"
             android:text="Appliquer"
             app:cornerRadius="12dp" />
+            
+        <!-- Padding supplémentaire pour le scroll en paysage -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="40dp" />
 
     </LinearLayout>
 </ScrollView>

@@ -95,7 +95,7 @@ class PhraseAdapter(
                 card.strokeWidth = 6
             } else {
                 card.setCardBackgroundColor(itemView.context.getColor(android.R.color.white))
-                card.strokeColor = itemView.context.getColor(com.google.android.material.R.color.material_dynamic_neutral90)
+                card.strokeColor = android.graphics.Color.parseColor("#DDDDDD")
                 card.strokeWidth = 2
             }
 

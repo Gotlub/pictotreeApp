@@ -220,15 +220,15 @@ class TreeExplorerFragment : Fragment() {
         val state = viewModel.uiState.value
         val targetNode = state.navigationNode ?: return
         
-        var position = siblingAdapter.currentList.indexOfFirst { it.id == targetNode.id }
+        val position = siblingAdapter.currentList.indexOfFirst { it.id == targetNode.id }
         if (position != -1) {
             val layoutManager = rvSiblings.layoutManager as LinearLayoutManager
-            val view = layoutManager.findViewByPosition(position)
-            if (view != null) {
+            val itemView = layoutManager.findViewByPosition(position)
+            if (itemView != null) {
                 // Rendre visible UNIQUEMENT s'il y a des enfants
-                ivArrowToChildren.visibility = if (state.children.isNotEmpty()) View.VISIBLE else View.INVISIBLE
+                ivArrowToChildren.visibility = if (targetNode.children.isNotEmpty()) View.VISIBLE else View.INVISIBLE
                 
-                val viewCenter = (view.left + view.right) / 2
+                val viewCenter = (itemView.left + itemView.right) / 2
                 val rvCenter = rvSiblings.width / 2
                 ivArrowToChildren.translationX = (viewCenter - rvCenter).toFloat()
             } else {

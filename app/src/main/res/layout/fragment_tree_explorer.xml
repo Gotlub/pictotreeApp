@@ -72,7 +72,7 @@
             android:elevation="10dp"
             app:cardCornerRadius="16dp"
             app:strokeWidth="3dp"
-            app:strokeColor="@color/material_dynamic_neutral90"
+            app:strokeColor="#DDDDDD"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent">
             <androidx.constraintlayout.widget.ConstraintLayout android:layout_width="match_parent" android:layout_height="match_parent" android:padding="8dp">

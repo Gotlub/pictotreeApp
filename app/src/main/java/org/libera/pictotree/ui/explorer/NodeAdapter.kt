@@ -113,7 +113,7 @@ class NodeAdapter(
                 }
             } else {
                 card.strokeWidth = 2
-                card.strokeColor = androidx.core.content.ContextCompat.getColor(itemView.context, com.google.android.material.R.color.material_dynamic_neutral90)
+                card.strokeColor = android.graphics.Color.parseColor("#DDDDDD")
             }
 
             itemView.setOnClickListener { onNodeClick(node) }
