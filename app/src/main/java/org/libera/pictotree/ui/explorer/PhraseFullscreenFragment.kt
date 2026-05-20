@@ -24,6 +24,7 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.button.MaterialButtonToggleGroup
 import com.google.android.material.slider.Slider
 import com.google.android.material.materialswitch.MaterialSwitch
+import com.google.android.material.card.MaterialCardView
 import kotlinx.coroutines.launch
 import org.libera.pictotree.R
 import org.libera.pictotree.data.SessionManager
@@ -50,7 +51,9 @@ class PhraseFullscreenFragment : Fragment() {
     private var itemTouchHelper: ItemTouchHelper? = null
 
     private lateinit var drawerLayout: DrawerLayout
-    private lateinit var cardClockMode: View
+    private lateinit var cardClockMode: MaterialCardView
+    private lateinit var cardPlayStopTimer: MaterialCardView
+    private lateinit var ivPlayStopTimer: ImageView
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         // 1. FORCER LE PAYSAGE AVANT TOUTE CHOSE
@@ -142,8 +145,19 @@ class PhraseFullscreenFragment : Fragment() {
         cardClockMode.setOnClickListener {
             val newState = !viewModel.isClockModeActive.value
             viewModel.isClockModeActive.value = newState
-            cardClockMode.setBackgroundColor(if (newState) Color.parseColor("#BBDEFB") else Color.parseColor("#F5F5F5"))
             if (!newState) drawerLayout.closeDrawer(GravityCompat.END)
+        }
+
+        cardPlayStopTimer = root.findViewById(R.id.card_play_stop_timer_fullscreen)
+        ivPlayStopTimer = root.findViewById(R.id.iv_play_stop_timer)
+        cardPlayStopTimer.setOnClickListener {
+            val isTimerRunning = viewModel.isTimerActivated.value
+            if (isTimerRunning) {
+                viewModel.stopAllTimers()
+            } else {
+                viewModel.isTimerActivated.value = true
+                viewModel.startTimerForFirstCard()
+            }
         }
     }
 
@@ -260,6 +274,7 @@ class PhraseFullscreenFragment : Fragment() {
             }
         })
         adapter.isClockModeActive = viewModel.isClockModeActive.value
+        adapter.isTimerActivated = viewModel.isTimerActivated.value
         rv.adapter = adapter
         rv.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
         adapter.submitList(viewModel.phraseList.value)
@@ -305,6 +320,29 @@ class PhraseFullscreenFragment : Fragment() {
                     viewModel.isClockModeActive.collect { active ->
                         adapter.isClockModeActive = active
                         adapter.notifyDataSetChanged()
+                        cardClockMode.setCardBackgroundColor(
+                            android.content.res.ColorStateList.valueOf(
+                                if (active) Color.parseColor("#BBDEFB")
+                                else Color.parseColor("#F5F5F5")
+                            )
+                        )
+                    }
+                }
+
+                launch {
+                    viewModel.isTimerActivated.collect { active ->
+                        adapter.isTimerActivated = active
+                        adapter.notifyDataSetChanged()
+                        ivPlayStopTimer.setImageResource(
+                            if (active) R.drawable.ic_stop
+                            else R.drawable.ic_play
+                        )
+                        cardPlayStopTimer.setCardBackgroundColor(
+                            android.content.res.ColorStateList.valueOf(
+                                if (active) Color.parseColor("#FFCDD2") // Rouge doux pour Stop
+                                else Color.parseColor("#F5F5F5")       // Gris standard
+                            )
+                        )
                     }
                 }
                 

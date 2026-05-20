@@ -121,7 +121,25 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:padding="14dp"
-                    android:src="@android:drawable/ic_menu_today"
+                    android:src="@drawable/ic_timer"
+                    app:tint="#757575" />
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- BOUTON LECTURE / STOP TIMER -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_play_stop_timer_fullscreen"
+                android:layout_width="56dp"
+                android:layout_height="56dp"
+                android:layout_marginEnd="16dp"
+                app:cardCornerRadius="16dp"
+                app:cardBackgroundColor="#F5F5F5"
+                app:cardElevation="6dp">
+                <ImageView
+                    android:id="@+id/iv_play_stop_timer"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:padding="14dp"
+                    android:src="@drawable/ic_play"
                     app:tint="#757575" />
             </com.google.android.material.card.MaterialCardView>
 

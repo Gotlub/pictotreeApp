@@ -97,6 +97,7 @@ class TreeExplorerViewModel(
 
     // ÉTATS DE CONFIGURATION (Master/Detail)
     val isClockModeActive = MutableStateFlow(false)
+    val isTimerActivated = MutableStateFlow(false)
     val selectedIndexForConfig = MutableStateFlow<Int?>(null)
 
     // BATTEMENT DE CŒUR (Pulse)
@@ -295,6 +296,7 @@ class TreeExplorerViewModel(
 
     // LOGIQUE SÉQUENTIELLE DU TIMER
     fun startTimerForFirstCard() {
+        if (!isTimerActivated.value) return
         val list = _phraseList.value.toMutableList()
         if (list.isEmpty()) return
 
@@ -310,6 +312,38 @@ class TreeExplorerViewModel(
             _phraseList.value = list
             scheduleSystemAlarm(endTime, firstCard.node.label)
         }
+    }
+
+    fun stopAllTimers() {
+        isTimerActivated.value = false
+        val list = _phraseList.value.toMutableList()
+        val alarmManager = getApplication<Application>().getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        
+        for (i in list.indices) {
+            val card = list[i]
+            if (card.timeConfig.endTimeMillis > 0) {
+                val intent = Intent(getApplication(), org.libera.pictotree.utils.TimerReceiver::class.java)
+                val pendingIntent = PendingIntent.getBroadcast(
+                    getApplication(), card.node.label.hashCode(), intent,
+                    PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
+                )
+                if (pendingIntent != null) {
+                    alarmManager.cancel(pendingIntent)
+                    pendingIntent.cancel()
+                }
+            }
+            list[i] = card.copy(timeConfig = card.timeConfig.copy(
+                startTimeMillis = 0L,
+                endTimeMillis = 0L
+            ))
+        }
+        _phraseList.value = list
+        
+        // Stop ringing receiver if any
+        val stopIntent = Intent(getApplication(), org.libera.pictotree.utils.TimerReceiver::class.java).apply {
+            action = "ACTION_STOP_ALARM"
+        }
+        getApplication<Application>().sendBroadcast(stopIntent)
     }
 
     private fun scheduleSystemAlarm(triggerAtMillis: Long, label: String) {

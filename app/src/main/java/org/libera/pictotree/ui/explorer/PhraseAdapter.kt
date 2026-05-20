@@ -22,6 +22,7 @@ class PhraseAdapter(
     private val items = mutableListOf<PhraseCard>()
     private var highlightedPosition: Int = -1
     var isClockModeActive: Boolean = false
+    var isTimerActivated: Boolean = false
 
     init {
         setHasStableIds(true)
@@ -61,7 +62,7 @@ class PhraseAdapter(
     }
 
     override fun onBindViewHolder(holder: PhraseViewHolder, position: Int) {
-        holder.bind(items[position], position == highlightedPosition, position == 0, isClockModeActive)
+        holder.bind(items[position], position == highlightedPosition, position == 0, isClockModeActive, isTimerActivated)
     }
 
     class PhraseViewHolder(
@@ -77,7 +78,7 @@ class PhraseAdapter(
         // Nullable pour supporter les anciens layouts ou les erreurs de merge
         private val timerView: TimeTimerView? = itemView.findViewById(R.id.time_timer_view)
 
-        fun bind(phraseCard: PhraseCard, isHighlighted: Boolean, isActiveCard: Boolean, isClockModeActive: Boolean) {
+        fun bind(phraseCard: PhraseCard, isHighlighted: Boolean, isActiveCard: Boolean, isClockModeActive: Boolean, isTimerActivated: Boolean) {
             val node = phraseCard.node
             val timeConfig = phraseCard.timeConfig
             
@@ -89,8 +90,10 @@ class PhraseAdapter(
             val timerColorHex = if (timerColorStr.equals("green", ignoreCase = true)) "#4CAF50" else "#E53935"
             val timerColor = android.graphics.Color.parseColor(timerColorHex)
 
+            val showColoredBorders = isClockModeActive || isTimerActivated
+
             // 1. GESTION DU VISUEL, DE LA BORDURE ET DU ZOOM
-            if (isClockModeActive) {
+            if (showColoredBorders) {
                 if (isActiveCard) {
                     itemView.scaleX = 1.05f
                     itemView.scaleY = 1.05f
@@ -130,12 +133,6 @@ class PhraseAdapter(
                 if (phraseCard.isSelectedForConfig) {
                     card.strokeColor = itemView.context.getColor(R.color.highlight_stroke)
                     card.strokeWidth = 8
-                } else if (timeConfig.mode == TimeMode.JALON) {
-                    card.strokeColor = android.graphics.Color.parseColor("#2196F3")
-                    card.strokeWidth = 6
-                } else if (timeConfig.mode == TimeMode.TIMER) {
-                    card.strokeColor = timerColor
-                    card.strokeWidth = 6
                 } else if (isHighlighted) {
                     card.setCardBackgroundColor(itemView.context.getColor(R.color.highlight_bg))
                     card.strokeColor = itemView.context.getColor(R.color.highlight_stroke)
