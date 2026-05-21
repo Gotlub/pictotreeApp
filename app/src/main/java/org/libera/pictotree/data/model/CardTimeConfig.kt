@@ -11,6 +11,7 @@ data class CardTimeConfig(
     @SerializedName("mode") val mode: TimeMode = TimeMode.JALON,
     @SerializedName("duration_minutes") val durationMinutes: Int = 0,
     @SerializedName("play_sound") val playSoundAtEnd: Boolean = true,
+    @SerializedName("repeat_sound") val repeatSound: Boolean = false,
     @SerializedName("auto_remove") val autoRemove: Boolean = false,
     @SerializedName("visual_pulse") val visualPulse: Boolean = false,
     

@@ -117,6 +117,16 @@
             android:layout_marginBottom="2dp" />
 
         <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/switch_repeat_sound"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="32dp"
+            android:paddingVertical="2dp"
+            android:text="Répéter la sonnerie"
+            android:textSize="12sp"
+            android:layout_marginBottom="2dp" />
+
+        <com.google.android.material.materialswitch.MaterialSwitch
             android:id="@+id/switch_auto_remove"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

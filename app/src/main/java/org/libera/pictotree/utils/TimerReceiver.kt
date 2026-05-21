@@ -25,10 +25,12 @@ class TimerReceiver : BroadcastReceiver() {
     companion object {
         private const val TAG = "TimerReceiver"
         private const val CHANNEL_ID = "timer_notifications"
-        private const val ACTION_STOP_ALARM = "org.libera.pictotree.ACTION_STOP_ALARM"
+        const val ACTION_STOP_ALARM = "org.libera.pictotree.ACTION_STOP_ALARM"
+        const val ACTION_ALARM_TRIGGERED = "org.libera.pictotree.ACTION_ALARM_TRIGGERED"
 
         // Référence statique pour couper la sonnerie en cours
         private var activeRingtone: Ringtone? = null
+        private var activeMediaPlayer: android.media.MediaPlayer? = null
 
         /**
          * Coupe manuellement la sonnerie d'alarme active.
@@ -45,6 +47,18 @@ class TimerReceiver : BroadcastReceiver() {
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to stop active ringtone", e)
             }
+            try {
+                activeMediaPlayer?.let {
+                    if (it.isPlaying) {
+                        it.stop()
+                    }
+                    it.release()
+                    Log.i(TAG, "Active media player stopped successfully.")
+                }
+                activeMediaPlayer = null
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to stop active media player", e)
+            }
         }
     }
 
@@ -60,34 +74,82 @@ class TimerReceiver : BroadcastReceiver() {
                 val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
                 notificationManager.cancel(notificationId)
             }
+            
+            // Émettre également un broadcast local pour que MainActivity masque la bannière
+            val stopLocalIntent = Intent(ACTION_STOP_ALARM)
+            context.sendBroadcast(stopLocalIntent)
             return
         }
 
         val label = intent.getStringExtra("EXTRA_LABEL") ?: "Temps écoulé"
-        Log.i(TAG, "ALARM RECEIVED: $label")
+        val playSound = intent.getBooleanExtra("EXTRA_PLAY_SOUND", true)
+        val repeatSound = intent.getBooleanExtra("EXTRA_REPEAT_SOUND", false)
+        Log.i(TAG, "ALARM RECEIVED: $label, playSound=$playSound, repeatSound=$repeatSound")
 
         // 1. JOUER LE SON D'ALARME
-        try {
-            // Arrêter toute alarme précédente
-            stopActiveRingtone()
+        if (playSound) {
+            try {
+                // Arrêter toute alarme précédente
+                stopActiveRingtone()
 
-            val alarmUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
-                ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
-            val ringtone = RingtoneManager.getRingtone(context, alarmUri)
-            activeRingtone = ringtone
-            ringtone.play()
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to play alarm sound", e)
+                val alarmUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+                    ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+                
+                val player = android.media.MediaPlayer().apply {
+                    setDataSource(context, alarmUri)
+                    setAudioAttributes(
+                        android.media.AudioAttributes.Builder()
+                            .setUsage(android.media.AudioAttributes.USAGE_ALARM)
+                            .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                            .build()
+                    )
+                    isLooping = repeatSound
+                    prepare()
+                    start()
+                }
+                activeMediaPlayer = player
+
+                // Si pas de répétition, on arrête automatiquement le MediaPlayer après 3 secondes
+                if (!repeatSound) {
+                    android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                        stopActiveRingtone()
+                    }, 3000)
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to play alarm sound via MediaPlayer, falling back to Ringtone", e)
+                try {
+                    val alarmUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+                        ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+                    val ringtone = RingtoneManager.getRingtone(context, alarmUri)
+                    activeRingtone = ringtone
+                    ringtone.play()
+
+                    if (!repeatSound) {
+                        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                            stopActiveRingtone()
+                        }, 3000)
+                    }
+                } catch (ex: Exception) {
+                    Log.e(TAG, "Failed to play fallback Ringtone", ex)
+                }
+            }
         }
 
         // 2. AFFICHER UNE NOTIFICATION
-        showNotification(context, label)
+        showNotification(context, label, repeatSound)
 
-        // 3. TOAST DE SÉCURITÉ
+        // 3. SIGNALER L'ALERTE LOCALEMENT (Pour affichage de la bannière in-app dans MainActivity)
+        val triggerLocalIntent = Intent(ACTION_ALARM_TRIGGERED).apply {
+            putExtra("EXTRA_LABEL", label)
+            putExtra("EXTRA_REPEAT_SOUND", repeatSound)
+        }
+        context.sendBroadcast(triggerLocalIntent)
+
+        // 4. TOAST DE SÉCURITÉ
         Toast.makeText(context, "Fini : $label", Toast.LENGTH_LONG).show()
     }
 
-    private fun showNotification(context: Context, label: String) {
+    private fun showNotification(context: Context, label: String, repeatSound: Boolean) {
         val notificationId = label.hashCode()
 
         // Création du canal si requis (Oreo API 26+)
@@ -111,7 +173,8 @@ class TimerReceiver : BroadcastReceiver() {
             .setContentText("L'activité '$label' est terminée.")
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
-            .setAutoCancel(true)
+            .setAutoCancel(!repeatSound)
+            .setOngoing(repeatSound)
             .addAction(
                 android.R.drawable.ic_menu_close_clear_cancel,
                 "Arrêter",

@@ -172,6 +172,7 @@ class PhraseFullscreenFragment : Fragment() {
         val layoutDurationContainer = configPanel.findViewById<View>(R.id.layout_duration_container)
         
         val swSound = configPanel.findViewById<MaterialSwitch>(R.id.switch_play_sound)
+        val swRepeatSound = configPanel.findViewById<MaterialSwitch>(R.id.switch_repeat_sound)
         val swAutoRemove = configPanel.findViewById<MaterialSwitch>(R.id.switch_auto_remove)
         val swVisualPulse = configPanel.findViewById<MaterialSwitch>(R.id.switch_visual_pulse)
         val btnApply = configPanel.findViewById<Button>(R.id.btn_apply_time_config)
@@ -183,16 +184,23 @@ class PhraseFullscreenFragment : Fragment() {
             if (mode == TimeMode.TIMER) {
                 configPanel.setBackgroundColor(Color.parseColor("#FFEBEE")) // Rouge doux
                 swSound.isEnabled = true
+                swRepeatSound.isEnabled = swSound.isChecked
                 swAutoRemove.isEnabled = true
                 tvLabelDuration.visibility = View.VISIBLE
                 layoutDurationContainer.visibility = View.VISIBLE
             } else {
                 configPanel.setBackgroundColor(Color.parseColor("#E3F2FD")) // Bleu doux (Jalon par défaut)
                 swSound.isEnabled = false
+                swRepeatSound.isEnabled = false
                 swAutoRemove.isEnabled = false
                 tvLabelDuration.visibility = View.GONE
                 layoutDurationContainer.visibility = View.GONE
             }
+        }
+
+        swSound.setOnCheckedChangeListener { _, isChecked ->
+            swRepeatSound.isEnabled = isChecked
+            if (!isChecked) swRepeatSound.isChecked = false
         }
 
         btnMinus.setOnClickListener {
@@ -227,6 +235,7 @@ class PhraseFullscreenFragment : Fragment() {
                         }
                         etDuration.setText(config.durationMinutes.coerceIn(1, 60).toString())
                         swSound.isChecked = config.playSoundAtEnd
+                        swRepeatSound.isChecked = config.repeatSound
                         swAutoRemove.isChecked = config.autoRemove
                         swVisualPulse.isChecked = config.visualPulse
                         updateConfigPanelUi(targetMode)
@@ -248,6 +257,7 @@ class PhraseFullscreenFragment : Fragment() {
                 mode = mode,
                 durationMinutes = coercedMinutes,
                 playSoundAtEnd = swSound.isChecked,
+                repeatSound = swRepeatSound.isChecked,
                 autoRemove = swAutoRemove.isChecked,
                 visualPulse = swVisualPulse.isChecked
             )
@@ -347,10 +357,19 @@ class PhraseFullscreenFragment : Fragment() {
                 }
                 
                 launch {
-                    viewModel.currentTimeFlow.collect {
+                    viewModel.currentTimeFlow.collect { elapsed ->
                         val firstCard = viewModel.phraseList.value.firstOrNull()
                         if (firstCard?.timeConfig?.mode == org.libera.pictotree.data.model.TimeMode.TIMER && firstCard.timeConfig.endTimeMillis > 0) {
-                            adapter.notifyItemChanged(0)
+                            val remaining = firstCard.timeConfig.endTimeMillis - elapsed
+                            if (remaining <= 0) {
+                                if (firstCard.timeConfig.autoRemove) {
+                                    viewModel.removeItemFromPhrase(0)
+                                } else {
+                                    adapter.notifyItemChanged(0)
+                                }
+                            } else {
+                                adapter.notifyItemChanged(0)
+                            }
                         }
                     }
                 }

@@ -310,7 +310,7 @@ class TreeExplorerViewModel(
                 endTimeMillis = endTime
             ))
             _phraseList.value = list
-            scheduleSystemAlarm(endTime, firstCard.node.label)
+            scheduleSystemAlarm(endTime, firstCard.node.label, firstCard.timeConfig)
         }
     }
 
@@ -346,7 +346,7 @@ class TreeExplorerViewModel(
         getApplication<Application>().sendBroadcast(stopIntent)
     }
 
-    private fun scheduleSystemAlarm(triggerAtMillis: Long, label: String) {
+    private fun scheduleSystemAlarm(triggerAtMillis: Long, label: String, config: CardTimeConfig) {
         val alarmManager = getApplication<Application>().getSystemService(Context.ALARM_SERVICE) as AlarmManager
         
         // SÉCURITÉ ANDROID 12+ : Vérifier si on a le droit de programmer une alarme exacte
@@ -356,6 +356,8 @@ class TreeExplorerViewModel(
                 Log.e(TAG, "Missing SCHEDULE_EXACT_ALARM permission, falling back to inexact alarm")
                 val intent = Intent(getApplication(), org.libera.pictotree.utils.TimerReceiver::class.java).apply {
                     putExtra("EXTRA_LABEL", label)
+                    putExtra("EXTRA_PLAY_SOUND", config.playSoundAtEnd)
+                    putExtra("EXTRA_REPEAT_SOUND", config.repeatSound)
                 }
                 val pendingIntent = PendingIntent.getBroadcast(
                     getApplication(), label.hashCode(), intent,
@@ -368,6 +370,8 @@ class TreeExplorerViewModel(
 
         val intent = Intent(getApplication(), org.libera.pictotree.utils.TimerReceiver::class.java).apply {
             putExtra("EXTRA_LABEL", label)
+            putExtra("EXTRA_PLAY_SOUND", config.playSoundAtEnd)
+            putExtra("EXTRA_REPEAT_SOUND", config.repeatSound)
         }
         val pendingIntent = PendingIntent.getBroadcast(
             getApplication(), label.hashCode(), intent,

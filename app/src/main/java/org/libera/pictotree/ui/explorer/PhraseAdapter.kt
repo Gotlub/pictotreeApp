@@ -29,9 +29,12 @@ class PhraseAdapter(
     }
 
     fun submitList(newList: List<PhraseCard>) {
+        val diffResult = androidx.recyclerview.widget.DiffUtil.calculateDiff(
+            PhraseCardDiffCallback(items.toList(), newList.toList())
+        )
         items.clear()
         items.addAll(newList)
-        notifyDataSetChanged()
+        diffResult.dispatchUpdatesTo(this)
     }
 
     fun getCurrentList(): List<PhraseCard> = items
@@ -187,5 +190,21 @@ class PhraseAdapter(
 
             itemView.setOnClickListener { onItemClick?.invoke(bindingAdapterPosition) }
         }
+    }
+}
+
+class PhraseCardDiffCallback(
+    private val oldList: List<PhraseCard>,
+    private val newList: List<PhraseCard>
+) : androidx.recyclerview.widget.DiffUtil.Callback() {
+    override fun getOldListSize(): Int = oldList.size
+    override fun getNewListSize(): Int = newList.size
+
+    override fun areItemsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
+        return oldList[oldItemPosition].node.id == newList[newItemPosition].node.id
+    }
+
+    override fun areContentsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
+        return oldList[oldItemPosition] == newList[newItemPosition]
     }
 }
