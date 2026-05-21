@@ -329,16 +329,7 @@ class TreeExplorerFragment : Fragment() {
                     viewModel.currentTimeFlow.collect { elapsed ->
                         val firstCard = viewModel.phraseList.value.firstOrNull()
                         if (firstCard?.timeConfig?.mode == org.libera.pictotree.data.model.TimeMode.TIMER && firstCard.timeConfig.endTimeMillis > 0) {
-                            val remaining = firstCard.timeConfig.endTimeMillis - elapsed
-                            if (remaining <= 0) {
-                                if (firstCard.timeConfig.autoRemove) {
-                                    viewModel.removeItemFromPhrase(0)
-                                } else {
-                                    phraseAdapter.notifyItemChanged(0)
-                                }
-                            } else {
-                                phraseAdapter.notifyItemChanged(0)
-                            }
+                            phraseAdapter.notifyItemChanged(0)
                             requireActivity().window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
                         } else {
                             requireActivity().window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)

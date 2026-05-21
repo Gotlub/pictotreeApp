@@ -114,6 +114,29 @@ class TreeExplorerViewModel(
         initialValue = null
     )
 
+    init {
+        viewModelScope.launch {
+            currentTimeFlow.collect { elapsed ->
+                val firstCard = _phraseList.value.firstOrNull()
+                if (firstCard?.timeConfig?.mode == TimeMode.TIMER && firstCard.timeConfig.endTimeMillis > 0) {
+                    val remaining = firstCard.timeConfig.endTimeMillis - elapsed
+                    if (remaining <= 0) {
+                        if (firstCard.timeConfig.autoRemove) {
+                            removeItemFromPhrase(0)
+                        } else {
+                            updateCardTimeConfig(0, firstCard.timeConfig.copy(
+                                mode = TimeMode.JALON,
+                                durationMinutes = 0,
+                                startTimeMillis = 0L,
+                                endTimeMillis = 0L
+                            ))
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     private var rootNode: TreeNode? = null
     private var currentTreeId: Int = -1
     private var profileId: Int = -1
@@ -314,23 +337,28 @@ class TreeExplorerViewModel(
         }
     }
 
+    private fun cancelSystemAlarm(label: String) {
+        val alarmManager = getApplication<Application>().getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        val intent = Intent(getApplication(), org.libera.pictotree.utils.TimerReceiver::class.java)
+        val pendingIntent = PendingIntent.getBroadcast(
+            getApplication(), label.hashCode(), intent,
+            PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
+        )
+        if (pendingIntent != null) {
+            alarmManager.cancel(pendingIntent)
+            pendingIntent.cancel()
+            Log.i(TAG, "Canceled system alarm for label: $label")
+        }
+    }
+
     fun stopAllTimers() {
         isTimerActivated.value = false
         val list = _phraseList.value.toMutableList()
-        val alarmManager = getApplication<Application>().getSystemService(Context.ALARM_SERVICE) as AlarmManager
         
         for (i in list.indices) {
             val card = list[i]
             if (card.timeConfig.endTimeMillis > 0) {
-                val intent = Intent(getApplication(), org.libera.pictotree.utils.TimerReceiver::class.java)
-                val pendingIntent = PendingIntent.getBroadcast(
-                    getApplication(), card.node.label.hashCode(), intent,
-                    PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
-                )
-                if (pendingIntent != null) {
-                    alarmManager.cancel(pendingIntent)
-                    pendingIntent.cancel()
-                }
+                cancelSystemAlarm(card.node.label)
             }
             list[i] = card.copy(timeConfig = card.timeConfig.copy(
                 startTimeMillis = 0L,
@@ -347,6 +375,7 @@ class TreeExplorerViewModel(
     }
 
     private fun scheduleSystemAlarm(triggerAtMillis: Long, label: String, config: CardTimeConfig) {
+        cancelSystemAlarm(label)
         val alarmManager = getApplication<Application>().getSystemService(Context.ALARM_SERVICE) as AlarmManager
         
         // SÉCURITÉ ANDROID 12+ : Vérifier si on a le droit de programmer une alarme exacte
@@ -383,6 +412,10 @@ class TreeExplorerViewModel(
     fun updateCardTimeConfig(index: Int, config: CardTimeConfig) {
         val list = _phraseList.value.toMutableList()
         if (index in list.indices) {
+            val oldCard = list[index]
+            if (oldCard.timeConfig.mode == TimeMode.TIMER && config.mode != TimeMode.TIMER) {
+                cancelSystemAlarm(oldCard.node.label)
+            }
             list[index] = list[index].copy(timeConfig = config)
             _phraseList.value = list
             // Si on modifie la carte 0, on redémarre peut-être le timer
@@ -393,6 +426,8 @@ class TreeExplorerViewModel(
     fun removeItemFromPhrase(position: Int) {
         val list = _phraseList.value.toMutableList()
         if (position in list.indices) {
+            val removedCard = list[position]
+            cancelSystemAlarm(removedCard.node.label)
             list.removeAt(position)
             _phraseList.value = list
             // Passage automatique à la carte suivante

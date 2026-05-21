@@ -24,7 +24,8 @@ class TimerReceiver : BroadcastReceiver() {
 
     companion object {
         private const val TAG = "TimerReceiver"
-        private const val CHANNEL_ID = "timer_notifications"
+        private const val CHANNEL_ID_SOUND = "timer_notifications_sound"
+        private const val CHANNEL_ID_SILENT = "timer_notifications_silent_v4"
         const val ACTION_STOP_ALARM = "org.libera.pictotree.ACTION_STOP_ALARM"
         const val ACTION_ALARM_TRIGGERED = "org.libera.pictotree.ACTION_ALARM_TRIGGERED"
 
@@ -136,7 +137,7 @@ class TimerReceiver : BroadcastReceiver() {
         }
 
         // 2. AFFICHER UNE NOTIFICATION
-        showNotification(context, label, repeatSound)
+        showNotification(context, label, playSound, repeatSound)
 
         // 3. SIGNALER L'ALERTE LOCALEMENT (Pour affichage de la bannière in-app dans MainActivity)
         val triggerLocalIntent = Intent(ACTION_ALARM_TRIGGERED).apply {
@@ -149,11 +150,11 @@ class TimerReceiver : BroadcastReceiver() {
         Toast.makeText(context, "Fini : $label", Toast.LENGTH_LONG).show()
     }
 
-    private fun showNotification(context: Context, label: String, repeatSound: Boolean) {
+    private fun showNotification(context: Context, label: String, playSound: Boolean, repeatSound: Boolean) {
         val notificationId = label.hashCode()
 
-        // Création du canal si requis (Oreo API 26+)
-        createNotificationChannel(context)
+        // Création des canaux si requis (Oreo API 26+)
+        createNotificationChannels(context)
 
         // Intent d'action pour arrêter l'alarme
         val stopIntent = Intent(context, TimerReceiver::class.java).apply {
@@ -167,19 +168,39 @@ class TimerReceiver : BroadcastReceiver() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        val builder = NotificationCompat.Builder(context, CHANNEL_ID)
+        // Intent pour ouvrir l'application principale lors du clic sur la notification
+        val openIntent = Intent(context, org.libera.pictotree.MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+        val openPendingIntent = PendingIntent.getActivity(
+            context,
+            notificationId + 100000,
+            openIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val targetChannelId = if (playSound) CHANNEL_ID_SOUND else CHANNEL_ID_SILENT
+
+        val builder = NotificationCompat.Builder(context, targetChannelId)
             .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
             .setContentTitle("PictoTree : Temps écoulé !")
             .setContentText("L'activité '$label' est terminée.")
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setPriority(if (playSound) NotificationCompat.PRIORITY_HIGH else NotificationCompat.PRIORITY_LOW)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setAutoCancel(!repeatSound)
             .setOngoing(repeatSound)
+            .setContentIntent(openPendingIntent)
             .addAction(
                 android.R.drawable.ic_menu_close_clear_cancel,
                 "Arrêter",
                 stopPendingIntent
             )
+
+        if (!playSound) {
+            builder.setSilent(true)
+            builder.setSound(null)
+            builder.setVibrate(null)
+        }
 
         try {
             with(NotificationManagerCompat.from(context)) {
@@ -190,19 +211,42 @@ class TimerReceiver : BroadcastReceiver() {
         }
     }
 
-    private fun createNotificationChannel(context: Context) {
+    private fun createNotificationChannels(context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val name = "Time Timer Alarms"
-            val descriptionText = "Notifications de fin d'activité pour le Time Timer"
-            val importance = NotificationManager.IMPORTANCE_HIGH
-            val channel = NotificationChannel(CHANNEL_ID, name, importance).apply {
-                description = descriptionText
+            val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            
+            // Supprimer les anciens canaux pour éviter qu'ils ne sonnent en cache
+            try {
+                notificationManager.deleteNotificationChannel("timer_notifications")
+                notificationManager.deleteNotificationChannel("timer_notifications_silent")
+                notificationManager.deleteNotificationChannel("timer_notifications_silent_v2")
+                notificationManager.deleteNotificationChannel("timer_notifications_silent_v3")
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to delete old notification channels", e)
+            }
+
+            // 1. Canal sonore
+            val nameSound = "Time Timer (Avec Sonnerie)"
+            val descSound = "Notifications de fin d'activité avec sonnerie"
+            val channelSound = NotificationChannel(CHANNEL_ID_SOUND, nameSound, NotificationManager.IMPORTANCE_HIGH).apply {
+                description = descSound
                 enableLights(true)
                 lightColor = Color.RED
                 enableVibration(true)
             }
-            val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            notificationManager.createNotificationChannel(channel)
+            notificationManager.createNotificationChannel(channelSound)
+
+            // 2. Canal silencieux
+            val nameSilent = "Time Timer (Silencieux)"
+            val descSilent = "Notifications de fin d'activité silencieuses"
+            val channelSilent = NotificationChannel(CHANNEL_ID_SILENT, nameSilent, NotificationManager.IMPORTANCE_LOW).apply {
+                description = descSilent
+                enableLights(true)
+                lightColor = Color.RED
+                enableVibration(false)
+                setSound(null, null)
+            }
+            notificationManager.createNotificationChannel(channelSilent)
         }
     }
 }
