@@ -84,7 +84,7 @@ class TimerReceiver : BroadcastReceiver() {
 
         val label = intent.getStringExtra("EXTRA_LABEL") ?: "Temps écoulé"
         val playSound = intent.getBooleanExtra("EXTRA_PLAY_SOUND", true)
-        val repeatSound = intent.getBooleanExtra("EXTRA_REPEAT_SOUND", false)
+        val repeatSound = false
         Log.i(TAG, "ALARM RECEIVED: $label, playSound=$playSound, repeatSound=$repeatSound")
 
         // 1. JOUER LE SON D'ALARME
@@ -136,8 +136,7 @@ class TimerReceiver : BroadcastReceiver() {
             }
         }
 
-        // 2. AFFICHER UNE NOTIFICATION
-        showNotification(context, label, playSound, repeatSound)
+
 
         // 3. SIGNALER L'ALERTE LOCALEMENT (Pour affichage de la bannière in-app dans MainActivity)
         val triggerLocalIntent = Intent(ACTION_ALARM_TRIGGERED).apply {
@@ -145,9 +144,6 @@ class TimerReceiver : BroadcastReceiver() {
             putExtra("EXTRA_REPEAT_SOUND", repeatSound)
         }
         context.sendBroadcast(triggerLocalIntent)
-
-        // 4. TOAST DE SÉCURITÉ
-        Toast.makeText(context, "Fini : $label", Toast.LENGTH_LONG).show()
     }
 
     private fun showNotification(context: Context, label: String, playSound: Boolean, repeatSound: Boolean) {

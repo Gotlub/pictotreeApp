@@ -197,6 +197,7 @@ class TreeExplorerFragment : Fragment() {
         })
         rvPhrase.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
         rvPhrase.adapter = phraseAdapter
+        (rvPhrase.itemAnimator as? androidx.recyclerview.widget.SimpleItemAnimator)?.supportsChangeAnimations = false
 
         val itemTouchHelper = androidx.recyclerview.widget.ItemTouchHelper(object : androidx.recyclerview.widget.ItemTouchHelper.SimpleCallback(
             androidx.recyclerview.widget.ItemTouchHelper.LEFT or androidx.recyclerview.widget.ItemTouchHelper.RIGHT, androidx.recyclerview.widget.ItemTouchHelper.UP
@@ -392,5 +393,13 @@ class TreeExplorerFragment : Fragment() {
         return if (localFile.exists()) localFile else rawUrl
     }
 
-    override fun onDestroyView() { super.onDestroyView(); if (::ttsManager.isInitialized) ttsManager.shutdown() }
+    override fun onDestroyView() {
+        super.onDestroyView()
+        if (::ttsManager.isInitialized) ttsManager.stop()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        if (::ttsManager.isInitialized) ttsManager.shutdown()
+    }
 }

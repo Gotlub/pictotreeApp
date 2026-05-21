@@ -369,7 +369,7 @@ class TreeExplorerViewModel(
         
         // Stop ringing receiver if any
         val stopIntent = Intent(getApplication(), org.libera.pictotree.utils.TimerReceiver::class.java).apply {
-            action = "ACTION_STOP_ALARM"
+            action = org.libera.pictotree.utils.TimerReceiver.ACTION_STOP_ALARM
         }
         getApplication<Application>().sendBroadcast(stopIntent)
     }

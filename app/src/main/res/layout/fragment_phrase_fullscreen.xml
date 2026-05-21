@@ -148,11 +148,11 @@
                 android:id="@+id/fab_speak_fullscreen"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:contentDescription="Lire la phrase"
                 android:src="@android:drawable/ic_btn_speak_now"
                 app:backgroundTint="@color/primary_color"
-                app:tint="@color/white"
                 app:elevation="6dp"
-                android:contentDescription="Lire la phrase" />
+                app:tint="@color/white" />
 
         </LinearLayout>
 

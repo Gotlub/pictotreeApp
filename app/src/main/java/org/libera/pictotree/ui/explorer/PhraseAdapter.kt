@@ -23,6 +23,13 @@ class PhraseAdapter(
     private var highlightedPosition: Int = -1
     var isClockModeActive: Boolean = false
     var isTimerActivated: Boolean = false
+    var selectedConfigIndex: Int? = null
+        set(value) {
+            val old = field
+            field = value
+            if (old != null && old < itemCount) notifyItemChanged(old)
+            if (value != null && value < itemCount) notifyItemChanged(value)
+        }
 
     init {
         setHasStableIds(true)
@@ -65,6 +72,7 @@ class PhraseAdapter(
     }
 
     override fun onBindViewHolder(holder: PhraseViewHolder, position: Int) {
+        items[position].isSelectedForConfig = (position == selectedConfigIndex)
         holder.bind(items[position], position == highlightedPosition, position == 0, isClockModeActive, isTimerActivated)
     }
 
@@ -90,8 +98,24 @@ class PhraseAdapter(
             
             // Récupération de la couleur personnalisée du Timer
             val timerColorStr = org.libera.pictotree.data.SessionManager(itemView.context).getTimerColor()
-            val timerColorHex = if (timerColorStr.equals("green", ignoreCase = true)) "#4CAF50" else "#E53935"
+            val isGreenTimer = timerColorStr.equals("green", ignoreCase = true)
+            
+            // Couleurs standards/solides
+            val standardTimerColorHex = if (isGreenTimer) "#4CAF50" else "#E53935"
+            val standardJalonColorHex = "#2196F3"
+            
+            // Couleurs pastels pour la configuration
+            val pastelTimerColorHex = if (isGreenTimer) "#A5D6A7" else "#EF9A9A"
+            val pastelJalonColorHex = "#90CAF9"
+            
+            // Déterminer si on utilise les pastels
+            val usePastel = isClockModeActive
+            
+            val timerColorHex = if (usePastel) pastelTimerColorHex else standardTimerColorHex
+            val jalonColorHex = if (usePastel) pastelJalonColorHex else standardJalonColorHex
+            
             val timerColor = android.graphics.Color.parseColor(timerColorHex)
+            val jalonColor = android.graphics.Color.parseColor(jalonColorHex)
 
             val showColoredBorders = isClockModeActive || isTimerActivated
 
@@ -101,7 +125,7 @@ class PhraseAdapter(
                     itemView.scaleX = 1.05f
                     itemView.scaleY = 1.05f
                     card.strokeWidth = 12
-                    card.strokeColor = if (timeConfig.mode == TimeMode.TIMER) timerColor else android.graphics.Color.parseColor("#2196F3")
+                    card.strokeColor = if (timeConfig.mode == TimeMode.TIMER) timerColor else jalonColor
                     
                     if (timeConfig.visualPulse && timeConfig.mode == TimeMode.TIMER) {
                         val pulseState = (android.os.SystemClock.elapsedRealtime() / 1000) % 2 == 0L
@@ -120,7 +144,7 @@ class PhraseAdapter(
                         card.strokeColor = itemView.context.getColor(R.color.highlight_stroke)
                         card.strokeWidth = 8
                     } else if (timeConfig.mode == TimeMode.JALON) {
-                        card.strokeColor = android.graphics.Color.parseColor("#2196F3")
+                        card.strokeColor = jalonColor
                         card.strokeWidth = 6
                     } else if (timeConfig.mode == TimeMode.TIMER) {
                         card.strokeColor = timerColor
@@ -174,7 +198,7 @@ class PhraseAdapter(
                 }
 
                 ivPicto.load(finalSource) {
-                    crossfade(true)
+                    crossfade(false)
                     placeholder(R.drawable.ic_launcher_foreground)
                     error(R.drawable.ic_launcher_foreground)
                     if (finalSource is String && (finalSource.contains("/api/v1/mobile/") || finalSource.contains("/pictograms/"))) {

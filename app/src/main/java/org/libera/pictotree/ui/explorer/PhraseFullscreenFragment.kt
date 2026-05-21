@@ -92,6 +92,11 @@ class PhraseFullscreenFragment : Fragment() {
 
     private fun setupUI(root: View) {
         drawerLayout = root.findViewById(R.id.drawer_layout_fullscreen)
+        drawerLayout.addDrawerListener(object : DrawerLayout.SimpleDrawerListener() {
+            override fun onDrawerClosed(drawerView: View) {
+                viewModel.selectedIndexForConfig.value = null
+            }
+        })
         rv = root.findViewById(R.id.rv_phrase_fullscreen)
         val btnClose = root.findViewById<ImageButton>(R.id.btn_close_fullscreen)
         val fabSpeak = root.findViewById<FloatingActionButton>(R.id.fab_speak_fullscreen)
@@ -155,6 +160,7 @@ class PhraseFullscreenFragment : Fragment() {
             if (isTimerRunning) {
                 viewModel.stopAllTimers()
             } else {
+                viewModel.isClockModeActive.value = false
                 viewModel.isTimerActivated.value = true
                 viewModel.startTimerForFirstCard()
             }
@@ -171,8 +177,8 @@ class PhraseFullscreenFragment : Fragment() {
         val tvLabelDuration = configPanel.findViewById<View>(R.id.tv_label_duration)
         val layoutDurationContainer = configPanel.findViewById<View>(R.id.layout_duration_container)
         
+        val tvSelectedPictoName = configPanel.findViewById<android.widget.TextView>(R.id.tv_selected_picto_name)
         val swSound = configPanel.findViewById<MaterialSwitch>(R.id.switch_play_sound)
-        val swRepeatSound = configPanel.findViewById<MaterialSwitch>(R.id.switch_repeat_sound)
         val swAutoRemove = configPanel.findViewById<MaterialSwitch>(R.id.switch_auto_remove)
         val swVisualPulse = configPanel.findViewById<MaterialSwitch>(R.id.switch_visual_pulse)
         val btnApply = configPanel.findViewById<Button>(R.id.btn_apply_time_config)
@@ -184,23 +190,16 @@ class PhraseFullscreenFragment : Fragment() {
             if (mode == TimeMode.TIMER) {
                 configPanel.setBackgroundColor(Color.parseColor("#FFEBEE")) // Rouge doux
                 swSound.isEnabled = true
-                swRepeatSound.isEnabled = swSound.isChecked
                 swAutoRemove.isEnabled = true
                 tvLabelDuration.visibility = View.VISIBLE
                 layoutDurationContainer.visibility = View.VISIBLE
             } else {
                 configPanel.setBackgroundColor(Color.parseColor("#E3F2FD")) // Bleu doux (Jalon par défaut)
                 swSound.isEnabled = false
-                swRepeatSound.isEnabled = false
                 swAutoRemove.isEnabled = false
                 tvLabelDuration.visibility = View.GONE
                 layoutDurationContainer.visibility = View.GONE
             }
-        }
-
-        swSound.setOnCheckedChangeListener { _, isChecked ->
-            swRepeatSound.isEnabled = isChecked
-            if (!isChecked) swRepeatSound.isChecked = false
         }
 
         btnMinus.setOnClickListener {
@@ -225,8 +224,10 @@ class PhraseFullscreenFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.selectedIndexForConfig.collect { index ->
+                    adapter.selectedConfigIndex = index
                     if (index != null && index in viewModel.phraseList.value.indices) {
                         val card = viewModel.phraseList.value[index]
+                        tvSelectedPictoName?.text = "Pictogramme : ${card.node.label}"
                         val config = card.timeConfig
                         val targetMode = if (config.mode == TimeMode.NONE) TimeMode.JALON else config.mode
                         when(targetMode) {
@@ -235,10 +236,11 @@ class PhraseFullscreenFragment : Fragment() {
                         }
                         etDuration.setText(config.durationMinutes.coerceIn(1, 60).toString())
                         swSound.isChecked = config.playSoundAtEnd
-                        swRepeatSound.isChecked = config.repeatSound
                         swAutoRemove.isChecked = config.autoRemove
                         swVisualPulse.isChecked = config.visualPulse
                         updateConfigPanelUi(targetMode)
+                    } else {
+                        tvSelectedPictoName?.text = "Pictogramme : Aucun"
                     }
                 }
             }
@@ -257,7 +259,7 @@ class PhraseFullscreenFragment : Fragment() {
                 mode = mode,
                 durationMinutes = coercedMinutes,
                 playSoundAtEnd = swSound.isChecked,
-                repeatSound = swRepeatSound.isChecked,
+                repeatSound = false,
                 autoRemove = swAutoRemove.isChecked,
                 visualPulse = swVisualPulse.isChecked
             )
@@ -273,11 +275,25 @@ class PhraseFullscreenFragment : Fragment() {
             1 -> R.layout.item_phrase_picto_medium
             else -> R.layout.item_phrase_picto_large
         }
-        
         adapter = PhraseAdapter(username, layoutRes, onItemClick = { position -> 
             if (viewModel.isClockModeActive.value) {
                 viewModel.selectedIndexForConfig.value = position
                 drawerLayout.openDrawer(GravityCompat.END)
+                
+                val layoutManager = rv.layoutManager as? LinearLayoutManager
+                if (layoutManager != null) {
+                    val view = layoutManager.findViewByPosition(position)
+                    if (view != null) {
+                        val cardWidthPx = view.width
+                        val currentLeft = view.left
+                        val density = rv.resources.displayMetrics.density
+                        val drawerWidthPx = 300 * density
+                        val marginPx = 10 * density
+                        val targetLeftScreenCoordinate = rv.width - drawerWidthPx - marginPx - cardWidthPx
+                        val dx = (currentLeft - targetLeftScreenCoordinate).toInt()
+                        rv.smoothScrollBy(dx, 0)
+                    }
+                }
             } else {
                 val card = adapter.getCurrentList()[position]
                 ttsManager.speak(card.node.label)
@@ -286,6 +302,7 @@ class PhraseFullscreenFragment : Fragment() {
         adapter.isClockModeActive = viewModel.isClockModeActive.value
         adapter.isTimerActivated = viewModel.isTimerActivated.value
         rv.adapter = adapter
+        (rv.itemAnimator as? androidx.recyclerview.widget.SimpleItemAnimator)?.supportsChangeAnimations = false
         rv.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
         adapter.submitList(viewModel.phraseList.value)
 
@@ -336,6 +353,18 @@ class PhraseFullscreenFragment : Fragment() {
                                 else Color.parseColor("#F5F5F5")
                             )
                         )
+                        val density = rv.resources.displayMetrics.density
+                        if (active) {
+                            val leftPadding = (16 * density).toInt()
+                            val rightPadding = (320 * density).toInt()
+                            rv.setPadding(leftPadding, rv.paddingTop, rightPadding, rv.paddingBottom)
+                        } else {
+                            val defaultPadding = (120 * density).toInt()
+                            rv.setPadding(defaultPadding, rv.paddingTop, defaultPadding, rv.paddingBottom)
+                        }
+                        if (!active) {
+                            drawerLayout.closeDrawer(GravityCompat.END)
+                        }
                     }
                 }
 
@@ -387,6 +416,11 @@ class PhraseFullscreenFragment : Fragment() {
         val mainActivity = requireActivity() as? org.libera.pictotree.MainActivity
         mainActivity?.enableOrientationLock()
         mainActivity?.applyUserOrientation()
+        ttsManager.stop()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
         ttsManager.shutdown()
     }
 }

@@ -23,6 +23,34 @@
             android:textColor="?attr/colorPrimary"
             android:layout_marginBottom="6dp" />
 
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:cardCornerRadius="8dp"
+            app:cardElevation="0dp"
+            app:strokeWidth="1dp"
+            app:strokeColor="#E0E0E0"
+            android:layout_marginBottom="10dp"
+            app:cardBackgroundColor="#F8F9FA">
+            
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:padding="8dp"
+                android:gravity="center_vertical">
+                
+                <TextView
+                    android:id="@+id/tv_selected_picto_name"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Pictogramme : Aucun"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:textColor="#333333" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -116,15 +144,7 @@
             android:textSize="12sp"
             android:layout_marginBottom="2dp" />
 
-        <com.google.android.material.materialswitch.MaterialSwitch
-            android:id="@+id/switch_repeat_sound"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:minHeight="32dp"
-            android:paddingVertical="2dp"
-            android:text="Répéter la sonnerie"
-            android:textSize="12sp"
-            android:layout_marginBottom="2dp" />
+
 
         <com.google.android.material.materialswitch.MaterialSwitch
             android:id="@+id/switch_auto_remove"

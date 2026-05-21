@@ -152,6 +152,7 @@ class TreeSelectionFragment : Fragment() {
         )
         rvPhrase.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
         rvPhrase.adapter = phraseAdapter
+        (rvPhrase.itemAnimator as? androidx.recyclerview.widget.SimpleItemAnimator)?.supportsChangeAnimations = false
 
         val itemTouchHelper = androidx.recyclerview.widget.ItemTouchHelper(object : androidx.recyclerview.widget.ItemTouchHelper.SimpleCallback(
             androidx.recyclerview.widget.ItemTouchHelper.LEFT or androidx.recyclerview.widget.ItemTouchHelper.RIGHT,
@@ -282,6 +283,11 @@ class TreeSelectionFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
+        if (::ttsManager.isInitialized) ttsManager.stop()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
         if (::ttsManager.isInitialized) ttsManager.shutdown()
     }
 }

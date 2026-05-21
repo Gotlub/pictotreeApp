@@ -71,7 +71,7 @@ class TreeGlobalMapDialog : DialogFragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setStyle(STYLE_NORMAL, android.R.style.Theme_DeviceDefault_Light_NoActionBar_Fullscreen)
+        setStyle(STYLE_NORMAL, R.style.Theme_PictotreeApp_FullscreenDialog)
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -88,11 +88,71 @@ class TreeGlobalMapDialog : DialogFragment() {
         super.onStart()
         appContext = requireContext().applicationContext
         (requireActivity() as? org.libera.pictotree.MainActivity)?.applyUserOrientation()
+        dialog?.window?.apply {
+            setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+            setBackgroundDrawable(android.graphics.drawable.ColorDrawable(android.graphics.Color.WHITE))
+            
+            decorView.setPadding(0, 0, 0, 0)
+            
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                setDecorFitsSystemWindows(false)
+                insetsController?.let { controller ->
+                    controller.show(android.view.WindowInsets.Type.statusBars() or android.view.WindowInsets.Type.navigationBars())
+                    controller.setSystemBarsAppearance(
+                        android.view.WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS or android.view.WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS,
+                        android.view.WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS or android.view.WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS
+                    )
+                }
+            } else {
+                @Suppress("DEPRECATION")
+                decorView.systemUiVisibility = (
+                    android.view.View.SYSTEM_UI_FLAG_LAYOUT_STABLE or
+                    android.view.View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or
+                    android.view.View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or
+                    android.view.View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR or
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                        android.view.View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
+                    } else 0
+                )
+            }
+            
+            statusBarColor = android.graphics.Color.TRANSPARENT
+            navigationBarColor = android.graphics.Color.TRANSPARENT
+            
+            val attrs = attributes
+            attrs.width = ViewGroup.LayoutParams.MATCH_PARENT
+            attrs.height = ViewGroup.LayoutParams.MATCH_PARENT
+            attrs.horizontalMargin = 0f
+            attrs.verticalMargin = 0f
+            attributes = attrs
+        }
     }
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         val root = inflater.inflate(R.layout.dialog_tree_global_map, container, false)
+        
+        androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(root) { view, insets ->
+            val systemBars = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+            
+            val containerActions = view.findViewById<View>(R.id.container_actions)
+            containerActions?.apply {
+                val params = layoutParams as? ViewGroup.MarginLayoutParams
+                params?.topMargin = systemBars.top + (16 * resources.displayMetrics.density).toInt()
+                layoutParams = params
+            }
+            
+            val panelPhrase = view.findViewById<View>(R.id.panel_phrase)
+            panelPhrase?.setPadding(
+                panelPhrase.paddingLeft,
+                panelPhrase.paddingTop,
+                panelPhrase.paddingRight,
+                systemBars.bottom
+            )
+            
+            insets
+        }
+        
         webView = root.findViewById(R.id.web_view_map)
         
         username = arguments?.getString("username") ?: "default"
@@ -161,6 +221,7 @@ class TreeGlobalMapDialog : DialogFragment() {
                 card?.let { ttsManager.speak(it.node.label) }
             })
             rvPhrase?.adapter = phraseAdapter
+            (rvPhrase?.itemAnimator as? androidx.recyclerview.widget.SimpleItemAnimator)?.supportsChangeAnimations = false
             rvPhrase?.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
 
             val itemTouchHelper = androidx.recyclerview.widget.ItemTouchHelper(object : androidx.recyclerview.widget.ItemTouchHelper.SimpleCallback(
@@ -434,6 +495,20 @@ class TreeGlobalMapDialog : DialogFragment() {
             if (finalSource is String && !finalSource.startsWith("file")) {
                 networkCachePolicy(coil.request.CachePolicy.DISABLED)
             }
+        }
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        if (::ttsManager.isInitialized) {
+            ttsManager.stop()
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        if (::ttsManager.isInitialized) {
+            ttsManager.shutdown()
         }
     }
 }

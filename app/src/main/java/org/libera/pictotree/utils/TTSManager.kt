@@ -98,7 +98,13 @@ class TTSManager(context: Context) : TextToSpeech.OnInitListener {
     }
 
     fun stop() {
-        tts?.stop()
+        if (isInitialized) {
+            try {
+                tts?.stop()
+            } catch (e: Exception) {
+                android.util.Log.w("TTSManager", "stop failed", e)
+            }
+        }
     }
 
     fun setListeners(
@@ -112,7 +118,14 @@ class TTSManager(context: Context) : TextToSpeech.OnInitListener {
     }
 
     fun shutdown() {
-        tts?.stop()
-        tts?.shutdown()
+        if (isInitialized) {
+            try {
+                tts?.stop()
+            } catch (e: Exception) {}
+            try {
+                tts?.shutdown()
+            } catch (e: Exception) {}
+        }
+        isInitialized = false
     }
 }
