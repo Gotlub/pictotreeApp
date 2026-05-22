@@ -179,7 +179,16 @@ class TreeExplorerFragment : Fragment() {
         })
 
         childrenAdapter = NodeAdapter(username, R.layout.item_sibling_node) { node ->
-            if (node.children.isNotEmpty()) viewModel.focusOnNode(node) else viewModel.selectNodeWithoutNavigating(node)
+            val isParentRoot = node.parent != null && node.parent?.parent == null
+            if (node.children.isNotEmpty() || isParentRoot) {
+                viewModel.focusOnNode(node)
+            } else {
+                val position = childrenAdapter.currentList.indexOf(node)
+                if (position != -1) {
+                    childrenAdapter.setSelectedPosition(position)
+                }
+                viewModel.selectNodeWithoutNavigating(node)
+            }
         }
         rvChildren.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
         rvChildren.adapter = childrenAdapter
@@ -382,7 +391,10 @@ class TreeExplorerFragment : Fragment() {
         }
         
         state.previewNode?.let { node -> ivSelectedLarge.load(getFinalUrl(node.imageUrl)) }
-        childrenAdapter.submitList(state.children)
+        childrenAdapter.submitList(state.children) {
+            val previewPos = state.children.indexOfFirst { it.id == state.previewNode?.id }
+            childrenAdapter.setSelectedPosition(previewPos)
+        }
     }
 
     private fun getFinalUrl(rawUrl: String): Any {

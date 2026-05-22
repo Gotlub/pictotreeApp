@@ -13,6 +13,9 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import android.app.Application
+import android.app.PendingIntent
+import android.content.Intent
+import android.util.Log
 import android.os.SystemClock
 import androidx.lifecycle.viewModelScope
 import org.libera.pictotree.data.database.dao.TreeDao
@@ -44,6 +47,21 @@ class TreeExplorerViewModelTest {
         mockkStatic(SystemClock::class)
         every { SystemClock.elapsedRealtime() } returns 0L
         
+        mockkStatic(PendingIntent::class)
+        every { PendingIntent.getBroadcast(any(), any(), any(), any()) } returns mockk(relaxed = true)
+        
+        mockkStatic(Log::class)
+        every { Log.i(any(), any()) } returns 0
+        every { Log.e(any(), any()) } returns 0
+        every { Log.e(any(), any(), any()) } returns 0
+        every { Log.w(any(), any<String>()) } returns 0
+        every { Log.d(any(), any()) } returns 0
+        
+        mockkConstructor(Intent::class)
+        every { anyConstructed<Intent>().setAction(any()) } returns mockk(relaxed = true)
+        every { anyConstructed<Intent>().putExtra(any<String>(), any<String>()) } returns mockk(relaxed = true)
+        every { anyConstructed<Intent>().putExtra(any<String>(), any<Boolean>()) } returns mockk(relaxed = true)
+        
         every { userConfigRepository.userConfig } returns flowOf(null)
         
         viewModel = TreeExplorerViewModel(
@@ -62,6 +80,9 @@ class TreeExplorerViewModelTest {
         viewModel.viewModelScope.cancel()
         Dispatchers.resetMain()
         unmockkStatic(SystemClock::class)
+        unmockkStatic(PendingIntent::class)
+        unmockkStatic(Log::class)
+        unmockkConstructor(Intent::class)
     }
 
     @Test
@@ -170,5 +191,95 @@ class TreeExplorerViewModelTest {
         // Then previewNode should be updated from Tree 2
         assertEquals("2_r2_r", viewModel.uiState.value.previewNode?.id)
         assertEquals("Tree 2 Root", viewModel.uiState.value.previewNode?.label)
+    }
+
+    @Test
+    fun `updateCardTimeConfig should cancel alarm when changing mode from TIMER to JALON`() = runTest {
+        val alarmManager = mockk<android.app.AlarmManager>(relaxed = true)
+        every { application.getSystemService(android.content.Context.ALARM_SERVICE) } returns alarmManager
+
+        val node = TreeNode("1_node_1", "Test", "", emptyList())
+        val card = PhraseCard(node, org.libera.pictotree.data.model.CardTimeConfig(
+            mode = org.libera.pictotree.data.model.TimeMode.TIMER,
+            durationMinutes = 5,
+            endTimeMillis = 1000L
+        ))
+        viewModel.updatePhraseListSilently(listOf(card))
+
+        val newConfig = org.libera.pictotree.data.model.CardTimeConfig(
+            mode = org.libera.pictotree.data.model.TimeMode.JALON,
+            durationMinutes = 0
+        )
+        viewModel.updateCardTimeConfig(0, newConfig)
+
+        verify { alarmManager.cancel(any<android.app.PendingIntent>()) }
+        assertEquals(org.libera.pictotree.data.model.TimeMode.JALON, viewModel.phraseList.value[0].timeConfig.mode)
+    }
+
+    @Test
+    fun `removeItemFromPhrase should cancel alarm and schedule next card if first is timer`() = runTest {
+        val alarmManager = mockk<android.app.AlarmManager>(relaxed = true)
+        every { application.getSystemService(android.content.Context.ALARM_SERVICE) } returns alarmManager
+        
+        val node1 = TreeNode("1_node_1", "Card 1", "", emptyList())
+        val card1 = PhraseCard(node1, org.libera.pictotree.data.model.CardTimeConfig(
+            mode = org.libera.pictotree.data.model.TimeMode.TIMER,
+            endTimeMillis = 5000L
+        ))
+        
+        val node2 = TreeNode("1_node_2", "Card 2", "", emptyList())
+        val card2 = PhraseCard(node2, org.libera.pictotree.data.model.CardTimeConfig(
+            mode = org.libera.pictotree.data.model.TimeMode.TIMER,
+            durationMinutes = 3,
+            endTimeMillis = 0L
+        ))
+        
+        viewModel.updatePhraseListSilently(listOf(card1, card2))
+        viewModel.isTimerActivated.value = true
+
+        viewModel.removeItemFromPhrase(0)
+        
+        verify { alarmManager.cancel(any<android.app.PendingIntent>()) }
+        
+        val phrase = viewModel.phraseList.value
+        assertEquals(1, phrase.size)
+        assertEquals("1_node_2", phrase[0].node.id)
+        assertTrue(phrase[0].timeConfig.endTimeMillis > 0L)
+    }
+
+    @Test
+    fun `stopAllTimers should cancel active alarms and broadcast stop action`() = runTest {
+        val alarmManager = mockk<android.app.AlarmManager>(relaxed = true)
+        every { application.getSystemService(android.content.Context.ALARM_SERVICE) } returns alarmManager
+        
+        val node = TreeNode("1_node_1", "Card 1", "", emptyList())
+        val card = PhraseCard(node, org.libera.pictotree.data.model.CardTimeConfig(
+            mode = org.libera.pictotree.data.model.TimeMode.TIMER,
+            endTimeMillis = 5000L
+        ))
+        viewModel.updatePhraseListSilently(listOf(card))
+        viewModel.isTimerActivated.value = true
+        
+        viewModel.stopAllTimers()
+        
+        assertFalse(viewModel.isTimerActivated.value)
+        verify { alarmManager.cancel(any<android.app.PendingIntent>()) }
+        verify { application.sendBroadcast(any()) }
+        assertEquals(0L, viewModel.phraseList.value[0].timeConfig.endTimeMillis)
+    }
+
+    @Test
+    fun `jumpToTreeAndNode should load new tree if different and focus on node`() = runTest {
+        val treeId = 42
+        val nodeUniqueId = "42_leaf_r"
+        
+        val json = """{"root_node": {"id": "leaf", "label": "Leaf"}}"""
+        coEvery { treeDao.getTreeById(treeId) } returns TreeEntity(treeId, "Tree 42", json)
+        
+        viewModel.jumpToTreeAndNode(treeId, nodeUniqueId)
+        runCurrent()
+        
+        assertEquals(treeId, viewModel.getCurrentTreeId())
+        assertEquals("42_leaf_r", viewModel.uiState.value.navigationNode?.id)
     }
 }
