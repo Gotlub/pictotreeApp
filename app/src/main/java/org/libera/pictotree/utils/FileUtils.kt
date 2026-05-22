@@ -48,8 +48,9 @@ object FileUtils {
         
         // En test unitaire JVM, on préserve l'adresse locale 127.0.0.1 pour MockWebServer
         val isUnitTest = try {
-            Class.forName("org.junit.Assert") != null
-        } catch (e: ClassNotFoundException) {
+            System.getProperty("sun.java.command")?.contains("junit") == true ||
+            System.getProperty("java.class.path")?.contains("junit") == true
+        } catch (e: Exception) {
             false
         }
         if (isUnitTest) return url

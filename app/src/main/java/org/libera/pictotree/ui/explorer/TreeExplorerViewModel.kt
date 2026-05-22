@@ -315,8 +315,14 @@ class TreeExplorerViewModel(
         if (nodeToAdd.imageUrl.startsWith("http") || nodeToAdd.imageUrl.contains("/api/v1/mobile/")) {
             viewModelScope.launch {
                 val token = org.libera.pictotree.data.SessionManager(getApplication()).getToken()
-                org.libera.pictotree.data.repository.ImageSyncEngine(getApplication(), imageDao, username, hostUrl, token)
-                    .downloadSingleImage(nodeToAdd.imageUrl, nodeToAdd.label)
+                try {
+                    org.libera.pictotree.data.repository.ImageSyncEngine(getApplication(), imageDao, username, hostUrl, token)
+                        .downloadSingleImage(nodeToAdd.imageUrl, nodeToAdd.label)
+                } catch (e: org.libera.pictotree.data.repository.UnauthorizedException) {
+                    org.libera.pictotree.utils.AuthEvents.triggerLogout()
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
             }
         }
         _phraseList.value = _phraseList.value + PhraseCard(uniqueInstanceNode)
@@ -342,21 +348,21 @@ class TreeExplorerViewModel(
                 endTimeMillis = endTime
             ))
             _phraseList.value = list
-            scheduleSystemAlarm(endTime, firstCard.node.label, firstCard.timeConfig)
+            scheduleSystemAlarm(endTime, firstCard.node.id, firstCard.node.label, firstCard.timeConfig)
         }
     }
 
-    private fun cancelSystemAlarm(label: String) {
+    private fun cancelSystemAlarm(nodeId: String) {
         val alarmManager = getApplication<Application>().getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val intent = Intent(getApplication(), org.libera.pictotree.utils.TimerReceiver::class.java)
         val pendingIntent = PendingIntent.getBroadcast(
-            getApplication(), label.hashCode(), intent,
+            getApplication(), nodeId.hashCode(), intent,
             PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
         )
         if (pendingIntent != null) {
             alarmManager.cancel(pendingIntent)
             pendingIntent.cancel()
-            Log.i(TAG, "Canceled system alarm for label: $label")
+            Log.i(TAG, "Canceled system alarm for nodeId: $nodeId")
         }
     }
 
@@ -367,7 +373,7 @@ class TreeExplorerViewModel(
         for (i in list.indices) {
             val card = list[i]
             if (card.timeConfig.endTimeMillis > 0) {
-                cancelSystemAlarm(card.node.label)
+                cancelSystemAlarm(card.node.id)
             }
             list[i] = card.copy(timeConfig = card.timeConfig.copy(
                 startTimeMillis = 0L,
@@ -383,8 +389,8 @@ class TreeExplorerViewModel(
         getApplication<Application>().sendBroadcast(stopIntent)
     }
 
-    private fun scheduleSystemAlarm(triggerAtMillis: Long, label: String, config: CardTimeConfig) {
-        cancelSystemAlarm(label)
+    private fun scheduleSystemAlarm(triggerAtMillis: Long, nodeId: String, label: String, config: CardTimeConfig) {
+        cancelSystemAlarm(nodeId)
         val alarmManager = getApplication<Application>().getSystemService(Context.ALARM_SERVICE) as AlarmManager
         
         // SÉCURITÉ ANDROID 12+ : Vérifier si on a le droit de programmer une alarme exacte
@@ -397,7 +403,7 @@ class TreeExplorerViewModel(
                     putExtra("EXTRA_PLAY_SOUND", config.playSoundAtEnd)
                 }
                 val pendingIntent = PendingIntent.getBroadcast(
-                    getApplication(), label.hashCode(), intent,
+                    getApplication(), nodeId.hashCode(), intent,
                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
                 )
                 alarmManager.setAndAllowWhileIdle(AlarmManager.ELAPSED_REALTIME_WAKEUP, triggerAtMillis, pendingIntent)
@@ -410,7 +416,7 @@ class TreeExplorerViewModel(
             putExtra("EXTRA_PLAY_SOUND", config.playSoundAtEnd)
         }
         val pendingIntent = PendingIntent.getBroadcast(
-            getApplication(), label.hashCode(), intent,
+            getApplication(), nodeId.hashCode(), intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         alarmManager.setExactAndAllowWhileIdle(AlarmManager.ELAPSED_REALTIME_WAKEUP, triggerAtMillis, pendingIntent)
@@ -421,7 +427,7 @@ class TreeExplorerViewModel(
         if (index in list.indices) {
             val oldCard = list[index]
             if (oldCard.timeConfig.mode == TimeMode.TIMER && config.mode != TimeMode.TIMER) {
-                cancelSystemAlarm(oldCard.node.label)
+                cancelSystemAlarm(oldCard.node.id)
             }
             list[index] = list[index].copy(timeConfig = config)
             _phraseList.value = list
@@ -434,7 +440,7 @@ class TreeExplorerViewModel(
         val list = _phraseList.value.toMutableList()
         if (position in list.indices) {
             val removedCard = list[position]
-            cancelSystemAlarm(removedCard.node.label)
+            cancelSystemAlarm(removedCard.node.id)
             list.removeAt(position)
             _phraseList.value = list
             // Passage automatique à la carte suivante

@@ -150,6 +150,8 @@ class EditProfileViewModel(
                     _syncResultEvent.send(result)
                     loadProfile(profileId)
                 }
+            } catch (e: org.libera.pictotree.data.repository.UnauthorizedException) {
+                org.libera.pictotree.utils.AuthEvents.triggerLogout()
             } catch (e: Exception) { e.printStackTrace() }
         }
     }
@@ -172,6 +174,8 @@ class EditProfileViewModel(
                 
                 _syncResultEvent.send(result)
                 loadProfile(profileId)
+            } catch (e: org.libera.pictotree.data.repository.UnauthorizedException) {
+                org.libera.pictotree.utils.AuthEvents.triggerLogout()
             } catch (e: Exception) {
                 Log.e(TAG, "Repair failed for tree $treeId", e)
             }
@@ -253,6 +257,8 @@ class EditProfileViewModel(
             withContext(Dispatchers.Main) {
                 loadProfile(profileId)
             }
+        } catch (e: org.libera.pictotree.data.repository.UnauthorizedException) {
+            org.libera.pictotree.utils.AuthEvents.triggerLogout()
         } catch (e: Exception) {
             e.printStackTrace()
         }

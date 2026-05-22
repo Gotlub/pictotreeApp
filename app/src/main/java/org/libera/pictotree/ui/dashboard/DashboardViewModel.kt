@@ -229,6 +229,8 @@ class DashboardViewModel(
                 
                 _syncResultEvent.send(SyncResult(totalSynced, totalErrors))
                 
+            } catch (e: org.libera.pictotree.data.repository.UnauthorizedException) {
+                org.libera.pictotree.utils.AuthEvents.triggerLogout()
             } catch (e: Exception) {
                 e.printStackTrace()
             } finally {

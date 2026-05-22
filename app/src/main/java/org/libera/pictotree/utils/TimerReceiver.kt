@@ -29,36 +29,17 @@ class TimerReceiver : BroadcastReceiver() {
         const val ACTION_STOP_ALARM = "org.libera.pictotree.ACTION_STOP_ALARM"
         const val ACTION_ALARM_TRIGGERED = "org.libera.pictotree.ACTION_ALARM_TRIGGERED"
 
-        // Référence statique pour couper la sonnerie en cours
-        private var activeRingtone: Ringtone? = null
-        private var activeMediaPlayer: android.media.MediaPlayer? = null
-
         /**
          * Coupe manuellement la sonnerie d'alarme active.
          */
-        fun stopActiveRingtone() {
-            try {
-                activeRingtone?.let {
-                    if (it.isPlaying) {
-                        it.stop()
-                        Log.i(TAG, "Active ringtone stopped successfully.")
-                    }
+        fun stopActiveRingtone(context: Context? = null) {
+            context?.let {
+                try {
+                    val stopServiceIntent = Intent(it, TimerAudioService::class.java)
+                    it.stopService(stopServiceIntent)
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to stop TimerAudioService", e)
                 }
-                activeRingtone = null
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to stop active ringtone", e)
-            }
-            try {
-                activeMediaPlayer?.let {
-                    if (it.isPlaying) {
-                        it.stop()
-                    }
-                    it.release()
-                    Log.i(TAG, "Active media player stopped successfully.")
-                }
-                activeMediaPlayer = null
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to stop active media player", e)
             }
         }
     }
@@ -67,7 +48,7 @@ class TimerReceiver : BroadcastReceiver() {
         val action = intent.action
         if (action == ACTION_STOP_ALARM) {
             Log.i(TAG, "ACTION_STOP_ALARM received. Stopping alarm...")
-            stopActiveRingtone()
+            stopActiveRingtone(context)
 
             // Annuler la notification correspondante
             val notificationId = intent.getIntExtra("EXTRA_NOTIFICATION_ID", -1)
@@ -88,47 +69,21 @@ class TimerReceiver : BroadcastReceiver() {
         val playSound = intent.getBooleanExtra("EXTRA_PLAY_SOUND", true)
         Log.i(TAG, "ALARM RECEIVED: $label, playSound=$playSound")
 
-        // 1. JOUER LE SON D'ALARME
+        // 1. JOUER LE SON D'ALARME via TimerAudioService
         if (playSound) {
             try {
-                // Arrêter toute alarme précédente
-                stopActiveRingtone()
-
-                val alarmUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
-                    ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
-                
-                val player = android.media.MediaPlayer().apply {
-                    setDataSource(context, alarmUri)
-                    setAudioAttributes(
-                        android.media.AudioAttributes.Builder()
-                            .setUsage(android.media.AudioAttributes.USAGE_ALARM)
-                            .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                            .build()
-                    )
-                    isLooping = false
-                    prepare()
-                    start()
+                val serviceIntent = Intent(context, TimerAudioService::class.java).apply {
+                    putExtra("EXTRA_PLAY_SOUND", playSound)
                 }
-                activeMediaPlayer = player
-
-                // On arrête automatiquement le MediaPlayer après 3 secondes
-                android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-                    stopActiveRingtone()
-                }, 3000)
+                context.startService(serviceIntent)
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to play alarm sound via MediaPlayer, falling back to Ringtone", e)
+                Log.e(TAG, "Failed to start TimerAudioService, falling back to one-shot Ringtone", e)
                 try {
-                    val alarmUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
-                        ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
-                    val ringtone = RingtoneManager.getRingtone(context, alarmUri)
-                    activeRingtone = ringtone
-                    ringtone.play()
-
-                    android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-                        stopActiveRingtone()
-                    }, 3000)
+                    val notificationUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+                    val ringtone = RingtoneManager.getRingtone(context, notificationUri)
+                    ringtone?.play()
                 } catch (ex: Exception) {
-                    Log.e(TAG, "Failed to play fallback Ringtone", ex)
+                    Log.e(TAG, "Failed to play fallback notification sound", ex)
                 }
             }
         }

@@ -188,7 +188,13 @@ class PhraseFullscreenFragment : Fragment() {
 
         fun updateConfigPanelUi(mode: TimeMode) {
             if (mode == TimeMode.TIMER) {
-                configPanel.setBackgroundColor(Color.parseColor("#FFEBEE")) // Rouge doux
+                val timerColorStr = org.libera.pictotree.data.SessionManager(requireContext()).getTimerColor()
+                val colorHex = when (timerColorStr) {
+                    "green" -> "#E8F5E9" // Vert doux
+                    "blue" -> "#E3F2FD"  // Bleu doux
+                    else -> "#FFEBEE"    // Rouge doux (par défaut)
+                }
+                configPanel.setBackgroundColor(Color.parseColor(colorHex))
                 swSound.isEnabled = true
                 swAutoRemove.isEnabled = true
                 swVisualPulse.isEnabled = true

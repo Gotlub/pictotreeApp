@@ -12,6 +12,8 @@ import java.io.File
 import java.io.FileOutputStream
 import java.net.URL
 
+class UnauthorizedException(message: String = "Session expired (401)") : Exception(message)
+
 data class SyncResult(val total: Int, val errors: Int)
 
 class ImageSyncEngine(
@@ -122,8 +124,10 @@ class ImageSyncEngine(
                         }
                         return@withContext localUrl
                     } else if (connection.responseCode == 401) {
-                         org.libera.pictotree.utils.AuthEvents.triggerLogout()
+                        throw UnauthorizedException("Session expired (401)")
                     }
+                } catch (e: UnauthorizedException) {
+                    throw e
                 } catch (e: Exception) {
                     Log.e(TAG, "Download failed for $cleanUrl: ${e.message}")
                 } finally {
@@ -175,8 +179,7 @@ class ImageSyncEngine(
                     connection.connect()
 
                     if (connection.responseCode == 401) {
-                        org.libera.pictotree.utils.AuthEvents.triggerLogout()
-                        return@withContext false
+                        throw UnauthorizedException("Session expired (401)")
                     }
 
                     if (connection.responseCode in 200..299) {
@@ -223,6 +226,8 @@ class ImageSyncEngine(
                     } else {
                         Log.e(TAG, "Server returned ${connection.responseCode} for $absoluteUrl")
                     }
+                } catch (e: UnauthorizedException) {
+                    throw e
                 } catch (e: Exception) {
                     Log.e(TAG, "Failed to sync image $cleanUrl: ${e.message}")
                 } finally {

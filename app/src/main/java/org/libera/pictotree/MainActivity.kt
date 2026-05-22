@@ -33,9 +33,9 @@ class MainActivity : AppCompatActivity() {
             if (action == TimerReceiver.ACTION_ALARM_TRIGGERED) {
                 val label = intent.getStringExtra("EXTRA_LABEL") ?: "Temps écoulé"
                 activeAlarmLabel = label
-                showAlarmBanner(label)
+                // showAlarmBanner(label) // Commenté : Le popup n'est pas nécessaire pour les utilisateurs
             } else if (action == TimerReceiver.ACTION_STOP_ALARM) {
-                hideAlarmBanner()
+                // hideAlarmBanner() // Commenté : Le popup n'est pas nécessaire pour les utilisateurs
             }
         }
     }
@@ -66,8 +66,10 @@ class MainActivity : AppCompatActivity() {
         }
 
         // Configurer le clic sur le bouton Arrêter de la bannière globale
+        // Commenté : Le popup n'est pas nécessaire pour les utilisateurs
+        /*
         findViewById<View>(R.id.btn_stop_alarm)?.setOnClickListener {
-            TimerReceiver.stopActiveRingtone()
+            TimerReceiver.stopActiveRingtone(this)
             val stopIntent = Intent(this, TimerReceiver::class.java).apply {
                 action = TimerReceiver.ACTION_STOP_ALARM
                 activeAlarmLabel?.let {
@@ -77,6 +79,7 @@ class MainActivity : AppCompatActivity() {
             sendBroadcast(stopIntent)
             hideAlarmBanner()
         }
+        */
 
         // Enregistrer le récepteur d'alarme
         val filter = IntentFilter().apply {
@@ -98,6 +101,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /*
     private fun showAlarmBanner(label: String) {
         val banner = findViewById<MaterialCardView>(R.id.card_global_alarm_banner) ?: return
         val tvMessage = findViewById<TextView>(R.id.tv_alarm_message) ?: return
@@ -131,6 +135,7 @@ class MainActivity : AppCompatActivity() {
                 .start()
         }
     }
+    */
 
     override fun onDestroy() {
         super.onDestroy()

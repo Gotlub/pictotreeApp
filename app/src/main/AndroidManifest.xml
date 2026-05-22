@@ -20,6 +20,7 @@
         android:theme="@style/Theme.PictotreeApp">
 
         <receiver android:name=".utils.TimerReceiver" android:exported="false" />
+        <service android:name=".utils.TimerAudioService" android:exported="false" />
 
         <activity
             android:name=".MainActivity"
