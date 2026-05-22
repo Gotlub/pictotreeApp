@@ -93,7 +93,7 @@ class SessionManager(context: Context) {
     }
 
     fun getTimerColor(): String {
-        return prefs.getString("TIMER_COLOR", "red") ?: "red"
+        return prefs.getString("TIMER_COLOR", "green") ?: "green"
     }
 
     fun setTimerColor(color: String) {

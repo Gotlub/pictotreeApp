@@ -82,7 +82,7 @@ class ImageSyncEngine(
                     connection.connectTimeout = 5000
                     connection.readTimeout = 5000
                     
-                    if (absoluteUrl.contains("/api/v1/mobile/") && !authToken.isNullOrBlank()) {
+                    if ((absoluteUrl.contains("/api/v1/mobile/") || absoluteUrl.contains("/uploads/") || absoluteUrl.contains("/pictograms/")) && !authToken.isNullOrBlank()) {
                         connection.setRequestProperty("Authorization", "Bearer $authToken")
                     }
                     connection.connect()
@@ -168,7 +168,7 @@ class ImageSyncEngine(
                     connection.connectTimeout = 10000
                     connection.readTimeout = 10000
 
-                    if (absoluteUrl.contains("/api/v1/mobile/") && !authToken.isNullOrBlank()) {
+                    if ((absoluteUrl.contains("/api/v1/mobile/") || absoluteUrl.contains("/uploads/") || absoluteUrl.contains("/pictograms/")) && !authToken.isNullOrBlank()) {
                         connection.setRequestProperty("Authorization", "Bearer $authToken")
                     }
 

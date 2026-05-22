@@ -10,5 +10,6 @@ data class Profile(
     val name: String,
     val avatarUrl: String? = null, // Local file:// path or color: hex
     val remoteAvatarUrl: String? = null, // Original remote URL (Arasaac or Flask)
-    val settingsJson: String? = null // Stockage flexible des préférences
+    val settingsJson: String? = null, // Stockage flexible des préférences
+    val displayOrder: Int = 0 // Pour le drag & drop dans le dashboard
 )

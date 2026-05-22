@@ -83,11 +83,12 @@ class MainActivity : AppCompatActivity() {
             addAction(TimerReceiver.ACTION_ALARM_TRIGGERED)
             addAction(TimerReceiver.ACTION_STOP_ALARM)
         }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            registerReceiver(alarmReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
-        } else {
-            registerReceiver(alarmReceiver, filter)
-        }
+        androidx.core.content.ContextCompat.registerReceiver(
+            this,
+            alarmReceiver,
+            filter,
+            androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED
+        )
 
         // Écouter les événements de déconnexion globale (ex: 401)
         lifecycleScope.launch {

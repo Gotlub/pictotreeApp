@@ -27,8 +27,13 @@ object FileUtils {
         // 2. Construire l'URL absolue depuis le chemin relatif
         val base = hostUrl.removeSuffix("/")
         val path = if (url.startsWith("/")) url else "/$url"
-        // S'assurer qu'on ne duplique pas /api/v1/mobile/
-        val finalPath = if (path.contains("/api/v1/mobile/")) path else "/api/v1/mobile${path}"
+        
+        // S'assurer qu'on ne duplique pas /api/v1/mobile/ et qu'on ne l'ajoute pas aux dossiers de ressources statiques
+        val finalPath = if (path.contains("/api/v1/mobile/") || path.contains("/uploads/") || path.contains("/pictograms/")) {
+            path
+        } else {
+            "/api/v1/mobile${path}"
+        }
         
         return normalizeServerAddress("$base$finalPath")
     }

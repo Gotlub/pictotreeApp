@@ -77,7 +77,9 @@ class TimerReceiver : BroadcastReceiver() {
             }
             
             // Émettre également un broadcast local pour que MainActivity masque la bannière
-            val stopLocalIntent = Intent(ACTION_STOP_ALARM)
+            val stopLocalIntent = Intent(ACTION_STOP_ALARM).apply {
+                setPackage(context.packageName)
+            }
             context.sendBroadcast(stopLocalIntent)
             return
         }
@@ -133,6 +135,7 @@ class TimerReceiver : BroadcastReceiver() {
 
         // 3. SIGNALER L'ALERTE LOCALEMENT (Pour affichage de la bannière in-app dans MainActivity)
         val triggerLocalIntent = Intent(ACTION_ALARM_TRIGGERED).apply {
+            setPackage(context.packageName)
             putExtra("EXTRA_LABEL", label)
         }
         context.sendBroadcast(triggerLocalIntent)

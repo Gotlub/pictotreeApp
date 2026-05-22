@@ -191,12 +191,15 @@ class PhraseFullscreenFragment : Fragment() {
                 configPanel.setBackgroundColor(Color.parseColor("#FFEBEE")) // Rouge doux
                 swSound.isEnabled = true
                 swAutoRemove.isEnabled = true
+                swVisualPulse.isEnabled = true
                 tvLabelDuration.visibility = View.VISIBLE
                 layoutDurationContainer.visibility = View.VISIBLE
             } else {
                 configPanel.setBackgroundColor(Color.parseColor("#E3F2FD")) // Bleu doux (Jalon par défaut)
                 swSound.isEnabled = false
                 swAutoRemove.isEnabled = false
+                swVisualPulse.isEnabled = false
+                swVisualPulse.isChecked = false
                 tvLabelDuration.visibility = View.GONE
                 layoutDurationContainer.visibility = View.GONE
             }
@@ -258,10 +261,10 @@ class PhraseFullscreenFragment : Fragment() {
             val newConfig = CardTimeConfig(
                 mode = mode,
                 durationMinutes = coercedMinutes,
-                playSoundAtEnd = swSound.isChecked,
+                playSoundAtEnd = if (mode == TimeMode.TIMER) swSound.isChecked else false,
                 repeatSound = false,
-                autoRemove = swAutoRemove.isChecked,
-                visualPulse = swVisualPulse.isChecked
+                autoRemove = if (mode == TimeMode.TIMER) swAutoRemove.isChecked else false,
+                visualPulse = if (mode == TimeMode.TIMER) swVisualPulse.isChecked else false
             )
             viewModel.updateCardTimeConfig(index, newConfig)
             drawerLayout.closeDrawer(GravityCompat.END)

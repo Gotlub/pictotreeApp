@@ -6,18 +6,21 @@ import android.view.ViewGroup
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.TextView
-import androidx.recyclerview.widget.DiffUtil
-import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import coil.load
 import coil.transform.CircleCropTransformation
 import org.libera.pictotree.R
 import org.libera.pictotree.data.database.entity.Profile
+import java.util.Collections
 
 class ProfileAdapter(
     private val onProfileClick: (Profile) -> Unit,
-    private val onEditClick: (Profile) -> Unit
-) : ListAdapter<Profile, ProfileAdapter.ProfileViewHolder>(ProfileDiffCallback()) {
+    private val onEditClick: (Profile) -> Unit,
+    private val onOrderChanged: (List<Profile>) -> Unit,
+    private val onStartDrag: (RecyclerView.ViewHolder) -> Unit
+) : RecyclerView.Adapter<ProfileAdapter.ProfileViewHolder>() {
+
+    private val profiles = mutableListOf<Profile>()
 
     var isAdminMode: Boolean = false
         set(value) {
@@ -25,19 +28,61 @@ class ProfileAdapter(
             notifyDataSetChanged()
         }
 
+    fun submitList(newProfiles: List<Profile>) {
+        profiles.clear()
+        profiles.addAll(newProfiles)
+        notifyDataSetChanged()
+    }
+
+    fun moveItem(fromPosition: Int, toPosition: Int) {
+        if (fromPosition < toPosition) {
+            for (i in fromPosition until toPosition) {
+                Collections.swap(profiles, i, i + 1)
+            }
+        } else {
+            for (i in fromPosition downTo toPosition + 1) {
+                Collections.swap(profiles, i, i - 1)
+            }
+        }
+        notifyItemMoved(fromPosition, toPosition)
+    }
+
+    fun dispatchUpdates() {
+        onOrderChanged(profiles)
+        notifyDataSetChanged()
+    }
+
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ProfileViewHolder {
         val view = LayoutInflater.from(parent.context).inflate(R.layout.item_profile, parent, false)
         return ProfileViewHolder(view)
     }
 
     override fun onBindViewHolder(holder: ProfileViewHolder, position: Int) {
-        holder.bind(getItem(position))
+        holder.bind(profiles[position])
     }
+
+    override fun getItemCount(): Int = profiles.size
 
     inner class ProfileViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val tvName: TextView = itemView.findViewById(R.id.tvProfileName)
         private val btnEdit: ImageButton = itemView.findViewById(R.id.btnEditProfile)
         private val ivAvatar: ImageView = itemView.findViewById(R.id.ivAvatar)
+
+        private val dragRunnable = java.lang.Runnable { onStartDrag(this) }
+
+        init {
+            itemView.setOnTouchListener { v, event ->
+                if (!isAdminMode) return@setOnTouchListener false
+                val handler = v.handler
+                if (handler != null) {
+                    when (event.actionMasked) {
+                        android.view.MotionEvent.ACTION_DOWN -> handler.postDelayed(dragRunnable, 250)
+                        android.view.MotionEvent.ACTION_UP, android.view.MotionEvent.ACTION_CANCEL -> handler.removeCallbacks(dragRunnable)
+                    }
+                }
+                false
+            }
+        }
 
         fun bind(profile: Profile) {
             tvName.text = profile.name
@@ -56,7 +101,10 @@ class ProfileAdapter(
                     }
                 } else {
                     ivAvatar.clearColorFilter()
-                    ivAvatar.load(avatar) {
+                    val hostUrl = org.libera.pictotree.network.RetrofitClient.SERVER_URL
+                    val normalizedAvatar = org.libera.pictotree.utils.FileUtils.normalizeUrl(avatar, hostUrl)
+                    val imageLoader = org.libera.pictotree.network.RetrofitClient.getImageLoader(ivAvatar.context)
+                    ivAvatar.load(normalizedAvatar, imageLoader) {
                         crossfade(true)
                         placeholder(android.R.drawable.ic_menu_myplaces)
                         error(android.R.drawable.ic_menu_myplaces)
@@ -76,16 +124,6 @@ class ProfileAdapter(
             
             // Clic sur le bouton d'édition (View 3)
             btnEdit.setOnClickListener { onEditClick(profile) }
-        }
-    }
-
-    class ProfileDiffCallback : DiffUtil.ItemCallback<Profile>() {
-        override fun areItemsTheSame(oldItem: Profile, newItem: Profile): Boolean {
-            return oldItem.id == newItem.id
-        }
-
-        override fun areContentsTheSame(oldItem: Profile, newItem: Profile): Boolean {
-            return oldItem == newItem
         }
     }
 }

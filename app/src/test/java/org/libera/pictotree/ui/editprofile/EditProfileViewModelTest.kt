@@ -4,6 +4,8 @@ import android.app.Application
 import io.mockk.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.test.*
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -49,10 +51,11 @@ class EditProfileViewModelTest {
         // Simuler le stockage I/O système
         tempFilesDir = Files.createTempDirectory("test_app_files").toFile()
         every { mockApplication.filesDir } returns tempFilesDir
-        every { mockApplication.getSharedPreferences(any(), any()) } returns mockk(relaxed = true)
         
-        mockkConstructor(SessionManager::class)
-        every { anyConstructed<SessionManager>().getUsername() } returns "test_user"
+        val mockPrefs = mockk<android.content.SharedPreferences>(relaxed = true)
+        every { mockApplication.getSharedPreferences("pictotree_session", any()) } returns mockPrefs
+        every { mockPrefs.getString("USERNAME", any()) } returns "test_user"
+        every { mockPrefs.getString("USER_TOKEN", any()) } returns "test_token"
     }
 
     @After
@@ -103,5 +106,38 @@ class EditProfileViewModelTest {
         coVerify { mockProfileRepository.deleteFullProfile(1) }
         // And: Completion callback should be triggered
         assertEquals(true, completed)
+    }
+
+    @Test
+    fun `saveProfile should trigger suspend save and emit saveCompletedEvent`() = runTest(testDispatcher) {
+        val viewModel = EditProfileViewModel(
+            application = mockApplication,
+            profileRepository = mockProfileRepository,
+            profileDao = mockProfileDao,
+            treeDao = mockTreeDao,
+            imageDao = mockImageDao,
+            treeApiService = mockTreeApiService
+        ).apply {
+            ioDispatcher = testDispatcher
+        }
+        
+        val profile = Profile(id = 1, name = "Original", avatarUrl = null)
+        coEvery { mockProfileDao.getProfileById(1) } returns profile
+        
+        var eventReceived = false
+        val job = launch {
+            viewModel.saveCompletedEvent.collect {
+                eventReceived = true
+            }
+        }
+        
+        // When: Saving profile
+        viewModel.saveProfile(1, "Updated Name", null)
+        advanceUntilIdle()
+        
+        // Then: Suspend save should be invoked and completion event emitted
+        coVerify { mockProfileRepository.updateProfile(any()) }
+        assertEquals(true, eventReceived)
+        job.cancel()
     }
 }

@@ -5,12 +5,13 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
+import androidx.room.Upsert
 import org.libera.pictotree.data.database.entity.ImageEntity
 import org.libera.pictotree.data.database.entity.TreeImageCrossRef
 
 @Dao
 interface ImageDao {
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Upsert
     suspend fun insertImage(image: ImageEntity): Long
 
     @Update

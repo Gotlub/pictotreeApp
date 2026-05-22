@@ -141,6 +141,15 @@ class DashboardViewModel(
         viewModelScope.launch { profileRepository.deleteFullProfile(profile.id) }
     }
 
+    fun updateProfilesOrder(reorderedProfiles: List<Profile>) {
+        viewModelScope.launch {
+            val updatedProfiles = reorderedProfiles.mapIndexed { index, p ->
+                p.copy(displayOrder = index)
+            }
+            profileRepository.updateProfiles(updatedProfiles)
+        }
+    }
+
     fun playProfile(profileId: Int) {
         viewModelScope.launch { _playProfileEvent.send(profileId) }
     }

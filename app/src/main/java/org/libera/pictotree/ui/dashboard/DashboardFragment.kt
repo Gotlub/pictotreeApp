@@ -86,12 +86,32 @@ class DashboardFragment : Fragment() {
         
         if (isOnline) viewModel.setAdminMode(true)
 
-        adapter = ProfileAdapter(
-                onProfileClick = { profile -> viewModel.playProfile(profile.id) },
-                onEditClick = { profile ->
-                    val bundle = Bundle().apply { putInt("profileId", profile.id) }
-                    findNavController().navigate(R.id.action_dashboardFragment_to_editProfileFragment, bundle)
+        val itemTouchHelper = androidx.recyclerview.widget.ItemTouchHelper(object : androidx.recyclerview.widget.ItemTouchHelper.SimpleCallback(
+            androidx.recyclerview.widget.ItemTouchHelper.UP or androidx.recyclerview.widget.ItemTouchHelper.DOWN, 0
+        ) {
+            override fun onMove(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder, target: RecyclerView.ViewHolder): Boolean {
+                if (!adapter.isAdminMode) return false
+                adapter.moveItem(viewHolder.bindingAdapterPosition, target.bindingAdapterPosition)
+                return true
+            }
+            override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {}
+            override fun clearView(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder) {
+                super.clearView(recyclerView, viewHolder)
+                if (adapter.isAdminMode) {
+                    adapter.dispatchUpdates()
                 }
+            }
+        })
+        itemTouchHelper.attachToRecyclerView(rvProfiles)
+
+        adapter = ProfileAdapter(
+            onProfileClick = { profile -> viewModel.playProfile(profile.id) },
+            onEditClick = { profile ->
+                val bundle = Bundle().apply { putInt("profileId", profile.id) }
+                findNavController().navigate(R.id.action_dashboardFragment_to_editProfileFragment, bundle)
+            },
+            onOrderChanged = { newList -> viewModel.updateProfilesOrder(newList) },
+            onStartDrag = { viewHolder -> itemTouchHelper.startDrag(viewHolder) }
         )
         rvProfiles.layoutManager = LinearLayoutManager(requireContext())
         rvProfiles.adapter = adapter

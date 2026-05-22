@@ -36,6 +36,8 @@ class EditProfileViewModel(
     private val treeApiService: TreeApiService
 ) : AndroidViewModel(application) {
 
+    var ioDispatcher: kotlinx.coroutines.CoroutineDispatcher = kotlinx.coroutines.Dispatchers.IO
+
     private val TAG = "EditProfileViewModel"
 
     private val _uiState = MutableStateFlow<EditProfileUiState>(EditProfileUiState.Loading)
@@ -49,6 +51,9 @@ class EditProfileViewModel(
 
     private val _syncResultEvent = Channel<SyncResult>(Channel.BUFFERED)
     val syncResultEvent = _syncResultEvent.receiveAsFlow()
+
+    private val _saveCompletedEvent = Channel<Unit>(Channel.BUFFERED)
+    val saveCompletedEvent = _saveCompletedEvent.receiveAsFlow()
 
     private val _remoteTrees = MutableStateFlow<List<TreeMetadataDTO>>(emptyList())
     val remoteTrees: StateFlow<List<TreeMetadataDTO>> = _remoteTrees.asStateFlow()
@@ -195,37 +200,61 @@ class EditProfileViewModel(
 
     fun updateProfile(profileId: Int, newName: String, avatarUrl: String?) {
         viewModelScope.launch {
-            try {
-                val sessionManager = SessionManager(getApplication())
-                val username = sessionManager.getUsername() ?: "default"
-                val token = sessionManager.getToken() ?: ""
-                val hostUrl = org.libera.pictotree.network.RetrofitClient.SERVER_URL
-                
-                val currentProfile = profileDao.getProfileById(profileId) ?: return@launch
-                
-                var finalLocalAvatarUrl = avatarUrl
-                var finalRemoteAvatarUrl = currentProfile.remoteAvatarUrl
-                
-                val isInputRemote = avatarUrl != null && (avatarUrl.startsWith("http") || avatarUrl.contains("/api/v1/mobile/"))
-                
-                if (isInputRemote) {
-                    finalRemoteAvatarUrl = avatarUrl
-                    val engine = ImageSyncEngine(getApplication(), imageDao, username, hostUrl, token)
-                    finalLocalAvatarUrl = engine.downloadSingleImage(avatarUrl!!) ?: avatarUrl
-                } else {
-                    finalLocalAvatarUrl = avatarUrl ?: currentProfile.avatarUrl
-                }
+            updateProfileSuspend(profileId, newName, avatarUrl)
+        }
+    }
 
-                val updated = currentProfile.copy(
-                    name = newName, 
-                    avatarUrl = finalLocalAvatarUrl, 
-                    remoteAvatarUrl = finalRemoteAvatarUrl, 
-                    settingsJson = Gson().toJson(_settings.value)
-                )
-                
-                profileRepository.updateProfile(updated)
+    fun saveProfile(profileId: Int, newName: String, avatarUrl: String?) {
+        viewModelScope.launch {
+            try {
+                updateProfileSuspend(profileId, newName, avatarUrl)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            } finally {
+                _saveCompletedEvent.send(Unit)
+            }
+        }
+    }
+
+    suspend fun updateProfileSuspend(profileId: Int, newName: String, avatarUrl: String?) = withContext(ioDispatcher) {
+        try {
+            val sessionManager = SessionManager(getApplication())
+            val username = sessionManager.getUsername() ?: "default"
+            val token = sessionManager.getToken() ?: ""
+            val hostUrl = org.libera.pictotree.network.RetrofitClient.SERVER_URL
+            
+            val currentProfile = profileDao.getProfileById(profileId)
+            if (currentProfile == null) return@withContext
+            
+            var finalLocalAvatarUrl = avatarUrl
+            var finalRemoteAvatarUrl = currentProfile.remoteAvatarUrl
+            
+            val isInputRemote = avatarUrl != null && !avatarUrl.startsWith("file://") && !avatarUrl.startsWith("color:")
+            
+            if (isInputRemote) {
+                finalRemoteAvatarUrl = avatarUrl
+                val engine = ImageSyncEngine(getApplication(), imageDao, username, hostUrl, token)
+                finalLocalAvatarUrl = engine.downloadSingleImage(avatarUrl!!) ?: avatarUrl
+            } else {
+                finalLocalAvatarUrl = avatarUrl ?: currentProfile.avatarUrl
+                if (avatarUrl != null) {
+                    finalRemoteAvatarUrl = null
+                }
+            }
+
+            val updated = currentProfile.copy(
+                name = newName, 
+                avatarUrl = finalLocalAvatarUrl, 
+                remoteAvatarUrl = finalRemoteAvatarUrl, 
+                settingsJson = Gson().toJson(_settings.value)
+            )
+            
+            profileRepository.updateProfile(updated)
+            withContext(Dispatchers.Main) {
                 loadProfile(profileId)
-            } catch (e: Exception) { e.printStackTrace() }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 

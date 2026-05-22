@@ -30,7 +30,20 @@ class ProfileRepository(
         val cleanRemoteUrl = profile.remoteAvatarUrl?.let { 
             FileUtils.getCleanUrl(FileUtils.normalizeUrl(it, hostUrl)) 
         }
-        return profileDao.insertProfile(profile.copy(remoteAvatarUrl = cleanRemoteUrl))
+        val maxOrder = profileDao.getMaxDisplayOrder() ?: -1
+        val finalProfile = profile.copy(
+            remoteAvatarUrl = cleanRemoteUrl,
+            displayOrder = if (profile.displayOrder == 0) maxOrder + 1 else profile.displayOrder
+        )
+        return profileDao.insertProfile(finalProfile)
+    }
+
+    suspend fun getMaxDisplayOrder(): Int? {
+        return profileDao.getMaxDisplayOrder()
+    }
+
+    suspend fun updateProfiles(profiles: List<Profile>) {
+        profileDao.updateProfiles(profiles)
     }
 
     /**
