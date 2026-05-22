@@ -84,6 +84,7 @@ class TreeGlobalMapDialog : DialogFragment() {
         Log.d(TAG, "VIEW_CHANGE: Treant Dialog Dismissed")
     }
 
+    @Suppress("DEPRECATION")
     override fun onStart() {
         super.onStart()
         appContext = requireContext().applicationContext
@@ -124,6 +125,9 @@ class TreeGlobalMapDialog : DialogFragment() {
             attrs.height = ViewGroup.LayoutParams.MATCH_PARENT
             attrs.horizontalMargin = 0f
             attrs.verticalMargin = 0f
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                attrs.layoutInDisplayCutoutMode = android.view.WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+            }
             attributes = attrs
         }
     }
@@ -139,16 +143,32 @@ class TreeGlobalMapDialog : DialogFragment() {
             containerActions?.apply {
                 val params = layoutParams as? ViewGroup.MarginLayoutParams
                 params?.topMargin = systemBars.top + (16 * resources.displayMetrics.density).toInt()
+                params?.rightMargin = systemBars.right + (16 * resources.displayMetrics.density).toInt()
                 layoutParams = params
             }
             
             val panelPhrase = view.findViewById<View>(R.id.panel_phrase)
             panelPhrase?.setPadding(
-                panelPhrase.paddingLeft,
+                systemBars.left + (16 * resources.displayMetrics.density).toInt(),
                 panelPhrase.paddingTop,
-                panelPhrase.paddingRight,
+                systemBars.right + (16 * resources.displayMetrics.density).toInt(),
                 systemBars.bottom
             )
+
+            val btnPrev = view.findViewById<View>(R.id.btn_prev_tree)
+            btnPrev?.apply {
+                val params = layoutParams as? ViewGroup.MarginLayoutParams
+                params?.leftMargin = systemBars.left + (8 * resources.displayMetrics.density).toInt()
+                layoutParams = params
+            }
+
+            val btnNext = view.findViewById<View>(R.id.btn_next_tree)
+            btnNext?.apply {
+                val params = layoutParams as? ViewGroup.MarginLayoutParams
+                val baseMargin = if (resources.configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE) 100 else 8
+                params?.rightMargin = systemBars.right + (baseMargin * resources.displayMetrics.density).toInt()
+                layoutParams = params
+            }
             
             insets
         }
