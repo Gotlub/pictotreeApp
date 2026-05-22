@@ -32,11 +32,8 @@ class MainActivity : AppCompatActivity() {
             val action = intent.action
             if (action == TimerReceiver.ACTION_ALARM_TRIGGERED) {
                 val label = intent.getStringExtra("EXTRA_LABEL") ?: "Temps écoulé"
-                val repeatSound = intent.getBooleanExtra("EXTRA_REPEAT_SOUND", false)
-                if (repeatSound) {
-                    activeAlarmLabel = label
-                    showAlarmBanner(label)
-                }
+                activeAlarmLabel = label
+                showAlarmBanner(label)
             } else if (action == TimerReceiver.ACTION_STOP_ALARM) {
                 hideAlarmBanner()
             }
@@ -104,7 +101,7 @@ class MainActivity : AppCompatActivity() {
         val banner = findViewById<MaterialCardView>(R.id.card_global_alarm_banner) ?: return
         val tvMessage = findViewById<TextView>(R.id.tv_alarm_message) ?: return
         
-        tvMessage.text = "Minuteur terminé : $label"
+        tvMessage.text = getString(R.string.alarm_timer_finished, label)
         
         if (banner.visibility != View.VISIBLE) {
             banner.visibility = View.VISIBLE

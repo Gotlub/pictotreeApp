@@ -101,21 +101,19 @@ class PhraseAdapter(
             val isGreenTimer = timerColorStr.equals("green", ignoreCase = true)
             
             // Couleurs standards/solides
-            val standardTimerColorHex = if (isGreenTimer) "#4CAF50" else "#E53935"
-            val standardJalonColorHex = "#2196F3"
+            val context = itemView.context
+            val standardTimerColor = context.getColor(if (isGreenTimer) R.color.timer_standard_green else R.color.timer_standard_red)
+            val standardJalonColor = context.getColor(R.color.jalon_standard_blue)
             
             // Couleurs pastels pour la configuration
-            val pastelTimerColorHex = if (isGreenTimer) "#A5D6A7" else "#EF9A9A"
-            val pastelJalonColorHex = "#90CAF9"
+            val pastelTimerColor = context.getColor(if (isGreenTimer) R.color.timer_pastel_green else R.color.timer_pastel_red)
+            val pastelJalonColor = context.getColor(R.color.jalon_pastel_blue)
             
             // Déterminer si on utilise les pastels
             val usePastel = isClockModeActive
             
-            val timerColorHex = if (usePastel) pastelTimerColorHex else standardTimerColorHex
-            val jalonColorHex = if (usePastel) pastelJalonColorHex else standardJalonColorHex
-            
-            val timerColor = android.graphics.Color.parseColor(timerColorHex)
-            val jalonColor = android.graphics.Color.parseColor(jalonColorHex)
+            val timerColor = if (usePastel) pastelTimerColor else standardTimerColor
+            val jalonColor = if (usePastel) pastelJalonColor else standardJalonColor
 
             val showColoredBorders = isClockModeActive || isTimerActivated
 

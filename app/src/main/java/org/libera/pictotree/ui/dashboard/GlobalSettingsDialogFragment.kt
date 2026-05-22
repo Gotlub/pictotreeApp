@@ -54,22 +54,22 @@ class GlobalSettingsDialogFragment : DialogFragment() {
         val btnClose = view.findViewById<MaterialButton>(R.id.btnCloseSettings)
 
         // Setup Languages
-        val languages = arrayOf("Français", "English", "Español", "Deutsch", "Italiano", "Nederlands", "Polski")
-        val codes = arrayOf("fr", "en", "es", "de", "it", "nl", "pl")
+        val languages = resources.getStringArray(R.array.settings_languages)
+        val codes = resources.getStringArray(R.array.settings_language_codes)
         spinnerLanguage.adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_dropdown_item, languages)
 
         // Setup Display preferences
-        val startupViewOptions = arrayOf("Vue Spatiale", "Carte Globale")
-        val startupViewValues = arrayOf("EXPLORER", "MAP")
+        val startupViewOptions = resources.getStringArray(R.array.settings_startup_view_options)
+        val startupViewValues = resources.getStringArray(R.array.settings_startup_view_values)
         spinnerStartupView.adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_dropdown_item, startupViewOptions)
 
-        val orientationOptions = arrayOf("Portrait", "Paysage")
-        val orientationValues = arrayOf("PORTRAIT", "LANDSCAPE")
+        val orientationOptions = resources.getStringArray(R.array.settings_orientation_options)
+        val orientationValues = resources.getStringArray(R.array.settings_orientation_values)
         spinnerOrientation.adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_dropdown_item, orientationOptions)
 
         // Setup Timer color preference
-        val timerColorOptions = arrayOf("Rouge", "Vert")
-        val timerColorValues = arrayOf("red", "green")
+        val timerColorOptions = resources.getStringArray(R.array.settings_timer_color_options)
+        val timerColorValues = resources.getStringArray(R.array.settings_timer_color_values)
         spinnerTimerColor.adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_dropdown_item, timerColorOptions)
 
         val sessionManager = org.libera.pictotree.data.SessionManager(requireContext())

@@ -92,11 +92,11 @@ class LoginFragment : Fragment() {
                     if (!state.isOfflineAvailable && state.selectedUser != null && state.availableUsers.contains(state.selectedUser)) {
                         switchOnlineMode.isEnabled = false
                         tvOfflineHint.visibility = View.VISIBLE
-                        tvOfflineHint.text = "Accès hors-ligne non autorisé pour ce compte."
+                        tvOfflineHint.text = getString(R.string.login_offline_not_allowed)
                     } else {
                         switchOnlineMode.isEnabled = true
                         tvOfflineHint.visibility = if (state.isOnlineMode) View.GONE else View.VISIBLE
-                        tvOfflineHint.text = "Mode déconnecté (Lecture seule)"
+                        tvOfflineHint.text = getString(R.string.login_offline_read_only)
                     }
 
                     // Bouton et chargement

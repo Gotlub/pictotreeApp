@@ -9,4 +9,12 @@
     <color name="accent_color">#FF4081</color>
     <color name="highlight_bg">#E3F2FD</color>
     <color name="highlight_stroke">#1E88E5</color>
+
+    <!-- PhraseAdapter Timer & Jalon Colors -->
+    <color name="timer_standard_green">#4CAF50</color>
+    <color name="timer_standard_red">#E53935</color>
+    <color name="jalon_standard_blue">#2196F3</color>
+    <color name="timer_pastel_green">#A5D6A7</color>
+    <color name="timer_pastel_red">#EF9A9A</color>
+    <color name="jalon_pastel_blue">#90CAF9</color>
 </resources>

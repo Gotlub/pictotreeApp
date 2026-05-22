@@ -41,4 +41,58 @@
     <string name="profile_choose_avatar">Choose an avatar:</string>
     <string name="edit_profile_title">Edit Profile</string>
     <string name="edit_profile_save_btn">Save Changes</string>
+
+    <!-- Alarm / Timer Strings -->
+    <string name="alarm_timer_finished">Minuteur terminé : %s</string>
+
+    <!-- Login Offline Restriction -->
+    <string name="login_offline_not_allowed">Accès hors-ligne non autorisé pour ce compte.</string>
+    <string name="login_offline_read_only">Mode déconnecté (Lecture seule)</string>
+
+    <!-- Settings Options Arrays -->
+    <string-array name="settings_languages">
+        <item>Français</item>
+        <item>English</item>
+        <item>Español</item>
+        <item>Deutsch</item>
+        <item>Italiano</item>
+        <item>Nederlands</item>
+        <item>Polski</item>
+    </string-array>
+    <string-array name="settings_language_codes">
+        <item>fr</item>
+        <item>en</item>
+        <item>es</item>
+        <item>de</item>
+        <item>it</item>
+        <item>nl</item>
+        <item>pl</item>
+    </string-array>
+
+    <string-array name="settings_startup_view_options">
+        <item>Vue Spatiale</item>
+        <item>Carte Globale</item>
+    </string-array>
+    <string-array name="settings_startup_view_values">
+        <item>EXPLORER</item>
+        <item>MAP</item>
+    </string-array>
+
+    <string-array name="settings_orientation_options">
+        <item>Portrait</item>
+        <item>Paysage</item>
+    </string-array>
+    <string-array name="settings_orientation_values">
+        <item>PORTRAIT</item>
+        <item>LANDSCAPE</item>
+    </string-array>
+
+    <string-array name="settings_timer_color_options">
+        <item>Rouge</item>
+        <item>Vert</item>
+    </string-array>
+    <string-array name="settings_timer_color_values">
+        <item>red</item>
+        <item>green</item>
+    </string-array>
 </resources>

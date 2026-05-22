@@ -84,8 +84,7 @@ class TimerReceiver : BroadcastReceiver() {
 
         val label = intent.getStringExtra("EXTRA_LABEL") ?: "Temps écoulé"
         val playSound = intent.getBooleanExtra("EXTRA_PLAY_SOUND", true)
-        val repeatSound = false
-        Log.i(TAG, "ALARM RECEIVED: $label, playSound=$playSound, repeatSound=$repeatSound")
+        Log.i(TAG, "ALARM RECEIVED: $label, playSound=$playSound")
 
         // 1. JOUER LE SON D'ALARME
         if (playSound) {
@@ -104,18 +103,16 @@ class TimerReceiver : BroadcastReceiver() {
                             .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION)
                             .build()
                     )
-                    isLooping = repeatSound
+                    isLooping = false
                     prepare()
                     start()
                 }
                 activeMediaPlayer = player
 
-                // Si pas de répétition, on arrête automatiquement le MediaPlayer après 3 secondes
-                if (!repeatSound) {
-                    android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-                        stopActiveRingtone()
-                    }, 3000)
-                }
+                // On arrête automatiquement le MediaPlayer après 3 secondes
+                android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                    stopActiveRingtone()
+                }, 3000)
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to play alarm sound via MediaPlayer, falling back to Ringtone", e)
                 try {
@@ -125,124 +122,19 @@ class TimerReceiver : BroadcastReceiver() {
                     activeRingtone = ringtone
                     ringtone.play()
 
-                    if (!repeatSound) {
-                        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-                            stopActiveRingtone()
-                        }, 3000)
-                    }
+                    android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                        stopActiveRingtone()
+                    }, 3000)
                 } catch (ex: Exception) {
                     Log.e(TAG, "Failed to play fallback Ringtone", ex)
                 }
             }
         }
 
-
-
         // 3. SIGNALER L'ALERTE LOCALEMENT (Pour affichage de la bannière in-app dans MainActivity)
         val triggerLocalIntent = Intent(ACTION_ALARM_TRIGGERED).apply {
             putExtra("EXTRA_LABEL", label)
-            putExtra("EXTRA_REPEAT_SOUND", repeatSound)
         }
         context.sendBroadcast(triggerLocalIntent)
-    }
-
-    private fun showNotification(context: Context, label: String, playSound: Boolean, repeatSound: Boolean) {
-        val notificationId = label.hashCode()
-
-        // Création des canaux si requis (Oreo API 26+)
-        createNotificationChannels(context)
-
-        // Intent d'action pour arrêter l'alarme
-        val stopIntent = Intent(context, TimerReceiver::class.java).apply {
-            action = ACTION_STOP_ALARM
-            putExtra("EXTRA_NOTIFICATION_ID", notificationId)
-        }
-        val stopPendingIntent = PendingIntent.getBroadcast(
-            context,
-            notificationId,
-            stopIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-
-        // Intent pour ouvrir l'application principale lors du clic sur la notification
-        val openIntent = Intent(context, org.libera.pictotree.MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-        }
-        val openPendingIntent = PendingIntent.getActivity(
-            context,
-            notificationId + 100000,
-            openIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-
-        val targetChannelId = if (playSound) CHANNEL_ID_SOUND else CHANNEL_ID_SILENT
-
-        val builder = NotificationCompat.Builder(context, targetChannelId)
-            .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
-            .setContentTitle("PictoTree : Temps écoulé !")
-            .setContentText("L'activité '$label' est terminée.")
-            .setPriority(if (playSound) NotificationCompat.PRIORITY_HIGH else NotificationCompat.PRIORITY_LOW)
-            .setCategory(NotificationCompat.CATEGORY_ALARM)
-            .setAutoCancel(!repeatSound)
-            .setOngoing(repeatSound)
-            .setContentIntent(openPendingIntent)
-            .addAction(
-                android.R.drawable.ic_menu_close_clear_cancel,
-                "Arrêter",
-                stopPendingIntent
-            )
-
-        if (!playSound) {
-            builder.setSilent(true)
-            builder.setSound(null)
-            builder.setVibrate(null)
-        }
-
-        try {
-            with(NotificationManagerCompat.from(context)) {
-                notify(notificationId, builder.build())
-            }
-        } catch (e: SecurityException) {
-            Log.e(TAG, "Notification permission missing", e)
-        }
-    }
-
-    private fun createNotificationChannels(context: Context) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            
-            // Supprimer les anciens canaux pour éviter qu'ils ne sonnent en cache
-            try {
-                notificationManager.deleteNotificationChannel("timer_notifications")
-                notificationManager.deleteNotificationChannel("timer_notifications_silent")
-                notificationManager.deleteNotificationChannel("timer_notifications_silent_v2")
-                notificationManager.deleteNotificationChannel("timer_notifications_silent_v3")
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to delete old notification channels", e)
-            }
-
-            // 1. Canal sonore
-            val nameSound = "Time Timer (Avec Sonnerie)"
-            val descSound = "Notifications de fin d'activité avec sonnerie"
-            val channelSound = NotificationChannel(CHANNEL_ID_SOUND, nameSound, NotificationManager.IMPORTANCE_HIGH).apply {
-                description = descSound
-                enableLights(true)
-                lightColor = Color.RED
-                enableVibration(true)
-            }
-            notificationManager.createNotificationChannel(channelSound)
-
-            // 2. Canal silencieux
-            val nameSilent = "Time Timer (Silencieux)"
-            val descSilent = "Notifications de fin d'activité silencieuses"
-            val channelSilent = NotificationChannel(CHANNEL_ID_SILENT, nameSilent, NotificationManager.IMPORTANCE_LOW).apply {
-                description = descSilent
-                enableLights(true)
-                lightColor = Color.RED
-                enableVibration(false)
-                setSound(null, null)
-            }
-            notificationManager.createNotificationChannel(channelSilent)
-        }
     }
 }

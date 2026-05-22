@@ -1,3 +1,4 @@
+# Android Studio / IntelliJ IDEA
 *.iml
 .gradle
 /local.properties
@@ -14,3 +15,13 @@
 .cxx
 local.properties
 app/build/
+
+# Kotlin & Compiler artifacts
+.kotlin/
+*.log
+
+# Workspace temporary logs/txt output files
+*.txt
+*.txt.utf8
+*log.txt
+*log_utf8.txt

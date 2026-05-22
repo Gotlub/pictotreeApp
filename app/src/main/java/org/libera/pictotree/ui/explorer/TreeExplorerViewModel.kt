@@ -231,7 +231,7 @@ class TreeExplorerViewModel(
         val rawId = json.optString("node_id", json.optString("id", "unsaved"))
         val id = "${treeId}_${rawId}_$path"
         val label = json.optString("label", json.optString("text", json.optString("name", "Sans Titre")))
-        val description = json.optString("description", null)
+        val description = if (json.has("description") && !json.isNull("description")) json.getString("description") else null
         var rawUrl = json.optString("image_url", json.optString("image", json.optString("url", "")))
 
         if (rawUrl.isNotEmpty() && !rawUrl.startsWith("http") && !rawUrl.startsWith("file")) {
@@ -395,7 +395,6 @@ class TreeExplorerViewModel(
                 val intent = Intent(getApplication(), org.libera.pictotree.utils.TimerReceiver::class.java).apply {
                     putExtra("EXTRA_LABEL", label)
                     putExtra("EXTRA_PLAY_SOUND", config.playSoundAtEnd)
-                    putExtra("EXTRA_REPEAT_SOUND", config.repeatSound)
                 }
                 val pendingIntent = PendingIntent.getBroadcast(
                     getApplication(), label.hashCode(), intent,
@@ -409,7 +408,6 @@ class TreeExplorerViewModel(
         val intent = Intent(getApplication(), org.libera.pictotree.utils.TimerReceiver::class.java).apply {
             putExtra("EXTRA_LABEL", label)
             putExtra("EXTRA_PLAY_SOUND", config.playSoundAtEnd)
-            putExtra("EXTRA_REPEAT_SOUND", config.repeatSound)
         }
         val pendingIntent = PendingIntent.getBroadcast(
             getApplication(), label.hashCode(), intent,
