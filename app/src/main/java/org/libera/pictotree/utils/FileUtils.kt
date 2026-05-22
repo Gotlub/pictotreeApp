@@ -78,4 +78,25 @@ object FileUtils {
         val ext = cleanUrl.substringAfterLast('.', "png")
         return "$hash.$ext"
     }
+
+    /**
+     * Résout l'URL ou le fichier local final pour Coil.
+     * Centralise la logique utilisée dans les différents adaptateurs et dialogs.
+     */
+    fun getFinalImageSource(url: String?, context: android.content.Context, username: String, hostUrl: String): Any {
+        if (url.isNullOrBlank()) return ""
+        
+        val cleanUrl = getCleanUrl(url)
+        val fileName = getLocalFileNameFromUrl(cleanUrl)
+        val localFile = java.io.File(context.filesDir, "$username/images/$fileName")
+        
+        val source: Any = if (localFile.exists()) localFile else url
+        
+        if (source is String && !source.startsWith("http") && !source.startsWith("file") && !source.startsWith("color:")) {
+            val base = hostUrl.removeSuffix("/")
+            val cleanRel = source.removePrefix("/")
+            return "$base/$cleanRel"
+        }
+        return source
+    }
 }

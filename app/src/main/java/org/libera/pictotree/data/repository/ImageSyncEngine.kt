@@ -25,6 +25,20 @@ class ImageSyncEngine(
 ) {
     private val TAG = "ImageSyncEngine"
 
+    private fun shouldInjectToken(absoluteUrl: String): Boolean {
+        if (authToken.isNullOrBlank()) return false
+        return try {
+            val requestHost = URL(absoluteUrl).host
+            val hostHost = URL(hostUrl).host
+            requestHost.equals(hostHost, ignoreCase = true) &&
+                    (absoluteUrl.contains("/api/v1/mobile/") ||
+                     absoluteUrl.contains("/uploads/") ||
+                     absoluteUrl.contains("/pictograms/"))
+        } catch (e: Exception) {
+            false
+        }
+    }
+
     private fun normalizeUrl(url: String): String {
         return org.libera.pictotree.utils.FileUtils.normalizeUrl(url, hostUrl)
     }
@@ -84,7 +98,7 @@ class ImageSyncEngine(
                     connection.connectTimeout = 5000
                     connection.readTimeout = 5000
                     
-                    if ((absoluteUrl.contains("/api/v1/mobile/") || absoluteUrl.contains("/uploads/") || absoluteUrl.contains("/pictograms/")) && !authToken.isNullOrBlank()) {
+                    if (shouldInjectToken(absoluteUrl)) {
                         connection.setRequestProperty("Authorization", "Bearer $authToken")
                     }
                     connection.connect()
@@ -172,7 +186,7 @@ class ImageSyncEngine(
                     connection.connectTimeout = 10000
                     connection.readTimeout = 10000
 
-                    if ((absoluteUrl.contains("/api/v1/mobile/") || absoluteUrl.contains("/uploads/") || absoluteUrl.contains("/pictograms/")) && !authToken.isNullOrBlank()) {
+                    if (shouldInjectToken(absoluteUrl)) {
                         connection.setRequestProperty("Authorization", "Bearer $authToken")
                     }
 

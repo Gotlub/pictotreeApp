@@ -352,11 +352,25 @@ class TreeExplorerViewModel(
         }
     }
 
+    private fun getSafeRequestCode(nodeId: String): Int {
+        return try {
+            val digest = java.security.MessageDigest.getInstance("SHA-256")
+            val hashBytes = digest.digest(nodeId.toByteArray(Charsets.UTF_8))
+            var code = 0
+            for (i in 0..3) {
+                code = (code shl 8) or (hashBytes[i].toInt() and 0xFF)
+            }
+            code and 0x7FFFFFFF
+        } catch (e: Exception) {
+            nodeId.hashCode()
+        }
+    }
+
     private fun cancelSystemAlarm(nodeId: String) {
         val alarmManager = getApplication<Application>().getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val intent = Intent(getApplication(), org.libera.pictotree.utils.TimerReceiver::class.java)
         val pendingIntent = PendingIntent.getBroadcast(
-            getApplication(), nodeId.hashCode(), intent,
+            getApplication(), getSafeRequestCode(nodeId), intent,
             PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
         )
         if (pendingIntent != null) {
@@ -403,7 +417,7 @@ class TreeExplorerViewModel(
                     putExtra("EXTRA_PLAY_SOUND", config.playSoundAtEnd)
                 }
                 val pendingIntent = PendingIntent.getBroadcast(
-                    getApplication(), nodeId.hashCode(), intent,
+                    getApplication(), getSafeRequestCode(nodeId), intent,
                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
                 )
                 alarmManager.setAndAllowWhileIdle(AlarmManager.ELAPSED_REALTIME_WAKEUP, triggerAtMillis, pendingIntent)
@@ -416,7 +430,7 @@ class TreeExplorerViewModel(
             putExtra("EXTRA_PLAY_SOUND", config.playSoundAtEnd)
         }
         val pendingIntent = PendingIntent.getBroadcast(
-            getApplication(), nodeId.hashCode(), intent,
+            getApplication(), getSafeRequestCode(nodeId), intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         alarmManager.setExactAndAllowWhileIdle(AlarmManager.ELAPSED_REALTIME_WAKEUP, triggerAtMillis, pendingIntent)

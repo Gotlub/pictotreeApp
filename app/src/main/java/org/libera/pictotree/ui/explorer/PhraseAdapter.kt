@@ -185,15 +185,13 @@ class PhraseAdapter(
 
             // 3. CHARGEMENT IMAGE
             if (node.imageUrl.isNotEmpty()) {
-                val cleanUrl = org.libera.pictotree.utils.FileUtils.getCleanUrl(node.imageUrl)
-                val fileName = org.libera.pictotree.utils.FileUtils.getLocalFileNameFromUrl(cleanUrl)
-                val localFile = java.io.File(itemView.context.filesDir, "$username/images/$fileName")
-                var finalSource: Any = if (localFile.exists()) localFile else node.imageUrl
-                
-                if (finalSource is String && !finalSource.startsWith("http") && !finalSource.startsWith("file")) {
-                    val hostUrl = org.libera.pictotree.network.RetrofitClient.SERVER_URL
-                    finalSource = "${hostUrl.removeSuffix("/")}/${finalSource.removePrefix("/")}"
-                }
+                val hostUrl = org.libera.pictotree.network.RetrofitClient.SERVER_URL
+                val finalSource = org.libera.pictotree.utils.FileUtils.getFinalImageSource(
+                    node.imageUrl,
+                    itemView.context,
+                    username,
+                    hostUrl
+                )
 
                 ivPicto.load(finalSource) {
                     crossfade(false)

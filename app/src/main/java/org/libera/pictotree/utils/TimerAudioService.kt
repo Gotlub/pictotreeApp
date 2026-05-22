@@ -1,6 +1,11 @@
 package org.libera.pictotree.utils
 
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
 import android.app.Service
+import android.content.Context
 import android.content.Intent
 import android.media.AudioAttributes
 import android.media.MediaPlayer
@@ -10,6 +15,8 @@ import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import android.util.Log
+import androidx.core.app.NotificationCompat
+import org.libera.pictotree.R
 
 class TimerAudioService : Service() {
 
@@ -18,6 +25,50 @@ class TimerAudioService : Service() {
     private val handler = Handler(Looper.getMainLooper())
     private val stopRunnable = Runnable {
         stopSelf()
+    }
+
+    override fun onCreate() {
+        super.onCreate()
+        startForegroundCompat()
+    }
+
+    private fun startForegroundCompat() {
+        createNotificationChannel()
+        val notification = buildNotification()
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+            startForeground(
+                NOTIFICATION_ID,
+                notification,
+                android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK
+            )
+        } else {
+            startForeground(NOTIFICATION_ID, notification)
+        }
+    }
+
+    private fun createNotificationChannel() {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            val name = "PictoTree Minuteur"
+            val descriptionText = "Joue la sonnerie de fin du Time Timer"
+            val importance = NotificationManager.IMPORTANCE_LOW
+            val channel = NotificationChannel(CHANNEL_ID, name, importance).apply {
+                description = descriptionText
+                setSound(null, null)
+                enableVibration(false)
+            }
+            val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.createNotificationChannel(channel)
+        }
+    }
+
+    private fun buildNotification(): Notification {
+        return NotificationCompat.Builder(this, CHANNEL_ID)
+            .setContentTitle("PictoTree")
+            .setContentText("Le temps est écoulé !")
+            .setSmallIcon(R.mipmap.ic_launcher)
+            .setOngoing(true)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .build()
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -107,5 +158,7 @@ class TimerAudioService : Service() {
     companion object {
         private const val TAG = "TimerAudioService"
         const val ACTION_STOP = "org.libera.pictotree.utils.TimerAudioService.ACTION_STOP"
+        private const val NOTIFICATION_ID = 1001
+        private const val CHANNEL_ID = "timer_sound_channel"
     }
 }

@@ -56,22 +56,12 @@ class TreeAdapter(
             }
 
             val url = tree.rootUrl ?: ""
-            var finalSource: Any = url
-
-            // 1. Chercher d'abord en local via le hash de l'URL propre
-            if (url.isNotEmpty()) {
-                val cleanUrl = org.libera.pictotree.utils.FileUtils.getCleanUrl(url)
-                val fileName = org.libera.pictotree.utils.FileUtils.getLocalFileNameFromUrl(cleanUrl)
-                val localFile = java.io.File(itemView.context.filesDir, "$username/images/$fileName")
-                if (localFile.exists()) {
-                    finalSource = localFile
-                } else if (!url.startsWith("http") && !url.startsWith("file")) {
-                    // Normalisation : URL absolue pour Coil si c'est un chemin relatif
-                    val hostUrlNormalized = hostUrl.removeSuffix("/")
-                    val pathNormalized = url.removePrefix("/")
-                    finalSource = "$hostUrlNormalized/$pathNormalized"
-                }
-            }
+            val finalSource = org.libera.pictotree.utils.FileUtils.getFinalImageSource(
+                url,
+                itemView.context,
+                username,
+                hostUrl
+            )
 
             if (url.isNotEmpty()) {
                 ivTreeRoot.load(finalSource) {

@@ -75,7 +75,7 @@ class TimerReceiver : BroadcastReceiver() {
                 val serviceIntent = Intent(context, TimerAudioService::class.java).apply {
                     putExtra("EXTRA_PLAY_SOUND", playSound)
                 }
-                context.startService(serviceIntent)
+                androidx.core.content.ContextCompat.startForegroundService(context, serviceIntent)
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to start TimerAudioService, falling back to one-shot Ringtone", e)
                 try {

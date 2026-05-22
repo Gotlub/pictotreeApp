@@ -65,18 +65,13 @@ class NodeAdapter(
                 ivHasChildren?.visibility = View.GONE
             } else {
                 if (node.imageUrl.isNotEmpty()) {
-                    // MAPPING LOCAL MANUEL (Priorité absolue)
-                    val cleanUrl = org.libera.pictotree.utils.FileUtils.getCleanUrl(node.imageUrl)
-                    val fileName = org.libera.pictotree.utils.FileUtils.getLocalFileNameFromUrl(cleanUrl)
-                    val localFile = java.io.File(itemView.context.filesDir, "$username/images/$fileName")
-                    
-                    var finalSource: Any = if (localFile.exists()) localFile else node.imageUrl
-                    
-                    // Normalisation si c'est un chemin relatif (fallback)
-                    if (finalSource is String && !finalSource.startsWith("http") && !finalSource.startsWith("file")) {
-                        val hostUrl = org.libera.pictotree.network.RetrofitClient.SERVER_URL
-                        finalSource = "${hostUrl.removeSuffix("/")}/${finalSource.removePrefix("/")}"
-                    }
+                    val hostUrl = org.libera.pictotree.network.RetrofitClient.SERVER_URL
+                    val finalSource = org.libera.pictotree.utils.FileUtils.getFinalImageSource(
+                        node.imageUrl,
+                        itemView.context,
+                        username,
+                        hostUrl
+                    )
 
                     ivPicto.load(finalSource) {
                         crossfade(true)

@@ -497,14 +497,8 @@ class TreeGlobalMapDialog : DialogFragment() {
             return
         }
         
-        val cleanUrl = FileUtils.getCleanUrl(url)
-        val fileName = FileUtils.getLocalFileNameFromUrl(cleanUrl)
-        val localFile = java.io.File(ctx.filesDir, "$username/images/$fileName")
-        
-        var finalSource: Any = if (localFile.exists()) localFile else url
-        if (finalSource is String && !finalSource.startsWith("http") && !finalSource.startsWith("file")) {
-            finalSource = "${org.libera.pictotree.network.RetrofitClient.SERVER_URL.removeSuffix("/")}/${finalSource.removePrefix("/")}"
-        }
+        val hostUrl = org.libera.pictotree.network.RetrofitClient.SERVER_URL
+        val finalSource = FileUtils.getFinalImageSource(url, ctx, username, hostUrl)
         
         val imageLoader = org.libera.pictotree.network.RetrofitClient.getImageLoader(ctx)
         imageView.load(finalSource, imageLoader) {

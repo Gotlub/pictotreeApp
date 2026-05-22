@@ -398,11 +398,9 @@ class TreeExplorerFragment : Fragment() {
     }
 
     private fun getFinalUrl(rawUrl: String): Any {
-        val cleanUrl = FileUtils.getCleanUrl(rawUrl)
-        val fileName = FileUtils.getLocalFileNameFromUrl(cleanUrl)
         val username = org.libera.pictotree.data.SessionManager(requireContext()).getUsername() ?: "default"
-        val localFile = File(requireContext().filesDir, "$username/images/$fileName")
-        return if (localFile.exists()) localFile else rawUrl
+        val hostUrl = org.libera.pictotree.network.RetrofitClient.SERVER_URL
+        return FileUtils.getFinalImageSource(rawUrl, requireContext(), username, hostUrl)
     }
 
     override fun onDestroyView() {
