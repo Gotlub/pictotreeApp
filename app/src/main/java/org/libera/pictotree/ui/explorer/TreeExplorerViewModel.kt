@@ -1,16 +1,17 @@
 package org.libera.pictotree.ui.explorer
 
-import android.app.AlarmManager
 import android.app.Application
-import android.app.PendingIntent
-import android.content.Context
-import android.content.Intent
+import android.media.AudioAttributes
+import android.media.MediaPlayer
+import android.media.RingtoneManager
 import android.os.SystemClock
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -123,25 +124,99 @@ class TreeExplorerViewModel(
         initialValue = null
     )
 
+    private var timerJob: Job? = null
+    private var activeMediaPlayer: MediaPlayer? = null
+
     init {
-        viewModelScope.launch {
-            currentTimeFlow.collect { elapsed ->
-                val firstCard = _phraseList.value.firstOrNull()
-                if (firstCard?.timeConfig?.mode == TimeMode.TIMER && firstCard.timeConfig.endTimeMillis > 0) {
-                    val remaining = firstCard.timeConfig.endTimeMillis - elapsed
+        startLocalTimerJob()
+    }
+
+    private fun playLocalAlarmSound() {
+        activeMediaPlayer?.apply {
+            try {
+                if (isPlaying) stop()
+            } catch (e: Exception) {
+                Log.e(TAG, "Error stopping active media player", e)
+            }
+            release()
+        }
+        activeMediaPlayer = null
+
+        try {
+            val alarmUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+                ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+            if (alarmUri != null) {
+                val mp = MediaPlayer().apply {
+                    setDataSource(getApplication(), alarmUri)
+                    setAudioAttributes(
+                        AudioAttributes.Builder()
+                            .setUsage(AudioAttributes.USAGE_NOTIFICATION_EVENT)
+                            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                            .build()
+                    )
+                    prepare()
+                    start()
+                }
+                activeMediaPlayer = mp
+
+                viewModelScope.launch {
+                    delay(3000)
+                    if (activeMediaPlayer == mp) {
+                        try {
+                            if (mp.isPlaying) mp.stop()
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Error stopping media player after 3s", e)
+                        }
+                        mp.release()
+                        activeMediaPlayer = null
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to play local alarm sound", e)
+        }
+    }
+
+    private fun startLocalTimerJob() {
+        timerJob?.cancel()
+        val firstCard = _phraseList.value.firstOrNull()
+        if (firstCard == null || firstCard.timeConfig.mode != TimeMode.TIMER || firstCard.timeConfig.endTimeMillis <= 0L) {
+            timerJob = null
+            return
+        }
+
+        timerJob = viewModelScope.launch {
+            var lastTime = -1L
+            while (true) {
+                val now = SystemClock.elapsedRealtime()
+                val currentFirstCard = _phraseList.value.firstOrNull()
+                if (currentFirstCard?.timeConfig?.mode == TimeMode.TIMER && currentFirstCard.timeConfig.endTimeMillis > 0) {
+                    val remaining = currentFirstCard.timeConfig.endTimeMillis - now
                     if (remaining <= 0) {
-                        if (firstCard.timeConfig.autoRemove) {
+                        if (currentFirstCard.timeConfig.playSoundAtEnd) {
+                            playLocalAlarmSound()
+                        }
+                        if (currentFirstCard.timeConfig.autoRemove) {
                             removeItemFromPhrase(0)
                         } else {
-                            updateCardTimeConfig(0, firstCard.timeConfig.copy(
+                            updateCardTimeConfig(0, currentFirstCard.timeConfig.copy(
                                 mode = TimeMode.JALON,
                                 durationMinutes = 0,
                                 startTimeMillis = 0L,
                                 endTimeMillis = 0L
                             ))
                         }
+                        break
                     }
+                } else {
+                    break
                 }
+                if (now == lastTime) {
+                    awaitCancellation()
+                } else {
+                    delay(1000)
+                }
+                lastTime = now
             }
         }
     }
@@ -348,117 +423,64 @@ class TreeExplorerViewModel(
                 endTimeMillis = endTime
             ))
             _phraseList.value = list
-            scheduleSystemAlarm(endTime, firstCard.node.id, firstCard.node.label, firstCard.timeConfig)
-        }
-    }
-
-    private fun getSafeRequestCode(nodeId: String): Int {
-        return try {
-            val digest = java.security.MessageDigest.getInstance("SHA-256")
-            val hashBytes = digest.digest(nodeId.toByteArray(Charsets.UTF_8))
-            var code = 0
-            for (i in 0..3) {
-                code = (code shl 8) or (hashBytes[i].toInt() and 0xFF)
-            }
-            code and 0x7FFFFFFF
-        } catch (e: Exception) {
-            nodeId.hashCode()
-        }
-    }
-
-    private fun cancelSystemAlarm(nodeId: String) {
-        val alarmManager = getApplication<Application>().getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        val intent = Intent(getApplication(), org.libera.pictotree.utils.TimerReceiver::class.java)
-        val pendingIntent = PendingIntent.getBroadcast(
-            getApplication(), getSafeRequestCode(nodeId), intent,
-            PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
-        )
-        if (pendingIntent != null) {
-            alarmManager.cancel(pendingIntent)
-            pendingIntent.cancel()
-            Log.i(TAG, "Canceled system alarm for nodeId: $nodeId")
+            startLocalTimerJob()
         }
     }
 
     fun stopAllTimers() {
         isTimerActivated.value = false
-        val list = _phraseList.value.toMutableList()
+        timerJob?.cancel()
+        timerJob = null
         
+        activeMediaPlayer?.apply {
+            try {
+                if (isPlaying) stop()
+            } catch (e: Exception) {
+                Log.e(TAG, "Error stopping media player in stopAllTimers", e)
+            }
+            release()
+        }
+        activeMediaPlayer = null
+
+        val list = _phraseList.value.toMutableList()
         for (i in list.indices) {
             val card = list[i]
-            if (card.timeConfig.endTimeMillis > 0) {
-                cancelSystemAlarm(card.node.id)
-            }
             list[i] = card.copy(timeConfig = card.timeConfig.copy(
                 startTimeMillis = 0L,
                 endTimeMillis = 0L
             ))
         }
         _phraseList.value = list
-        
-        // Stop ringing receiver if any
-        val stopIntent = Intent(getApplication(), org.libera.pictotree.utils.TimerReceiver::class.java).apply {
-            action = org.libera.pictotree.utils.TimerReceiver.ACTION_STOP_ALARM
-        }
-        getApplication<Application>().sendBroadcast(stopIntent)
-    }
-
-    private fun scheduleSystemAlarm(triggerAtMillis: Long, nodeId: String, label: String, config: CardTimeConfig) {
-        cancelSystemAlarm(nodeId)
-        val alarmManager = getApplication<Application>().getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        
-        // SÉCURITÉ ANDROID 12+ : Vérifier si on a le droit de programmer une alarme exacte
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
-            if (!alarmManager.canScheduleExactAlarms()) {
-                // Si pas de permission, on utilise une alarme inexacte (ou on pourrait ouvrir les réglages)
-                Log.e(TAG, "Missing SCHEDULE_EXACT_ALARM permission, falling back to inexact alarm")
-                val intent = Intent(getApplication(), org.libera.pictotree.utils.TimerReceiver::class.java).apply {
-                    putExtra("EXTRA_LABEL", label)
-                    putExtra("EXTRA_PLAY_SOUND", config.playSoundAtEnd)
-                }
-                val pendingIntent = PendingIntent.getBroadcast(
-                    getApplication(), getSafeRequestCode(nodeId), intent,
-                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-                )
-                alarmManager.setAndAllowWhileIdle(AlarmManager.ELAPSED_REALTIME_WAKEUP, triggerAtMillis, pendingIntent)
-                return
-            }
-        }
-
-        val intent = Intent(getApplication(), org.libera.pictotree.utils.TimerReceiver::class.java).apply {
-            putExtra("EXTRA_LABEL", label)
-            putExtra("EXTRA_PLAY_SOUND", config.playSoundAtEnd)
-        }
-        val pendingIntent = PendingIntent.getBroadcast(
-            getApplication(), getSafeRequestCode(nodeId), intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-        alarmManager.setExactAndAllowWhileIdle(AlarmManager.ELAPSED_REALTIME_WAKEUP, triggerAtMillis, pendingIntent)
     }
 
     fun updateCardTimeConfig(index: Int, config: CardTimeConfig) {
         val list = _phraseList.value.toMutableList()
         if (index in list.indices) {
             val oldCard = list[index]
-            if (oldCard.timeConfig.mode == TimeMode.TIMER && config.mode != TimeMode.TIMER) {
-                cancelSystemAlarm(oldCard.node.id)
-            }
             list[index] = list[index].copy(timeConfig = config)
             _phraseList.value = list
-            // Si on modifie la carte 0, on redémarre peut-être le timer
-            if (index == 0) startTimerForFirstCard()
+            if (index == 0) {
+                if (config.mode == TimeMode.TIMER && config.endTimeMillis > 0L) {
+                    startLocalTimerJob()
+                } else {
+                    timerJob?.cancel()
+                    timerJob = null
+                }
+                startTimerForFirstCard()
+            }
         }
     }
 
     fun removeItemFromPhrase(position: Int) {
         val list = _phraseList.value.toMutableList()
         if (position in list.indices) {
-            val removedCard = list[position]
-            cancelSystemAlarm(removedCard.node.id)
             list.removeAt(position)
             _phraseList.value = list
-            // Passage automatique à la carte suivante
-            if (position == 0) startTimerForFirstCard()
+            if (position == 0) {
+                timerJob?.cancel()
+                timerJob = null
+                startTimerForFirstCard()
+            }
         }
     }
 
@@ -499,5 +521,19 @@ class TreeExplorerViewModel(
 
     fun updatePhraseListSilently(newList: List<PhraseCard>) {
         _phraseList.value = newList
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        timerJob?.cancel()
+        activeMediaPlayer?.apply {
+            try {
+                if (isPlaying) stop()
+            } catch (e: Exception) {
+                Log.e(TAG, "Error stopping media player in onCleared", e)
+            }
+            release()
+        }
+        activeMediaPlayer = null
     }
 }

@@ -13,8 +13,8 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import android.app.Application
-import android.app.PendingIntent
-import android.content.Intent
+import android.media.MediaPlayer
+import android.media.RingtoneManager
 import android.util.Log
 import android.os.SystemClock
 import androidx.lifecycle.viewModelScope
@@ -47,9 +47,6 @@ class TreeExplorerViewModelTest {
         mockkStatic(SystemClock::class)
         every { SystemClock.elapsedRealtime() } returns 0L
         
-        mockkStatic(PendingIntent::class)
-        every { PendingIntent.getBroadcast(any(), any(), any(), any()) } returns mockk(relaxed = true)
-        
         mockkStatic(Log::class)
         every { Log.i(any(), any()) } returns 0
         every { Log.e(any(), any()) } returns 0
@@ -57,10 +54,15 @@ class TreeExplorerViewModelTest {
         every { Log.w(any(), any<String>()) } returns 0
         every { Log.d(any(), any()) } returns 0
         
-        mockkConstructor(Intent::class)
-        every { anyConstructed<Intent>().setAction(any()) } returns mockk(relaxed = true)
-        every { anyConstructed<Intent>().putExtra(any<String>(), any<String>()) } returns mockk(relaxed = true)
-        every { anyConstructed<Intent>().putExtra(any<String>(), any<Boolean>()) } returns mockk(relaxed = true)
+        mockkConstructor(MediaPlayer::class)
+        every { anyConstructed<MediaPlayer>().setDataSource(any<Application>(), any()) } returns Unit
+        every { anyConstructed<MediaPlayer>().setAudioAttributes(any()) } returns Unit
+        every { anyConstructed<MediaPlayer>().prepare() } returns Unit
+        every { anyConstructed<MediaPlayer>().start() } returns Unit
+        every { anyConstructed<MediaPlayer>().release() } returns Unit
+        
+        mockkStatic(RingtoneManager::class)
+        every { RingtoneManager.getDefaultUri(any()) } returns null
         
         every { userConfigRepository.userConfig } returns flowOf(null)
         
@@ -80,9 +82,9 @@ class TreeExplorerViewModelTest {
         viewModel.viewModelScope.cancel()
         Dispatchers.resetMain()
         unmockkStatic(SystemClock::class)
-        unmockkStatic(PendingIntent::class)
         unmockkStatic(Log::class)
-        unmockkConstructor(Intent::class)
+        unmockkStatic(RingtoneManager::class)
+        unmockkConstructor(MediaPlayer::class)
     }
 
     @Test
@@ -194,10 +196,7 @@ class TreeExplorerViewModelTest {
     }
 
     @Test
-    fun `updateCardTimeConfig should cancel alarm when changing mode from TIMER to JALON`() = runTest {
-        val alarmManager = mockk<android.app.AlarmManager>(relaxed = true)
-        every { application.getSystemService(android.content.Context.ALARM_SERVICE) } returns alarmManager
-
+    fun `updateCardTimeConfig should change mode from TIMER to JALON`() = runTest {
         val node = TreeNode("1_node_1", "Test", "", emptyList())
         val card = PhraseCard(node, org.libera.pictotree.data.model.CardTimeConfig(
             mode = org.libera.pictotree.data.model.TimeMode.TIMER,
@@ -212,15 +211,11 @@ class TreeExplorerViewModelTest {
         )
         viewModel.updateCardTimeConfig(0, newConfig)
 
-        verify { alarmManager.cancel(any<android.app.PendingIntent>()) }
         assertEquals(org.libera.pictotree.data.model.TimeMode.JALON, viewModel.phraseList.value[0].timeConfig.mode)
     }
 
     @Test
-    fun `removeItemFromPhrase should cancel alarm and schedule next card if first is timer`() = runTest {
-        val alarmManager = mockk<android.app.AlarmManager>(relaxed = true)
-        every { application.getSystemService(android.content.Context.ALARM_SERVICE) } returns alarmManager
-        
+    fun `removeItemFromPhrase should schedule next card if first is timer`() = runTest {
         val node1 = TreeNode("1_node_1", "Card 1", "", emptyList())
         val card1 = PhraseCard(node1, org.libera.pictotree.data.model.CardTimeConfig(
             mode = org.libera.pictotree.data.model.TimeMode.TIMER,
@@ -239,8 +234,6 @@ class TreeExplorerViewModelTest {
 
         viewModel.removeItemFromPhrase(0)
         
-        verify { alarmManager.cancel(any<android.app.PendingIntent>()) }
-        
         val phrase = viewModel.phraseList.value
         assertEquals(1, phrase.size)
         assertEquals("1_node_2", phrase[0].node.id)
@@ -248,10 +241,7 @@ class TreeExplorerViewModelTest {
     }
 
     @Test
-    fun `stopAllTimers should cancel active alarms and broadcast stop action`() = runTest {
-        val alarmManager = mockk<android.app.AlarmManager>(relaxed = true)
-        every { application.getSystemService(android.content.Context.ALARM_SERVICE) } returns alarmManager
-        
+    fun `stopAllTimers should reset active timers`() = runTest {
         val node = TreeNode("1_node_1", "Card 1", "", emptyList())
         val card = PhraseCard(node, org.libera.pictotree.data.model.CardTimeConfig(
             mode = org.libera.pictotree.data.model.TimeMode.TIMER,
@@ -263,8 +253,6 @@ class TreeExplorerViewModelTest {
         viewModel.stopAllTimers()
         
         assertFalse(viewModel.isTimerActivated.value)
-        verify { alarmManager.cancel(any<android.app.PendingIntent>()) }
-        verify { application.sendBroadcast(any()) }
         assertEquals(0L, viewModel.phraseList.value[0].timeConfig.endTimeMillis)
     }
 

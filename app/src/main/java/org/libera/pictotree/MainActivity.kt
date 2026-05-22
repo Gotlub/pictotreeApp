@@ -18,27 +18,11 @@ import android.os.Build
 import android.view.View
 import android.widget.TextView
 import com.google.android.material.card.MaterialCardView
-import org.libera.pictotree.utils.TimerReceiver
 import org.libera.pictotree.data.SessionManager
 import org.libera.pictotree.network.RetrofitClient
 import org.libera.pictotree.utils.AuthEvents
 
 class MainActivity : AppCompatActivity() {
-
-    private var activeAlarmLabel: String? = null
-
-    private val alarmReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) {
-            val action = intent.action
-            if (action == TimerReceiver.ACTION_ALARM_TRIGGERED) {
-                val label = intent.getStringExtra("EXTRA_LABEL") ?: "Temps écoulé"
-                activeAlarmLabel = label
-                // showAlarmBanner(label) // Commenté : Le popup n'est pas nécessaire pour les utilisateurs
-            } else if (action == TimerReceiver.ACTION_STOP_ALARM) {
-                // hideAlarmBanner() // Commenté : Le popup n'est pas nécessaire pour les utilisateurs
-            }
-        }
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -81,17 +65,7 @@ class MainActivity : AppCompatActivity() {
         }
         */
 
-        // Enregistrer le récepteur d'alarme
-        val filter = IntentFilter().apply {
-            addAction(TimerReceiver.ACTION_ALARM_TRIGGERED)
-            addAction(TimerReceiver.ACTION_STOP_ALARM)
-        }
-        androidx.core.content.ContextCompat.registerReceiver(
-            this,
-            alarmReceiver,
-            filter,
-            androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED
-        )
+
 
         // Écouter les événements de déconnexion globale (ex: 401)
         lifecycleScope.launch {
@@ -137,14 +111,7 @@ class MainActivity : AppCompatActivity() {
     }
     */
 
-    override fun onDestroy() {
-        super.onDestroy()
-        try {
-            unregisterReceiver(alarmReceiver)
-        } catch (e: Exception) {
-            // Déjà désenregistré ou jamais enregistré
-        }
-    }
+
 
     private fun showSessionExpiredDialog(sessionManager: SessionManager) {
         // Éviter d'empiler les dialogues si plusieurs 401 arrivent
