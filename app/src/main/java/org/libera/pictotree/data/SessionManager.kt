@@ -59,6 +59,15 @@ class SessionManager(context: Context) {
             .apply()
     }
 
+    fun logout() {
+        prefs.edit()
+            .remove("USER_TOKEN")
+            .remove("REFRESH_TOKEN")
+            .remove("IS_ONLINE")
+            .remove("USERNAME")
+            .apply()
+    }
+
     fun setPreferredOrientation(username: String, orientation: Int) {
         prefs.edit().putInt("ORIENTATION_$username", orientation).apply()
     }

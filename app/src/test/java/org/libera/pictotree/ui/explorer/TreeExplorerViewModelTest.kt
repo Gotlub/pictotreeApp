@@ -4,6 +4,7 @@ import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import io.mockk.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.*
 import org.junit.After
@@ -12,6 +13,8 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import android.app.Application
+import android.os.SystemClock
+import androidx.lifecycle.viewModelScope
 import org.libera.pictotree.data.database.dao.TreeDao
 import org.libera.pictotree.data.database.dao.ProfileDao
 import org.libera.pictotree.data.database.dao.ImageDao
@@ -38,6 +41,9 @@ class TreeExplorerViewModelTest {
     fun setup() {
         Dispatchers.setMain(testDispatcher)
         
+        mockkStatic(SystemClock::class)
+        every { SystemClock.elapsedRealtime() } returns 0L
+        
         every { userConfigRepository.userConfig } returns flowOf(null)
         
         viewModel = TreeExplorerViewModel(
@@ -53,7 +59,9 @@ class TreeExplorerViewModelTest {
 
     @After
     fun tearDown() {
+        viewModel.viewModelScope.cancel()
         Dispatchers.resetMain()
+        unmockkStatic(SystemClock::class)
     }
 
     @Test
@@ -68,7 +76,7 @@ class TreeExplorerViewModelTest {
         coEvery { treeDao.getTreeById(1) } returns TreeEntity(1, "Tree 1", json)
         
         viewModel.loadTree(1)
-        advanceUntilIdle()
+        runCurrent()
         
         // When selecting the child ID
         viewModel.selectNodeWithoutNavigatingById("1_child_r_0")
@@ -89,7 +97,7 @@ class TreeExplorerViewModelTest {
         coEvery { treeDao.getTreeById(1) } returns TreeEntity(1, "Tree 1", json)
         
         viewModel.loadTree(1)
-        advanceUntilIdle()
+        runCurrent()
         
         // Then previewNode should still be the old one
         assertEquals("1_old_r_0", viewModel.uiState.value.previewNode?.id)
@@ -108,9 +116,9 @@ class TreeExplorerViewModelTest {
         // Then phraseList should have 2 items with unique IDs
         val phrase = viewModel.phraseList.value
         assertEquals(2, phrase.size)
-        assertNotEquals(phrase[0].id, phrase[1].id)
-        assertTrue(phrase[0].id.startsWith("1_picto_r_"))
-        assertEquals("Apple", phrase[0].label)
+        assertNotEquals(phrase[0].node.id, phrase[1].node.id)
+        assertTrue(phrase[0].node.id.startsWith("1_picto_r_"))
+        assertEquals("Apple", phrase[0].node.label)
     }
 
     @Test
@@ -148,13 +156,13 @@ class TreeExplorerViewModelTest {
         
         // We set the context for Tree 2 so it caches the root
         viewModel.setProfileTreeContext(1, listOf(2))
-        advanceUntilIdle()
+        runCurrent()
         
         // Given current tree is Tree 1
         val json1 = """{"root_node": {"id": "r1", "label": "Tree 1 Root"}}"""
         coEvery { treeDao.getTreeById(1) } returns TreeEntity(1, "Tree 1", json1)
         viewModel.loadTree(1)
-        advanceUntilIdle()
+        runCurrent()
         
         // When selecting an ID from Tree 2
         viewModel.selectNodeWithoutNavigatingById("2_r2_r")

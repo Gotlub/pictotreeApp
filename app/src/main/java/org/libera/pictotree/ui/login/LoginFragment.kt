@@ -68,12 +68,17 @@ class LoginFragment : Fragment() {
         val knownUsers = sessionManager.getKnownUsers().toList()
         viewModel.loadKnownUsers(knownUsers)
 
+        var lastUsersList: List<String>? = null
+
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.uiState.collect { state ->
-                    // Mise à jour de l'adapter auto-completion
-                    val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, state.availableUsers)
-                    actvUsers.setAdapter(adapter)
+                    // Mise à jour de l'adapter auto-completion seulement si la liste a changé
+                    if (state.availableUsers != lastUsersList) {
+                        lastUsersList = state.availableUsers
+                        val adapter = ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, state.availableUsers)
+                        actvUsers.setAdapter(adapter)
+                    }
 
                     // Gestion de la visibilité du mot de passe
                     tilPassword.visibility = if (state.isPasswordVisible) View.VISIBLE else View.GONE

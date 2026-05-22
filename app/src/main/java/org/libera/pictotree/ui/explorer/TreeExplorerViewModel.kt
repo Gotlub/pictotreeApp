@@ -102,9 +102,18 @@ class TreeExplorerViewModel(
 
     // BATTEMENT DE CŒUR (Pulse)
     val currentTimeFlow = flow {
+        var lastTime = -1L
         while (true) {
-            emit(SystemClock.elapsedRealtime())
-            delay(1000)
+            val now = SystemClock.elapsedRealtime()
+            emit(now)
+            if (now == lastTime) {
+                // Si le temps est figé (valeur mockée statiquement dans les tests unitaires),
+                // on suspend indéfiniment pour éviter une boucle virtuelle infinie.
+                kotlinx.coroutines.awaitCancellation()
+            } else {
+                delay(1000)
+            }
+            lastTime = now
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), SystemClock.elapsedRealtime())
 

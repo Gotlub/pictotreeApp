@@ -16,6 +16,8 @@ class TimeTimerView @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
 ) : View(context, attrs, defStyleAttr) {
 
+    private val sessionManager = org.libera.pictotree.data.SessionManager(context)
+
     private val piePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.FILL
     }
@@ -28,13 +30,42 @@ class TimeTimerView @JvmOverloads constructor(
         setShadowLayer(6f, 0f, 0f, Color.WHITE)
     }
 
+    private val outlinePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.parseColor("#CCCCCC")
+        style = Paint.Style.STROKE
+        strokeWidth = 3f
+        setShadowLayer(4f, 0f, 0f, Color.WHITE)
+    }
+
+    private val arcStrokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        strokeWidth = 5f
+    }
+
+    private val rect = RectF()
+
     private var remainingMinutes: Float = 0f // Temps restant en minutes
+    private var translucentColor = Color.parseColor("#44E53935")
+    private var solidColor = Color.parseColor("#FFE53935")
+
+    init {
+        updateTimerColors()
+    }
+
+    private fun updateTimerColors() {
+        val timerColorStr = sessionManager.getTimerColor()
+        val isGreen = timerColorStr.equals("green", ignoreCase = true)
+        translucentColor = if (isGreen) Color.parseColor("#444CAF50") else Color.parseColor("#44E53935")
+        solidColor = if (isGreen) Color.parseColor("#FF4CAF50") else Color.parseColor("#FFE53935")
+        arcStrokePaint.color = solidColor
+    }
 
     /**
      * Définit le mode d'affichage. Affiche le timer uniquement en mode TIMER.
      */
     fun setMode(mode: org.libera.pictotree.data.model.TimeMode) {
         if (mode == org.libera.pictotree.data.model.TimeMode.TIMER) {
+            updateTimerColors()
             visibility = VISIBLE
         } else {
             visibility = GONE
@@ -66,35 +97,17 @@ class TimeTimerView @JvmOverloads constructor(
         val textRadius = dialRadius - 22f
         
         // 1. Tracé du contour du cadran (fin et discret)
-        val outlinePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.parseColor("#CCCCCC")
-            style = Paint.Style.STROKE
-            strokeWidth = 3f
-            setShadowLayer(4f, 0f, 0f, Color.WHITE)
-        }
         canvas.drawCircle(centerX, centerY, dialRadius, outlinePaint)
-        
-        // 2. Détermination de la couleur du Timer (Rouge ou Vert)
-        val timerColorStr = org.libera.pictotree.data.SessionManager(context).getTimerColor()
-        val isGreen = timerColorStr.equals("green", ignoreCase = true)
-        
-        val translucentColor = if (isGreen) Color.parseColor("#444CAF50") else Color.parseColor("#44E53935") // Opacité ~27%
-        val solidColor = if (isGreen) Color.parseColor("#FF4CAF50") else Color.parseColor("#FFE53935")
         
         // 3. Tracé de l'arc restant (sens anti-horaire, donc sweepAngle négatif)
         // Départ à -90 degrés (midi).
         piePaint.color = translucentColor
-        val rect = RectF(centerX - dialRadius, centerY - dialRadius, centerX + dialRadius, centerY + dialRadius)
+        rect.set(centerX - dialRadius, centerY - dialRadius, centerX + dialRadius, centerY + dialRadius)
         val sweepAngle = -(remainingMinutes / 60f) * 360f
         
         canvas.drawArc(rect, -90f, sweepAngle, true, piePaint)
         
         // Tracé de la ligne de découpe solide au bout de l'arc pour un rendu aiguisé
-        val arcStrokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = solidColor
-            style = Paint.Style.STROKE
-            strokeWidth = 5f
-        }
         canvas.drawArc(rect, -90f, sweepAngle, false, arcStrokePaint)
         
         // 4. Tracé des numéros de 0 à 55 (par pas de 5) disposés en sens anti-horaire

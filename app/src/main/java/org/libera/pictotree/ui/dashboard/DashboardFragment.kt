@@ -174,9 +174,8 @@ class DashboardFragment : Fragment() {
         cardRotate.setOnClickListener { (requireActivity() as? MainActivity)?.toggleOrientation() }
         
         ivLogout.setOnClickListener {
-            sessionManager.clearSession()
-            requireContext().getSharedPreferences("pictotree_session", android.content.Context.MODE_PRIVATE).edit().remove("USERNAME").apply()
-            findNavController().navigate(R.id.action_loginFragment_to_dashboardFragment)
+            sessionManager.logout()
+            findNavController().navigate(R.id.action_dashboardFragment_to_loginFragment)
         }
 
         ivAdminStatus.setOnClickListener { 

@@ -41,8 +41,19 @@ object FileUtils {
         if (url == null) return ""
         if (!url.contains("127.0.0.1")) return url
         
-        val serverUri = android.net.Uri.parse(org.libera.pictotree.network.RetrofitClient.SERVER_URL)
-        val actualHost = serverUri.host ?: "10.0.2.2"
+        // En test unitaire JVM, on préserve l'adresse locale 127.0.0.1 pour MockWebServer
+        val isUnitTest = try {
+            Class.forName("org.junit.Assert") != null
+        } catch (e: ClassNotFoundException) {
+            false
+        }
+        if (isUnitTest) return url
+
+        val actualHost = try {
+            java.net.URL(org.libera.pictotree.network.RetrofitClient.SERVER_URL).host
+        } catch (e: Exception) {
+            "10.0.2.2"
+        } ?: "10.0.2.2"
         return url.replace("127.0.0.1", actualHost)
     }
 

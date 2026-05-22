@@ -75,8 +75,9 @@ class ImageSyncEngine(
                     return@withContext localUrl
                 }
 
+                var connection: java.net.HttpURLConnection? = null
                 try {
-                    val connection = URL(absoluteUrl).openConnection() as java.net.HttpURLConnection
+                    connection = URL(absoluteUrl).openConnection() as java.net.HttpURLConnection
                     connection.setRequestProperty("User-Agent", "Mozilla/5.0")
                     connection.connectTimeout = 5000
                     connection.readTimeout = 5000
@@ -125,6 +126,8 @@ class ImageSyncEngine(
                     }
                 } catch (e: Exception) {
                     Log.e(TAG, "Download failed for $cleanUrl: ${e.message}")
+                } finally {
+                    connection?.disconnect()
                 }
                 return@withContext null
             }
@@ -158,8 +161,9 @@ class ImageSyncEngine(
                 }
 
                 // Sinon (soit pas de fichier, soit pas de BDD), on télécharge
+                var connection: java.net.HttpURLConnection? = null
                 try {
-                    val connection = URL(absoluteUrl).openConnection() as java.net.HttpURLConnection
+                    connection = URL(absoluteUrl).openConnection() as java.net.HttpURLConnection
                     connection.setRequestProperty("User-Agent", "Mozilla/5.0")
                     connection.connectTimeout = 10000
                     connection.readTimeout = 10000
@@ -221,6 +225,8 @@ class ImageSyncEngine(
                     }
                 } catch (e: Exception) {
                     Log.e(TAG, "Failed to sync image $cleanUrl: ${e.message}")
+                } finally {
+                    connection?.disconnect()
                 }
                 return@withContext false
             }

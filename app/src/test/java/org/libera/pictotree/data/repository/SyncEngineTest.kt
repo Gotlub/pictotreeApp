@@ -1,10 +1,13 @@
 package org.libera.pictotree.data.repository
 
 import android.content.Context
+import android.util.Log
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.mockkStatic
+import io.mockk.unmockkStatic
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import okhttp3.mockwebserver.MockResponse
@@ -28,6 +31,14 @@ class SyncEngineTest {
 
     @Before
     fun setup() {
+        System.setProperty("http.keepAlive", "false")
+
+        mockkStatic(Log::class)
+        every { Log.e(any<String>(), any<String>()) } returns 0
+        every { Log.w(any<String>(), any<String>()) } returns 0
+        every { Log.i(any<String>(), any<String>()) } returns 0
+        every { Log.d(any<String>(), any<String>()) } returns 0
+
         mockWebServer = MockWebServer()
         mockWebServer.start()
 
@@ -43,13 +54,14 @@ class SyncEngineTest {
     fun teardown() {
         mockWebServer.shutdown()
         tempDir.deleteRecursively()
+        unmockkStatic(Log::class)
     }
 
     @Test
     fun `test network sync downloads missing image and inserts to database`() = runTest {
         // Enqueue a simple fake image payload representing a raw PNG stream (HTTP 200)
         val mockImageBytes = byteArrayOf(0x00, 0x01, 0x02)
-        mockWebServer.enqueue(MockResponse().setResponseCode(200).setBody(okio.Buffer().write(mockImageBytes)))
+        mockWebServer.enqueue(MockResponse().setResponseCode(200).setBody(okio.Buffer().write(mockImageBytes)).setHeader("Connection", "close"))
 
         // Intercepting specific testing localhost URL
         val remoteUrl = mockWebServer.url("/mock/image.png").toString()

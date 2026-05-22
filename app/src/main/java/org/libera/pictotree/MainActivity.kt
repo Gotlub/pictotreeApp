@@ -169,7 +169,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun handleLogout(sessionManager: SessionManager) {
-        sessionManager.clearSession()
+        sessionManager.logout()
         // Rediriger vers le Login
         try {
             findNavController(R.id.fragment_container).navigate(R.id.loginFragment)
