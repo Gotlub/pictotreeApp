@@ -43,6 +43,7 @@ class TimeTimerView @JvmOverloads constructor(
     }
 
     private val rect = RectF()
+    private val fontMetrics = Paint.FontMetrics()
 
     private var remainingMinutes: Float = 0f // Temps restant en minutes
     private var translucentColor = Color.parseColor("#44E53935")
@@ -113,7 +114,7 @@ class TimeTimerView @JvmOverloads constructor(
         // 4. Tracé des numéros de 0 à 55 (par pas de 5) disposés en sens anti-horaire
         textPaint.textSize = (minDim * 0.095f).coerceIn(20f, 32f)
         
-        val fontMetrics = textPaint.fontMetrics
+        textPaint.getFontMetrics(fontMetrics)
         val yOffset = (fontMetrics.descent + fontMetrics.ascent) / 2f
         
         for (minute in 0..55 step 5) {

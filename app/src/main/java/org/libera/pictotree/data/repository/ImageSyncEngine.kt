@@ -115,7 +115,9 @@ class ImageSyncEngine(
                                     finalName = decoded
                                     finalDesc = decoded
                                 }
-                            } catch (e: Exception) {}
+                            } catch (e: Exception) {
+                                Log.w(TAG, "Failed to decode X-Image-Description header: ${e.message}")
+                            }
                         } else if (name == null) {
                             finalName = ExternalImageMetadataFetcher.fetchRealName(context, username, cleanUrl, finalName)
                         }
@@ -208,7 +210,9 @@ class ImageSyncEngine(
                                     finalName = decoded
                                     finalDesc = decoded
                                 }
-                            } catch (e: Exception) {}
+                            } catch (e: Exception) {
+                                Log.w(TAG, "Failed to decode X-Image-Description header: ${e.message}")
+                            }
                         } else if (name == null) {
                             finalName = ExternalImageMetadataFetcher.fetchRealName(context, username, cleanUrl, finalName)
                         }

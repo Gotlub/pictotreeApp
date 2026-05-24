@@ -45,7 +45,7 @@ class TreeExplorerViewModelTest {
         Dispatchers.setMain(testDispatcher)
         
         mockkStatic(SystemClock::class)
-        every { SystemClock.elapsedRealtime() } returns 0L
+        every { SystemClock.elapsedRealtime() } answers { testDispatcher.scheduler.currentTime }
         
         mockkStatic(Log::class)
         every { Log.i(any(), any()) } returns 0
@@ -238,6 +238,8 @@ class TreeExplorerViewModelTest {
         assertEquals(1, phrase.size)
         assertEquals("1_node_2", phrase[0].node.id)
         assertTrue(phrase[0].timeConfig.endTimeMillis > 0L)
+        
+        viewModel.stopAllTimers()
     }
 
     @Test

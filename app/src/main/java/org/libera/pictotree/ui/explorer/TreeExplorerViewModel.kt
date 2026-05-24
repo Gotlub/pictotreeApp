@@ -103,18 +103,9 @@ class TreeExplorerViewModel(
 
     // BATTEMENT DE CŒUR (Pulse)
     val currentTimeFlow = flow {
-        var lastTime = -1L
         while (true) {
-            val now = SystemClock.elapsedRealtime()
-            emit(now)
-            if (now == lastTime) {
-                // Si le temps est figé (valeur mockée statiquement dans les tests unitaires),
-                // on suspend indéfiniment pour éviter une boucle virtuelle infinie.
-                kotlinx.coroutines.awaitCancellation()
-            } else {
-                delay(1000)
-            }
-            lastTime = now
+            emit(SystemClock.elapsedRealtime())
+            delay(1000)
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), SystemClock.elapsedRealtime())
 
@@ -186,7 +177,6 @@ class TreeExplorerViewModel(
         }
 
         timerJob = viewModelScope.launch {
-            var lastTime = -1L
             while (true) {
                 val now = SystemClock.elapsedRealtime()
                 val currentFirstCard = _phraseList.value.firstOrNull()
@@ -211,12 +201,7 @@ class TreeExplorerViewModel(
                 } else {
                     break
                 }
-                if (now == lastTime) {
-                    awaitCancellation()
-                } else {
-                    delay(1000)
-                }
-                lastTime = now
+                delay(1000)
             }
         }
     }

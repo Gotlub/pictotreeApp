@@ -21,6 +21,25 @@ class ProfileAdapter(
 ) : RecyclerView.Adapter<ProfileAdapter.ProfileViewHolder>() {
 
     private val profiles = mutableListOf<Profile>()
+    private var isMovingItem = false
+
+    private val differ = androidx.recyclerview.widget.AsyncListDiffer(
+        object : androidx.recyclerview.widget.ListUpdateCallback {
+            override fun onInserted(position: Int, count: Int) {
+                if (!isMovingItem) notifyItemRangeInserted(position, count)
+            }
+            override fun onRemoved(position: Int, count: Int) {
+                if (!isMovingItem) notifyItemRangeRemoved(position, count)
+            }
+            override fun onMoved(fromPosition: Int, toPosition: Int) {
+                if (!isMovingItem) notifyItemMoved(fromPosition, toPosition)
+            }
+            override fun onChanged(position: Int, count: Int, payload: Any?) {
+                if (!isMovingItem) notifyItemRangeChanged(position, count, payload)
+            }
+        },
+        androidx.recyclerview.widget.AsyncDifferConfig.Builder(ProfileItemCallback()).build()
+    )
 
     var isAdminMode: Boolean = false
         set(value) {
@@ -29,11 +48,10 @@ class ProfileAdapter(
         }
 
     fun submitList(newProfiles: List<Profile>) {
-        val diffCallback = ProfileDiffCallback(profiles, newProfiles)
-        val diffResult = androidx.recyclerview.widget.DiffUtil.calculateDiff(diffCallback)
-        profiles.clear()
-        profiles.addAll(newProfiles)
-        diffResult.dispatchUpdatesTo(this)
+        differ.submitList(newProfiles) {
+            profiles.clear()
+            profiles.addAll(newProfiles)
+        }
     }
 
     fun moveItem(fromPosition: Int, toPosition: Int) {
@@ -45,6 +63,10 @@ class ProfileAdapter(
             for (i in fromPosition downTo toPosition + 1) {
                 Collections.swap(profiles, i, i - 1)
             }
+        }
+        isMovingItem = true
+        differ.submitList(profiles.toList()) {
+            isMovingItem = false
         }
         notifyItemMoved(fromPosition, toPosition)
     }
@@ -130,18 +152,12 @@ class ProfileAdapter(
     }
 }
 
-class ProfileDiffCallback(
-    private val oldList: List<Profile>,
-    private val newList: List<Profile>
-) : androidx.recyclerview.widget.DiffUtil.Callback() {
-    override fun getOldListSize(): Int = oldList.size
-    override fun getNewListSize(): Int = newList.size
-
-    override fun areItemsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
-        return oldList[oldItemPosition].id == newList[newItemPosition].id
+class ProfileItemCallback : androidx.recyclerview.widget.DiffUtil.ItemCallback<Profile>() {
+    override fun areItemsTheSame(oldItem: Profile, newItem: Profile): Boolean {
+        return oldItem.id == newItem.id
     }
 
-    override fun areContentsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
-        return oldList[oldItemPosition] == newList[newItemPosition]
+    override fun areContentsTheSame(oldItem: Profile, newItem: Profile): Boolean {
+        return oldItem == newItem
     }
 }
