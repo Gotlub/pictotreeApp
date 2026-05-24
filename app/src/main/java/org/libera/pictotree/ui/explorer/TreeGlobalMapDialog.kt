@@ -68,6 +68,7 @@ class TreeGlobalMapDialog : DialogFragment() {
     private var isSimplePreview: Boolean = false
 
     private var isDraggingPhrase = false
+    private var imageDao: org.libera.pictotree.data.database.dao.ImageDao? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -177,6 +178,7 @@ class TreeGlobalMapDialog : DialogFragment() {
         
         username = arguments?.getString("username") ?: "default"
         val database = AppDatabase.getDatabase(requireContext(), username)
+        imageDao = database.imageDao()
         val userConfigRepository = org.libera.pictotree.data.repository.UserConfigRepository(database.userConfigDao())
         
         val factory = object : ViewModelProvider.Factory {
@@ -411,8 +413,8 @@ class TreeGlobalMapDialog : DialogFragment() {
             }
             override fun shouldInterceptRequest(view: WebView?, request: WebResourceRequest?): WebResourceResponse? {
                 val ctx = appContext ?: return null
-                val db = AppDatabase.getDatabase(ctx, username)
-                return WebViewImageInterceptor.intercept(ctx, username, db.imageDao(), request?.url, strictOffline = true)
+                val dao = imageDao ?: AppDatabase.getDatabase(ctx, username).imageDao().also { imageDao = it }
+                return WebViewImageInterceptor.intercept(ctx, username, dao, request?.url, strictOffline = true)
             }
         }
 

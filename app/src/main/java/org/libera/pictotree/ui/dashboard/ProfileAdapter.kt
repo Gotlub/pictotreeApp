@@ -29,9 +29,11 @@ class ProfileAdapter(
         }
 
     fun submitList(newProfiles: List<Profile>) {
+        val diffCallback = ProfileDiffCallback(profiles, newProfiles)
+        val diffResult = androidx.recyclerview.widget.DiffUtil.calculateDiff(diffCallback)
         profiles.clear()
         profiles.addAll(newProfiles)
-        notifyDataSetChanged()
+        diffResult.dispatchUpdatesTo(this)
     }
 
     fun moveItem(fromPosition: Int, toPosition: Int) {
@@ -125,5 +127,21 @@ class ProfileAdapter(
             // Clic sur le bouton d'édition (View 3)
             btnEdit.setOnClickListener { onEditClick(profile) }
         }
+    }
+}
+
+class ProfileDiffCallback(
+    private val oldList: List<Profile>,
+    private val newList: List<Profile>
+) : androidx.recyclerview.widget.DiffUtil.Callback() {
+    override fun getOldListSize(): Int = oldList.size
+    override fun getNewListSize(): Int = newList.size
+
+    override fun areItemsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
+        return oldList[oldItemPosition].id == newList[newItemPosition].id
+    }
+
+    override fun areContentsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
+        return oldList[oldItemPosition] == newList[newItemPosition]
     }
 }

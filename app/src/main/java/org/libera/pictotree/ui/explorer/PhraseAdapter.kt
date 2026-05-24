@@ -20,6 +20,26 @@ class PhraseAdapter(
 ) : RecyclerView.Adapter<PhraseAdapter.PhraseViewHolder>() {
 
     private val items = mutableListOf<PhraseCard>()
+    private var isMovingItem = false
+
+    private val differ = androidx.recyclerview.widget.AsyncListDiffer(
+        object : androidx.recyclerview.widget.ListUpdateCallback {
+            override fun onInserted(position: Int, count: Int) {
+                if (!isMovingItem) notifyItemRangeInserted(position, count)
+            }
+            override fun onRemoved(position: Int, count: Int) {
+                if (!isMovingItem) notifyItemRangeRemoved(position, count)
+            }
+            override fun onMoved(fromPosition: Int, toPosition: Int) {
+                if (!isMovingItem) notifyItemMoved(fromPosition, toPosition)
+            }
+            override fun onChanged(position: Int, count: Int, payload: Any?) {
+                if (!isMovingItem) notifyItemRangeChanged(position, count, payload)
+            }
+        },
+        androidx.recyclerview.widget.AsyncDifferConfig.Builder(PhraseCardItemCallback()).build()
+    )
+
     private var highlightedPosition: Int = -1
     var isClockModeActive: Boolean = false
     var isTimerActivated: Boolean = false
@@ -36,12 +56,10 @@ class PhraseAdapter(
     }
 
     fun submitList(newList: List<PhraseCard>) {
-        val diffResult = androidx.recyclerview.widget.DiffUtil.calculateDiff(
-            PhraseCardDiffCallback(items.toList(), newList.toList())
-        )
-        items.clear()
-        items.addAll(newList)
-        diffResult.dispatchUpdatesTo(this)
+        differ.submitList(newList) {
+            items.clear()
+            items.addAll(newList)
+        }
     }
 
     fun getCurrentList(): List<PhraseCard> = items
@@ -63,6 +81,10 @@ class PhraseAdapter(
         if (from == to || from !in items.indices || to !in items.indices) return
         val item = items.removeAt(from)
         items.add(to, item)
+        isMovingItem = true
+        differ.submitList(items.toList()) {
+            isMovingItem = false
+        }
         notifyItemMoved(from, to)
     }
 
@@ -213,18 +235,12 @@ class PhraseAdapter(
     }
 }
 
-class PhraseCardDiffCallback(
-    private val oldList: List<PhraseCard>,
-    private val newList: List<PhraseCard>
-) : androidx.recyclerview.widget.DiffUtil.Callback() {
-    override fun getOldListSize(): Int = oldList.size
-    override fun getNewListSize(): Int = newList.size
-
-    override fun areItemsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
-        return oldList[oldItemPosition].node.id == newList[newItemPosition].node.id
+class PhraseCardItemCallback : androidx.recyclerview.widget.DiffUtil.ItemCallback<PhraseCard>() {
+    override fun areItemsTheSame(oldItem: PhraseCard, newItem: PhraseCard): Boolean {
+        return oldItem.node.id == newItem.node.id
     }
 
-    override fun areContentsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
-        return oldList[oldItemPosition] == newList[newItemPosition]
+    override fun areContentsTheSame(oldItem: PhraseCard, newItem: PhraseCard): Boolean {
+        return oldItem == newItem
     }
 }
