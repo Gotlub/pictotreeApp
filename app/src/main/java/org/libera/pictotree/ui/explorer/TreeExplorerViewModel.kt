@@ -133,21 +133,20 @@ class TreeExplorerViewModel(
         }
         activeMediaPlayer = null
 
+        val mp = MediaPlayer()
         try {
             val alarmUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
                 ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
             if (alarmUri != null) {
-                val mp = MediaPlayer().apply {
-                    setDataSource(getApplication(), alarmUri)
-                    setAudioAttributes(
-                        AudioAttributes.Builder()
-                            .setUsage(AudioAttributes.USAGE_NOTIFICATION_EVENT)
-                            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                            .build()
-                    )
-                    prepare()
-                    start()
-                }
+                mp.setDataSource(getApplication(), alarmUri)
+                mp.setAudioAttributes(
+                    AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_NOTIFICATION_EVENT)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                        .build()
+                )
+                mp.prepare()
+                mp.start()
                 activeMediaPlayer = mp
 
                 viewModelScope.launch {
@@ -162,9 +161,14 @@ class TreeExplorerViewModel(
                         activeMediaPlayer = null
                     }
                 }
+            } else {
+                mp.release()
             }
         } catch (e: Exception) {
             Log.e(TAG, "Failed to play local alarm sound", e)
+            try {
+                mp.release()
+            } catch (ex: Exception) {}
         }
     }
 
@@ -370,7 +374,7 @@ class TreeExplorerViewModel(
 
     fun addToPhrase(externalNode: TreeNode? = null) {
         val nodeToAdd = externalNode ?: _uiState.value.previewNode ?: return
-        val uniqueInstanceNode = nodeToAdd.copy(id = "${nodeToAdd.id}_${System.currentTimeMillis()}_${(0..999).random()}")
+        val uniqueInstanceNode = nodeToAdd.copy(id = "${nodeToAdd.id}_${java.util.UUID.randomUUID()}")
         
         if (nodeToAdd.imageUrl.startsWith("http") || nodeToAdd.imageUrl.contains("/api/v1/mobile/")) {
             viewModelScope.launch {

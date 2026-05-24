@@ -177,6 +177,12 @@ class ImageSyncEngine(
                     imageDao.insertTreeImageCrossRef(
                         org.libera.pictotree.data.database.entity.TreeImageCrossRef(treeId, existing.id)
                     )
+                    if ((name != null && existing.name != name) || (description != null && existing.description != description)) {
+                        imageDao.updateImage(existing.copy(
+                            name = name ?: existing.name,
+                            description = description ?: existing.description
+                        ))
+                    }
                     return@withContext true
                 }
 

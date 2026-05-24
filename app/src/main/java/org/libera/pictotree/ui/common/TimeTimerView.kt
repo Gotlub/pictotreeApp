@@ -112,7 +112,17 @@ class TimeTimerView @JvmOverloads constructor(
         canvas.drawArc(rect, -90f, sweepAngle, false, arcStrokePaint)
         
         // 4. Tracé des numéros de 0 à 55 (par pas de 5) disposés en sens anti-horaire
-        textPaint.textSize = (minDim * 0.095f).coerceIn(20f, 32f)
+        val minTextSize = android.util.TypedValue.applyDimension(
+            android.util.TypedValue.COMPLEX_UNIT_SP,
+            12f,
+            resources.displayMetrics
+        )
+        val maxTextSize = android.util.TypedValue.applyDimension(
+            android.util.TypedValue.COMPLEX_UNIT_SP,
+            22f,
+            resources.displayMetrics
+        )
+        textPaint.textSize = (minDim * 0.095f).coerceIn(minTextSize, maxTextSize)
         
         textPaint.getFontMetrics(fontMetrics)
         val yOffset = (fontMetrics.descent + fontMetrics.ascent) / 2f
