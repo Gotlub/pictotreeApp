@@ -56,11 +56,6 @@ class PhraseFullscreenFragment : Fragment() {
     private lateinit var ivPlayStopTimer: ImageView
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
-        // 1. FORCER LE PAYSAGE AVANT TOUTE CHOSE
-        val mainActivity = requireActivity() as? org.libera.pictotree.MainActivity
-        mainActivity?.disableOrientationLock()
-        requireActivity().requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
-        
         val root = inflater.inflate(R.layout.fragment_phrase_fullscreen, container, false)
 
         val username = SessionManager(requireContext()).getUsername() ?: "dummy"
@@ -420,11 +415,22 @@ class PhraseFullscreenFragment : Fragment() {
         }
     }
 
-    override fun onDestroyView() {
-        super.onDestroyView()
+    override fun onStart() {
+        super.onStart()
+        val mainActivity = requireActivity() as? org.libera.pictotree.MainActivity
+        mainActivity?.disableOrientationLock()
+        requireActivity().requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+    }
+
+    override fun onStop() {
+        super.onStop()
         val mainActivity = requireActivity() as? org.libera.pictotree.MainActivity
         mainActivity?.enableOrientationLock()
         mainActivity?.applyUserOrientation()
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
         ttsManager.stop()
     }
 

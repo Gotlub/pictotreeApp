@@ -146,7 +146,7 @@ class ImageSyncEngine(
                             finalName = ExternalImageMetadataFetcher.fetchRealName(context, username, cleanUrl, finalName)
                         }
 
-                        val tempFile = File(userImagesDir, "${fileName}_tmp_${System.currentTimeMillis()}")
+                        val tempFile = File.createTempFile("download_${fileName}_", ".tmp", userImagesDir)
                         try {
                             downloadFileAtomically(connection, tempFile, file)
                         } finally {
@@ -156,14 +156,17 @@ class ImageSyncEngine(
                         }
 
                         if (existing == null) {
-                            imageDao.insertImage(
-                                    ImageEntity(
-                                             remotePath = cleanUrl,
-                                             localPath = "images/$fileName",
-                                             name = finalName,
-                                             description = finalDesc
-                                    )
+                            val insertedId = imageDao.insertImage(
+                                     ImageEntity(
+                                              remotePath = cleanUrl,
+                                              localPath = "images/$fileName",
+                                              name = finalName,
+                                              description = finalDesc
+                                     )
                             )
+                            if (insertedId == -1L) {
+                                throw java.io.IOException("Failed to insert image entity into database")
+                            }
                         } else {
                             imageDao.updateImage(existing.copy(name = finalName, description = finalDesc))
                         }
@@ -246,7 +249,7 @@ class ImageSyncEngine(
                             finalName = ExternalImageMetadataFetcher.fetchRealName(context, username, cleanUrl, finalName)
                         }
 
-                        val tempFile = File(userImagesDir, "${fileName}_tmp_${System.currentTimeMillis()}")
+                        val tempFile = File.createTempFile("download_${fileName}_", ".tmp", userImagesDir)
                         try {
                             downloadFileAtomically(connection, tempFile, file)
                         } finally {
@@ -260,7 +263,7 @@ class ImageSyncEngine(
                             imageDao.updateImage(existing.copy(name = finalName, description = finalDesc))
                             existing.id
                         } else {
-                            // Nouvelle image complète (avec conversion sécurisée de la clé SQLite Long vers Int)
+                            // Nouvelle image complète (avec vérification robuste d'échec SQLite et typage d'IDs conforme)
                             val insertedId = imageDao.insertImage(
                                 ImageEntity(
                                     remotePath = cleanUrl,
@@ -269,6 +272,9 @@ class ImageSyncEngine(
                                     description = finalDesc
                                 )
                             )
+                            if (insertedId == -1L) {
+                                throw java.io.IOException("Failed to insert image entity into database")
+                            }
                             if (insertedId > Int.MAX_VALUE) Int.MAX_VALUE else insertedId.toInt()
                         }
 
