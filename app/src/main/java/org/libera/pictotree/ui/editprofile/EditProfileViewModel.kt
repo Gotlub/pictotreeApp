@@ -241,9 +241,6 @@ class EditProfileViewModel(
                 finalLocalAvatarUrl = engine.downloadSingleImage(avatarUrl!!) ?: avatarUrl
             } else {
                 finalLocalAvatarUrl = avatarUrl ?: currentProfile.avatarUrl
-                if (avatarUrl != null) {
-                    finalRemoteAvatarUrl = null
-                }
             }
 
             val updated = currentProfile.copy(

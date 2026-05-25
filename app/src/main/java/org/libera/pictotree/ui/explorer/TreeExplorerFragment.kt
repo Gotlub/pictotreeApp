@@ -331,6 +331,9 @@ class TreeExplorerFragment : Fragment() {
                             cardSpeak.visibility = if (config.enableTTSButton) View.VISIBLE else View.GONE
                             cardRotate.visibility = if (config.enableRotationButton) View.VISIBLE else View.GONE
                             cardEye.visibility = if (config.enableViewChangeButton) View.VISIBLE else View.GONE
+                            
+                            // Restaurer le réglage de langue
+                            ttsManager.setLanguage(config.locale)
                         }
                     }
                 }
@@ -361,6 +364,25 @@ class TreeExplorerFragment : Fragment() {
                 }
             }
         }
+        
+        // Restaurer les écouteurs de TTS pour le surlignage des mots
+        ttsManager.setListeners(
+            onStart = { id -> 
+                id.toIntOrNull()?.let { idx -> 
+                    requireActivity().runOnUiThread { 
+                        phraseAdapter.highlightPosition(idx)
+                        rvPhrase.smoothScrollToPosition(idx) 
+                    } 
+                } 
+            }, 
+            onDone = { id -> 
+                if (id.toIntOrNull() == phraseAdapter.itemCount - 1) {
+                    requireActivity().runOnUiThread { 
+                        phraseAdapter.highlightPosition(-1) 
+                    } 
+                }
+            }
+        )
     }
 
     private fun updateUI(state: HierarchicalUiState) {

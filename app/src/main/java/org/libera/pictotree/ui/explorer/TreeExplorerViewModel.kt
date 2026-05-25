@@ -168,7 +168,9 @@ class TreeExplorerViewModel(
             Log.e(TAG, "Failed to play local alarm sound", e)
             try {
                 mp.release()
-            } catch (ex: Exception) {}
+            } catch (ex: Exception) {
+                Log.e(TAG, "Failed to release MediaPlayer in catch block", ex)
+            }
         }
     }
 
