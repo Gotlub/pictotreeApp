@@ -241,7 +241,9 @@ class TreeGlobalMapDialog : DialogFragment() {
             phraseAdapter = PhraseAdapter(username = username, onItemClick = { position ->
                 val card = phraseAdapter?.getCurrentList()?.getOrNull(position)
                 card?.let { ttsManager.speak(it.node.label) }
-            })
+            }).apply {
+                timerColor = org.libera.pictotree.data.SessionManager(requireContext()).getTimerColor()
+            }
             rvPhrase?.adapter = phraseAdapter
             (rvPhrase?.itemAnimator as? androidx.recyclerview.widget.SimpleItemAnimator)?.supportsChangeAnimations = false
             rvPhrase?.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)

@@ -302,7 +302,9 @@ class PhraseFullscreenFragment : Fragment() {
                 val card = adapter.getCurrentList()[position]
                 ttsManager.speak(card.node.label)
             }
-        })
+        }).apply {
+            timerColor = org.libera.pictotree.data.SessionManager(requireContext()).getTimerColor()
+        }
         adapter.isClockModeActive = viewModel.isClockModeActive.value
         adapter.isTimerActivated = viewModel.isTimerActivated.value
         rv.adapter = adapter

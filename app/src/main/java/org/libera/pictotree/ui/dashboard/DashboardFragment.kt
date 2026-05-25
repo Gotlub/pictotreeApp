@@ -204,13 +204,13 @@ class DashboardFragment : Fragment() {
         ivAdminStatus.setOnClickListener { 
             if (viewModel.isAdminMode.value) {
                 MaterialAlertDialogBuilder(requireContext())
-                    .setTitle("Verrouiller l'édition ?")
-                    .setMessage("Le mode administrateur sera désactivé. Vous devrez vous reconnecter pour modifier les profils.")
-                    .setPositiveButton("Verrouiller") { _, _ ->
+                    .setTitle(R.string.dialog_lock_admin_title)
+                    .setMessage(R.string.dialog_lock_admin_message)
+                    .setPositiveButton(R.string.dialog_lock_admin_positive) { _, _ ->
                         viewModel.setAdminMode(false)
-                        Toast.makeText(requireContext(), "Édition verrouillée", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(requireContext(), getString(R.string.dialog_lock_admin_toast), Toast.LENGTH_SHORT).show()
                     }
-                    .setNegativeButton("Annuler", null)
+                    .setNegativeButton(R.string.dialog_lock_admin_negative, null)
                     .show()
             } else {
                 showUnlockLoginDialog()
@@ -237,22 +237,25 @@ class DashboardFragment : Fragment() {
         val tvUser = dialogView.findViewById<TextView>(R.id.tv_unlock_user)
         val sessionManager = SessionManager(requireContext())
         val username = sessionManager.getUsername() ?: "default"
-        tvUser.text = "Utilisateur : $username"
+        tvUser.text = getString(R.string.dialog_unlock_admin_user_prefix, username)
 
         MaterialAlertDialogBuilder(requireContext())
-            .setTitle("Déverrouiller l'édition")
+            .setTitle(R.string.dialog_unlock_admin_title)
             .setView(dialogView)
-            .setPositiveButton("Déverrouiller") { _, _ ->
+            .setPositiveButton(R.string.dialog_unlock_admin_positive) { _, _ ->
                 val password = etPassword.text?.toString() ?: ""
                 viewLifecycleOwner.lifecycleScope.launch {
                     progressBar.visibility = View.VISIBLE
                     val result = viewModel.tryUnlock(password)
                     progressBar.visibility = View.GONE
-                    if (result.isSuccess) Toast.makeText(requireContext(), "Accès autorisé", Toast.LENGTH_SHORT).show()
-                    else Toast.makeText(requireContext(), "Échec : ${result.exceptionOrNull()?.message}", Toast.LENGTH_LONG).show()
+                    if (result.isSuccess) {
+                        Toast.makeText(requireContext(), getString(R.string.dialog_unlock_admin_toast_success), Toast.LENGTH_SHORT).show()
+                    } else {
+                        Toast.makeText(requireContext(), getString(R.string.dialog_unlock_admin_toast_error, result.exceptionOrNull()?.message ?: ""), Toast.LENGTH_LONG).show()
+                    }
                 }
             }
-            .setNegativeButton("Annuler", null)
+            .setNegativeButton(R.string.dialog_lock_admin_negative, null)
             .show()
     }
 }

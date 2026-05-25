@@ -95,4 +95,15 @@
         <item>red</item>
         <item>green</item>
     </string-array>
+    <!-- Edit Locking / Unlocking Dialogs -->
+    <string name="dialog_lock_admin_title">Verrouiller l\'édition ?</string>
+    <string name="dialog_lock_admin_message">Le mode administrateur sera désactivé. Vous devrez vous reconnecter pour modifier les profils.</string>
+    <string name="dialog_lock_admin_positive">Verrouiller</string>
+    <string name="dialog_lock_admin_negative">Annuler</string>
+    <string name="dialog_lock_admin_toast">Édition verrouillée</string>
+    <string name="dialog_unlock_admin_title">Déverrouiller l\'édition</string>
+    <string name="dialog_unlock_admin_positive">Déverrouiller</string>
+    <string name="dialog_unlock_admin_toast_success">Accès autorisé</string>
+    <string name="dialog_unlock_admin_toast_error">Échec : %s</string>
+    <string name="dialog_unlock_admin_user_prefix">Utilisateur : %s</string>
 </resources>

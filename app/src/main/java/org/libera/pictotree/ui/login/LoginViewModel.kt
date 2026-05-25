@@ -37,6 +37,7 @@ class LoginViewModel(
 ) : AndroidViewModel(application) {
 
     private val authRepository = AuthRepository(RetrofitClient.apiService)
+    private val sessionManager = SessionManager(application)
     private val _uiState = MutableStateFlow(LoginUiState())
     val uiState: StateFlow<LoginUiState> = _uiState.asStateFlow()
 
@@ -52,7 +53,6 @@ class LoginViewModel(
             val isNewUser = !isKnownUser && username.isNotBlank()
             
             // VERIFIER SI LE MODE HORS LIGNE EST AUTORISÉ POUR CETTE PERSONNE
-            val sessionManager = SessionManager(getApplication())
             val offlineAllowed = if (isKnownUser) sessionManager.isOfflineAccessAllowed(username) else false
 
             currentState.copy(
@@ -88,7 +88,6 @@ class LoginViewModel(
             viewModelScope.launch {
                 val knownUsers = _uiState.value.availableUsers
                 if (knownUsers.contains(username)) {
-                    val sessionManager = SessionManager(getApplication())
                     val isAllowed = sessionManager.isOfflineAccessAllowed(username)
                     
                     if (isAllowed) {

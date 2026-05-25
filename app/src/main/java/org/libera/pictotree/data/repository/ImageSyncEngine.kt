@@ -275,7 +275,7 @@ class ImageSyncEngine(
                             if (insertedId == -1L) {
                                 throw java.io.IOException("Failed to insert image entity into database")
                             }
-                            if (insertedId > Int.MAX_VALUE) Int.MAX_VALUE else insertedId.toInt()
+                            insertedId.toInt()
                         }
 
                         imageDao.insertTreeImageCrossRef(

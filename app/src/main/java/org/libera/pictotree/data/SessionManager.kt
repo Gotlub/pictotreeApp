@@ -51,7 +51,11 @@ class SessionManager(context: Context) {
         return prefs.getStringSet("KNOWN_USERS", emptySet()) ?: emptySet()
     }
 
-    fun clearSession() {
+    /**
+     * Nettoie uniquement les jetons d'administration pour forcer le verrouillage de l'édition,
+     * tout en préservant le nom d'utilisateur pour pouvoir afficher le mode de déverrouillage hors-ligne.
+     */
+    fun clearAdminSession() {
         prefs.edit()
             .remove("USER_TOKEN")
             .remove("REFRESH_TOKEN")

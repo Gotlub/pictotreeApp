@@ -105,7 +105,7 @@ class DashboardViewModel(
     fun setAdminMode(isAdmin: Boolean) {
         _isAdminMode.value = isAdmin
         if (!isAdmin) {
-            SessionManager(getApplication()).clearSession()
+            SessionManager(getApplication()).clearAdminSession()
         }
     }
 
@@ -123,8 +123,7 @@ class DashboardViewModel(
     fun addProfile(name: String, avatarUrl: String? = null) {
         viewModelScope.launch {
             val id = profileRepository.insertProfile(Profile(name = name, avatarUrl = avatarUrl))
-            val safeId = if (id > Int.MAX_VALUE) Int.MAX_VALUE else id.toInt()
-            _navigateToProfileEvent.send(safeId)
+            _navigateToProfileEvent.send(id.toInt())
         }
     }
 
@@ -134,8 +133,7 @@ class DashboardViewModel(
             val currentCount = if (state is DashboardUiState.Success) state.profiles.size else 0
             val defaultName = "Profil ${currentCount + 1}"
             val id = profileRepository.insertProfile(Profile(name = defaultName))
-            val safeId = if (id > Int.MAX_VALUE) Int.MAX_VALUE else id.toInt()
-            _navigateToProfileEvent.send(safeId)
+            _navigateToProfileEvent.send(id.toInt())
         }
     }
 
@@ -195,7 +193,7 @@ class DashboardViewModel(
                     avatarUrl = localAvatarUrl,
                     remoteAvatarUrl = detailedProfile.remoteAvatarUrl
                 ))
-                val localProfileId = if (localProfileIdLong > Int.MAX_VALUE) Int.MAX_VALUE else localProfileIdLong.toInt()
+                val localProfileId = localProfileIdLong.toInt()
                 
                 detailedProfile.trees?.forEachIndexed { index, treeConfig ->
                     val treeId = treeConfig.treeId

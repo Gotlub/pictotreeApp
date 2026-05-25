@@ -149,7 +149,9 @@ class TreeSelectionFragment : Fragment() {
                 val card = phraseAdapter.getCurrentList()[position]
                 ttsManager.speak(card.node.label) 
             }
-        )
+        ).apply {
+            timerColor = org.libera.pictotree.data.SessionManager(requireContext()).getTimerColor()
+        }
         rvPhrase.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
         rvPhrase.adapter = phraseAdapter
         (rvPhrase.itemAnimator as? androidx.recyclerview.widget.SimpleItemAnimator)?.supportsChangeAnimations = false

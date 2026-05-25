@@ -21,7 +21,6 @@ class PhraseAdapter(
 
     private val items = mutableListOf<PhraseCard>()
     private var isMovingItem = false
-    private var cachedTimerColor: String? = null
 
     private val differ = androidx.recyclerview.widget.AsyncListDiffer(
         object : androidx.recyclerview.widget.ListUpdateCallback {
@@ -57,7 +56,6 @@ class PhraseAdapter(
     }
 
     fun submitList(newList: List<PhraseCard>) {
-        cachedTimerColor = null
         differ.submitList(newList) {
             items.clear()
             items.addAll(newList)
@@ -90,6 +88,12 @@ class PhraseAdapter(
         notifyItemMoved(from, to)
     }
 
+    var timerColor: String = "red"
+        set(value) {
+            field = value
+            notifyDataSetChanged()
+        }
+
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PhraseViewHolder {
         val view = LayoutInflater.from(parent.context).inflate(layoutId, parent, false)
         return PhraseViewHolder(view, username, allowNetwork, onItemClick)
@@ -97,10 +101,7 @@ class PhraseAdapter(
 
     override fun onBindViewHolder(holder: PhraseViewHolder, position: Int) {
         items[position].isSelectedForConfig = (position == selectedConfigIndex)
-        if (cachedTimerColor == null) {
-            cachedTimerColor = org.libera.pictotree.data.SessionManager(holder.itemView.context).getTimerColor()
-        }
-        holder.bind(items[position], position == highlightedPosition, position == 0, isClockModeActive, isTimerActivated, cachedTimerColor ?: "red")
+        holder.bind(items[position], position == highlightedPosition, position == 0, isClockModeActive, isTimerActivated, timerColor)
     }
 
     class PhraseViewHolder(

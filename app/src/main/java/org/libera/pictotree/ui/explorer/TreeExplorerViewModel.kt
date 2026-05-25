@@ -15,6 +15,7 @@ import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import org.libera.pictotree.data.database.dao.ProfileDao
 import org.libera.pictotree.data.database.dao.TreeDao
@@ -143,61 +144,56 @@ class TreeExplorerViewModel(
         }
         activeMediaPlayer = null
 
-        viewModelScope.launch(Dispatchers.IO) {
-            val mp = MediaPlayer()
+        viewModelScope.launch {
             try {
                 val alarmUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
                     ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
                 if (alarmUri != null) {
-                    mp.setDataSource(getApplication(), alarmUri)
+                    val mp = MediaPlayer()
                     mp.setAudioAttributes(
                         AudioAttributes.Builder()
                             .setUsage(AudioAttributes.USAGE_NOTIFICATION_EVENT)
                             .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
                             .build()
                     )
-                    mp.setOnCompletionListener {
-                        viewModelScope.launch(Dispatchers.IO) {
+
+                    withContext(Dispatchers.IO) {
+                        mp.setDataSource(getApplication(), alarmUri)
+                        mp.prepare()
+                    }
+
+                    var isReleased = false
+                    val releasePlayer = {
+                        if (!isReleased) {
+                            isReleased = true
+                            try { mp.release() } catch (e: Exception) {}
                             if (activeMediaPlayer == mp) {
-                                try {
-                                    mp.release()
-                                } catch (e: Exception) {
-                                    Log.e(TAG, "Error releasing media player on completion", e)
-                                }
                                 activeMediaPlayer = null
                             }
                         }
                     }
-                    mp.prepare()
+
+                    mp.setOnCompletionListener {
+                        releasePlayer()
+                    }
+
                     mp.start()
                     activeMediaPlayer = mp
 
-                    viewModelScope.launch(Dispatchers.IO) {
+                    launch {
                         delay(3000)
-                        if (activeMediaPlayer == mp) {
+                        if (!isReleased) {
                             try {
                                 if (mp.isPlaying) mp.stop()
                             } catch (e: Exception) {
                                 Log.e(TAG, "Error stopping media player after 3s", e)
                             }
-                            try {
-                                mp.release()
-                            } catch (e: Exception) {
-                                Log.e(TAG, "Error releasing media player after 3s", e)
-                            }
-                            activeMediaPlayer = null
+                            releasePlayer()
                         }
                     }
-                } else {
-                    mp.release()
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to play local alarm sound", e)
-                try {
-                    mp.release()
-                } catch (ex: Exception) {
-                    Log.e(TAG, "Failed to release MediaPlayer in catch block", ex)
-                }
             }
         }
     }

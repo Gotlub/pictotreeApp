@@ -203,7 +203,9 @@ class TreeExplorerFragment : Fragment() {
             if (position in cardList.indices) {
                 ttsManager.speak(cardList[position].node.label)
             }
-        })
+        }).apply {
+            timerColor = org.libera.pictotree.data.SessionManager(requireContext()).getTimerColor()
+        }
         rvPhrase.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
         rvPhrase.adapter = phraseAdapter
         (rvPhrase.itemAnimator as? androidx.recyclerview.widget.SimpleItemAnimator)?.supportsChangeAnimations = false
