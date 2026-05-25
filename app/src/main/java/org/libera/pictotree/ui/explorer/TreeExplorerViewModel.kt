@@ -143,43 +143,61 @@ class TreeExplorerViewModel(
         }
         activeMediaPlayer = null
 
-        val mp = MediaPlayer()
-        try {
-            val alarmUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
-                ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
-            if (alarmUri != null) {
-                mp.setDataSource(getApplication(), alarmUri)
-                mp.setAudioAttributes(
-                    AudioAttributes.Builder()
-                        .setUsage(AudioAttributes.USAGE_NOTIFICATION_EVENT)
-                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                        .build()
-                )
-                mp.prepare()
-                mp.start()
-                activeMediaPlayer = mp
-
-                viewModelScope.launch {
-                    delay(3000)
-                    if (activeMediaPlayer == mp) {
-                        try {
-                            if (mp.isPlaying) mp.stop()
-                        } catch (e: Exception) {
-                            Log.e(TAG, "Error stopping media player after 3s", e)
-                        }
-                        mp.release()
-                        activeMediaPlayer = null
-                    }
-                }
-            } else {
-                mp.release()
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to play local alarm sound", e)
+        viewModelScope.launch(Dispatchers.IO) {
+            val mp = MediaPlayer()
             try {
-                mp.release()
-            } catch (ex: Exception) {
-                Log.e(TAG, "Failed to release MediaPlayer in catch block", ex)
+                val alarmUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+                    ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+                if (alarmUri != null) {
+                    mp.setDataSource(getApplication(), alarmUri)
+                    mp.setAudioAttributes(
+                        AudioAttributes.Builder()
+                            .setUsage(AudioAttributes.USAGE_NOTIFICATION_EVENT)
+                            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                            .build()
+                    )
+                    mp.setOnCompletionListener {
+                        viewModelScope.launch(Dispatchers.IO) {
+                            if (activeMediaPlayer == mp) {
+                                try {
+                                    mp.release()
+                                } catch (e: Exception) {
+                                    Log.e(TAG, "Error releasing media player on completion", e)
+                                }
+                                activeMediaPlayer = null
+                            }
+                        }
+                    }
+                    mp.prepare()
+                    mp.start()
+                    activeMediaPlayer = mp
+
+                    viewModelScope.launch(Dispatchers.IO) {
+                        delay(3000)
+                        if (activeMediaPlayer == mp) {
+                            try {
+                                if (mp.isPlaying) mp.stop()
+                            } catch (e: Exception) {
+                                Log.e(TAG, "Error stopping media player after 3s", e)
+                            }
+                            try {
+                                mp.release()
+                            } catch (e: Exception) {
+                                Log.e(TAG, "Error releasing media player after 3s", e)
+                            }
+                            activeMediaPlayer = null
+                        }
+                    }
+                } else {
+                    mp.release()
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to play local alarm sound", e)
+                try {
+                    mp.release()
+                } catch (ex: Exception) {
+                    Log.e(TAG, "Failed to release MediaPlayer in catch block", ex)
+                }
             }
         }
     }

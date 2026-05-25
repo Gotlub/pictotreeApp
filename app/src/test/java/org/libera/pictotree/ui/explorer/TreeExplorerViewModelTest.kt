@@ -57,6 +57,7 @@ class TreeExplorerViewModelTest {
         mockkConstructor(MediaPlayer::class)
         every { anyConstructed<MediaPlayer>().setDataSource(any<Application>(), any()) } returns Unit
         every { anyConstructed<MediaPlayer>().setAudioAttributes(any()) } returns Unit
+        every { anyConstructed<MediaPlayer>().setOnCompletionListener(any()) } returns Unit
         every { anyConstructed<MediaPlayer>().prepare() } returns Unit
         every { anyConstructed<MediaPlayer>().start() } returns Unit
         every { anyConstructed<MediaPlayer>().release() } returns Unit
