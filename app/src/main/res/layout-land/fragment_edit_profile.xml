@@ -4,19 +4,11 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:padding="16dp">
+    android:padding="12dp">
 
-    <!-- Ligne verticale de séparation à 42% de la largeur -->
-    <androidx.constraintlayout.widget.Guideline
-        android:id="@+id/guideline_vertical"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        app:layout_constraintGuide_percent="0.42" />
+    <!-- LIGNE DU HAUT (Horizontal Row compact) -->
 
-    <!-- GAUCHE: CONFIGURATION PROFIL (Alignement horizontal compact en haut) -->
-
-    <!-- Bouton de retour au Dashboard -->
+    <!-- Bouton de retour -->
     <ImageButton
         android:id="@+id/btnBackToDashboard"
         android:layout_width="48dp"
@@ -27,13 +19,13 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
 
-    <!-- Conteneur circulaire de l'avatar preview -->
+    <!-- Avatar Preview -->
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/layoutAvatarSelector"
-        android:layout_width="56dp"
-        android:layout_height="56dp"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
         android:layout_marginStart="8dp"
-        app:cardCornerRadius="28dp"
+        app:cardCornerRadius="24dp"
         app:cardElevation="0dp"
         app:strokeWidth="1.5dp"
         app:strokeColor="?attr/colorOutline"
@@ -49,19 +41,20 @@
             android:contentDescription="Avatar Preview" />
     </com.google.android.material.card.MaterialCardView>
 
-    <!-- Bouton pour chercher/changer d'avatar (superposé en bas à droite de l'avatar) -->
+    <!-- Bouton Recherche Avatar (à côté de l'avatar preview pour ne plus le cacher) -->
     <ImageButton
         android:id="@+id/btnSearchAvatar"
-        android:layout_width="32dp"
-        android:layout_height="32dp"
-        android:background="?attr/selectableItemBackgroundBorderless"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_marginStart="8dp"
+        android:background="?attr/selectableItemBackground"
         android:src="@android:drawable/ic_menu_search"
         app:tint="?attr/colorPrimary"
         android:contentDescription="Search Avatar"
-        app:layout_constraintBottom_toBottomOf="@id/layoutAvatarSelector"
-        app:layout_constraintEnd_toEndOf="@id/layoutAvatarSelector" />
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toEndOf="@id/layoutAvatarSelector" />
 
-    <!-- Champ d'édition du Nom du Profil (prend toute la largeur restante du panneau gauche) -->
+    <!-- Nom du Profil (prend tout le reste de la largeur de la première ligne) -->
     <com.google.android.material.textfield.TextInputLayout
         android:id="@+id/parentProfileNameLayout"
         android:layout_width="0dp"
@@ -69,8 +62,8 @@
         android:layout_marginStart="8dp"
         android:hint="@string/dialog_create_profile_name_hint"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintStart_toEndOf="@id/layoutAvatarSelector"
-        app:layout_constraintEnd_toStartOf="@id/guideline_vertical">
+        app:layout_constraintStart_toEndOf="@id/btnSearchAvatar"
+        app:layout_constraintEnd_toEndOf="parent">
         
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/editProfileName"
@@ -82,58 +75,57 @@
             android:paddingVertical="10dp" />
     </com.google.android.material.textfield.TextInputLayout>
 
-    <!-- Libellé discret pour l'avatar sous le sélecteur -->
+    <!-- Libellé de l'avatar (masqué en paysage pour maximiser l'espace en hauteur) -->
     <TextView
         android:id="@+id/tvAvatarLabel"
-        android:layout_width="0dp"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="@string/profile_choose_avatar"
-        android:textSize="11sp"
-        android:textStyle="bold"
-        android:alpha="0.7"
-        app:layout_constraintTop_toBottomOf="@id/layoutAvatarSelector"
+        android:visibility="gone"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toStartOf="@id/guideline_vertical" />
+        app:layout_constraintTop_toTopOf="parent"
+        tools:ignore="MissingConstraints" />
+
+    <!-- ACTIONS EN BAS -->
 
     <!-- Bouton Options (Ancré en bas à gauche) -->
     <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
         android:id="@+id/btnOpenOptions"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="8dp"
+        android:layout_marginBottom="4dp"
         android:text="Options"
         app:icon="@android:drawable/ic_menu_preferences"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
-
-    <!-- DROITE: RECICLERVIEW DES ARBRES DE PROFIL (Pleine hauteur) -->
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/recyclerViewProfileTrees"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:layout_marginStart="16dp"
-        android:clipToPadding="false"
-        android:paddingBottom="80dp"
-        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toEndOf="@id/guideline_vertical"
-        app:layout_constraintEnd_toEndOf="parent"
-        tools:listitem="@layout/item_profile_tree" />
 
     <!-- Bouton d'ajout d'arbre (Ancré en bas à droite) -->
     <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
         android:id="@+id/fabAddTree"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="8dp"
+        android:layout_marginBottom="4dp"
         android:text="Add tree"
         app:icon="@android:drawable/ic_input_add"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
-    <!-- Indicateur de progression (Centré dans l'écran) -->
+    <!-- MILIEU : LISTE DES ARBRES DE PROFIL (Prend toute la largeur de l'écran en dessous) -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recyclerViewProfileTrees"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="8dp"
+        android:clipToPadding="false"
+        android:paddingBottom="4dp"
+        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+        app:layout_constraintTop_toBottomOf="@id/parentProfileNameLayout"
+        app:layout_constraintBottom_toTopOf="@id/btnOpenOptions"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        tools:listitem="@layout/item_profile_tree" />
+
+    <!-- Indicateur de progression (Centré) -->
     <ProgressBar
         android:id="@+id/progressBarSync"
         android:layout_width="wrap_content"

@@ -91,20 +91,16 @@ class ProfileAdapter(
         private val tvName: TextView = itemView.findViewById(R.id.tvProfileName)
         private val btnEdit: ImageButton = itemView.findViewById(R.id.btnEditProfile)
         private val ivAvatar: ImageView = itemView.findViewById(R.id.ivAvatar)
-
-        private val dragRunnable = java.lang.Runnable { onStartDrag(this) }
+        private val btnDrag: ImageView = itemView.findViewById(R.id.btnDrag)
 
         init {
-            itemView.setOnTouchListener { v, event ->
-                if (!isAdminMode) return@setOnTouchListener false
-                val handler = v.handler
-                if (handler != null) {
-                    when (event.actionMasked) {
-                        android.view.MotionEvent.ACTION_DOWN -> handler.postDelayed(dragRunnable, 250)
-                        android.view.MotionEvent.ACTION_UP, android.view.MotionEvent.ACTION_CANCEL -> handler.removeCallbacks(dragRunnable)
-                    }
+            btnDrag.setOnTouchListener { _, event ->
+                if (event.actionMasked == android.view.MotionEvent.ACTION_DOWN && isAdminMode) {
+                    onStartDrag(this)
+                    true
+                } else {
+                    false
                 }
-                false
             }
         }
 
@@ -140,8 +136,9 @@ class ProfileAdapter(
                 ivAvatar.clearColorFilter()
             }
 
-            // Activer ou désactiver le bouton d'édition selon le mode
+            // Activer ou désactiver le bouton d'édition et de drag selon le mode
             btnEdit.visibility = if (isAdminMode) View.VISIBLE else View.GONE
+            btnDrag.visibility = if (isAdminMode) View.VISIBLE else View.GONE
 
             // Clic sur l'entièreté de la carte (View 4)
             itemView.setOnClickListener { onProfileClick(profile) }

@@ -89,6 +89,9 @@ class DashboardFragment : Fragment() {
         val itemTouchHelper = androidx.recyclerview.widget.ItemTouchHelper(object : androidx.recyclerview.widget.ItemTouchHelper.SimpleCallback(
             androidx.recyclerview.widget.ItemTouchHelper.UP or androidx.recyclerview.widget.ItemTouchHelper.DOWN, 0
         ) {
+            override fun isLongPressDragEnabled(): Boolean {
+                return false
+            }
             override fun onMove(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder, target: RecyclerView.ViewHolder): Boolean {
                 if (!adapter.isAdminMode) return false
                 adapter.moveItem(viewHolder.bindingAdapterPosition, target.bindingAdapterPosition)

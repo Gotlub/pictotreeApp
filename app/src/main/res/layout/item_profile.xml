@@ -51,9 +51,25 @@
             android:visibility="gone"
             tools:visibility="visible"
             app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintEnd_toStartOf="@+id/btnDrag"
             app:layout_constraintTop_toTopOf="parent"
             android:contentDescription="Éditer le profil" />
+
+        <!-- Bouton Drag Handle (Conditionnel Admin) -->
+        <ImageView
+            android:id="@+id/btnDrag"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:padding="12dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_drag_handle"
+            app:tint="?attr/colorOnSurface"
+            android:visibility="gone"
+            tools:visibility="visible"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            android:contentDescription="Faire glisser pour réordonner" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </com.google.android.material.card.MaterialCardView>

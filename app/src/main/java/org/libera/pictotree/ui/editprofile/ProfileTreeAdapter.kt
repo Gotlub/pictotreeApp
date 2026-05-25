@@ -74,19 +74,16 @@ class ProfileTreeAdapter(
         private val repairButton: ImageButton = itemView.findViewById(R.id.buttonRepairTree) // Ajouté
         private val imageIcon: ImageView = itemView.findViewById(R.id.imageTreeIcon)
         private val colorIndicator: View = itemView.findViewById(R.id.indicator_tree_color)
-
-        private val dragRunnable = java.lang.Runnable { onStartDrag(this) }
+        private val btnDrag: ImageView = itemView.findViewById(R.id.btnDrag)
 
         init {
-            itemView.setOnTouchListener { v, event ->
-                val handler = v.handler
-                if (handler != null) {
-                    when (event.actionMasked) {
-                        android.view.MotionEvent.ACTION_DOWN -> handler.postDelayed(dragRunnable, 250)
-                        android.view.MotionEvent.ACTION_UP, android.view.MotionEvent.ACTION_CANCEL -> handler.removeCallbacks(dragRunnable)
-                    }
+            btnDrag.setOnTouchListener { _, event ->
+                if (event.actionMasked == android.view.MotionEvent.ACTION_DOWN) {
+                    onStartDrag(this)
+                    true
+                } else {
+                    false
                 }
-                false
             }
         }
 

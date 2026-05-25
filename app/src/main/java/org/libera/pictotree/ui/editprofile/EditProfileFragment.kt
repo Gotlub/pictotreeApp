@@ -121,6 +121,9 @@ class EditProfileFragment : Fragment() {
 
     private fun setupAdapter() {
         val itemTouchHelper = ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(ItemTouchHelper.UP or ItemTouchHelper.DOWN, 0) {
+            override fun isLongPressDragEnabled(): Boolean {
+                return false
+            }
             override fun onMove(recyclerView: RecyclerView, viewHolder: RecyclerView.ViewHolder, target: RecyclerView.ViewHolder): Boolean {
                 adapter.moveItem(viewHolder.bindingAdapterPosition, target.bindingAdapterPosition)
                 return true
