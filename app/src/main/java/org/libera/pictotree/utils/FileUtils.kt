@@ -95,9 +95,7 @@ object FileUtils {
         val source: Any = if (localFile.exists()) localFile else url
         
         if (source is String && !source.startsWith("http") && !source.startsWith("file") && !source.startsWith("color:")) {
-            val base = hostUrl.removeSuffix("/")
-            val cleanRel = source.removePrefix("/")
-            return "$base/$cleanRel"
+            return normalizeUrl(source, hostUrl)
         }
         return source
     }

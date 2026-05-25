@@ -74,6 +74,33 @@ class ImageSyncEngine(
         return SyncResult(total, errors)
     }
 
+    private fun downloadFileAtomically(connection: java.net.HttpURLConnection, tempFile: File, destinationFile: File) {
+        connection.inputStream.use { input ->
+            FileOutputStream(tempFile).use { output -> input.copyTo(output) }
+        }
+        if (destinationFile.exists()) {
+            destinationFile.delete()
+        }
+        if (!tempFile.renameTo(destinationFile)) {
+            throw java.io.IOException("Failed to rename temporary download file to ${destinationFile.absolutePath}")
+        }
+    }
+
+    private fun decodeDescriptionHeader(headerDesc: String?): String? {
+        if (headerDesc.isNullOrBlank()) return null
+        return try {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                java.net.URLDecoder.decode(headerDesc, java.nio.charset.StandardCharsets.UTF_8)
+            } else {
+                @Suppress("DEPRECATION")
+                java.net.URLDecoder.decode(headerDesc, "UTF-8")
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to decode X-Image-Description header: ${e.message}")
+            null
+        }
+    }
+
     suspend fun downloadSingleImage(remoteUrl: String, name: String? = null, description: String? = null): String? =
             withContext(Dispatchers.IO) {
                 if (remoteUrl.isBlank()) return@withContext null
@@ -111,36 +138,17 @@ class ImageSyncEngine(
                         var finalDesc = description
                         val headerDesc = connection.getHeaderField("X-Image-Description")
 
-                        if (!headerDesc.isNullOrBlank()) {
-                            try {
-                                val decoded = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-                                    java.net.URLDecoder.decode(headerDesc, java.nio.charset.StandardCharsets.UTF_8)
-                                } else {
-                                    @Suppress("DEPRECATION")
-                                    java.net.URLDecoder.decode(headerDesc, "UTF-8")
-                                }
-                                if (decoded.isNotBlank()) {
-                                    finalName = decoded
-                                    finalDesc = decoded
-                                }
-                            } catch (e: Exception) {
-                                Log.w(TAG, "Failed to decode X-Image-Description header: ${e.message}")
-                            }
+                        val decoded = decodeDescriptionHeader(headerDesc)
+                        if (!decoded.isNullOrBlank()) {
+                            finalName = decoded
+                            finalDesc = decoded
                         } else if (name == null) {
                             finalName = ExternalImageMetadataFetcher.fetchRealName(context, username, cleanUrl, finalName)
                         }
 
                         val tempFile = File(userImagesDir, "${fileName}_tmp_${System.currentTimeMillis()}")
                         try {
-                            connection.inputStream.use { input ->
-                                FileOutputStream(tempFile).use { output -> input.copyTo(output) }
-                            }
-                            if (file.exists()) {
-                                file.delete()
-                            }
-                            if (!tempFile.renameTo(file)) {
-                                throw java.io.IOException("Failed to rename temporary download file to ${file.absolutePath}")
-                            }
+                            downloadFileAtomically(connection, tempFile, file)
                         } finally {
                             if (tempFile.exists()) {
                                 tempFile.delete()
@@ -150,10 +158,10 @@ class ImageSyncEngine(
                         if (existing == null) {
                             imageDao.insertImage(
                                     ImageEntity(
-                                            remotePath = cleanUrl,
-                                            localPath = "images/$fileName",
-                                            name = finalName,
-                                            description = finalDesc
+                                             remotePath = cleanUrl,
+                                             localPath = "images/$fileName",
+                                             name = finalName,
+                                             description = finalDesc
                                     )
                             )
                         } else {
@@ -230,36 +238,17 @@ class ImageSyncEngine(
                         var finalDesc = description
 
                         val headerDesc = connection.getHeaderField("X-Image-Description")
-                        if (!headerDesc.isNullOrBlank()) {
-                            try {
-                                val decoded = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-                                    java.net.URLDecoder.decode(headerDesc, java.nio.charset.StandardCharsets.UTF_8)
-                                } else {
-                                    @Suppress("DEPRECATION")
-                                    java.net.URLDecoder.decode(headerDesc, "UTF-8")
-                                }
-                                if (decoded.isNotBlank()) {
-                                    finalName = decoded
-                                    finalDesc = decoded
-                                }
-                            } catch (e: Exception) {
-                                Log.w(TAG, "Failed to decode X-Image-Description header: ${e.message}")
-                            }
+                        val decoded = decodeDescriptionHeader(headerDesc)
+                        if (!decoded.isNullOrBlank()) {
+                            finalName = decoded
+                            finalDesc = decoded
                         } else if (name == null) {
                             finalName = ExternalImageMetadataFetcher.fetchRealName(context, username, cleanUrl, finalName)
                         }
 
                         val tempFile = File(userImagesDir, "${fileName}_tmp_${System.currentTimeMillis()}")
                         try {
-                            connection.inputStream.use { input ->
-                                FileOutputStream(tempFile).use { output -> input.copyTo(output) }
-                            }
-                            if (file.exists()) {
-                                file.delete()
-                            }
-                            if (!tempFile.renameTo(file)) {
-                                throw java.io.IOException("Failed to rename temporary download file to ${file.absolutePath}")
-                            }
+                            downloadFileAtomically(connection, tempFile, file)
                         } finally {
                             if (tempFile.exists()) {
                                 tempFile.delete()
@@ -271,15 +260,16 @@ class ImageSyncEngine(
                             imageDao.updateImage(existing.copy(name = finalName, description = finalDesc))
                             existing.id
                         } else {
-                            // Nouvelle image complète
-                            imageDao.insertImage(
+                            // Nouvelle image complète (avec conversion sécurisée de la clé SQLite Long vers Int)
+                            val insertedId = imageDao.insertImage(
                                 ImageEntity(
                                     remotePath = cleanUrl,
                                     localPath = localPath,
                                     name = finalName,
                                     description = finalDesc
                                 )
-                            ).toInt()
+                            )
+                            if (insertedId > Int.MAX_VALUE) Int.MAX_VALUE else insertedId.toInt()
                         }
 
                         imageDao.insertTreeImageCrossRef(

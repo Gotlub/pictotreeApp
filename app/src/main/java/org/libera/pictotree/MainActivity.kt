@@ -63,6 +63,7 @@ class MainActivity : AppCompatActivity() {
 
 
     private fun showSessionExpiredDialog(sessionManager: SessionManager) {
+        if (isFinishing || isDestroyed) return
         // Éviter d'empiler les dialogues si plusieurs 401 arrivent
         com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
             .setTitle("Session expirée")

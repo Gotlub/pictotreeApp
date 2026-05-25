@@ -123,6 +123,16 @@ class TreeExplorerViewModel(
     }
 
     private fun playLocalAlarmSound() {
+        val currentMp = activeMediaPlayer
+        if (currentMp != null) {
+            try {
+                if (currentMp.isPlaying) return
+            } catch (e: Exception) {
+                try { currentMp.release() } catch (ex: Exception) {}
+                activeMediaPlayer = null
+            }
+        }
+
         activeMediaPlayer?.apply {
             try {
                 if (isPlaying) stop()
@@ -507,11 +517,13 @@ class TreeExplorerViewModel(
             val item = list.removeAt(from)
             list.add(to, item)
             _phraseList.value = list
+            startLocalTimerJob()
         }
     }
 
     fun updatePhraseListSilently(newList: List<PhraseCard>) {
         _phraseList.value = newList
+        startLocalTimerJob()
     }
 
     override fun onCleared() {
