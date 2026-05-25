@@ -129,23 +129,27 @@ class SearchResultAdapter(private val onClick: (PictoSearchResultDTO) -> Unit) :
         fun bind(item: PictoSearchResultDTO) {
             tv.text = item.name ?: "Picto"
             
-            // Sécurisation contre les URLs nulles
+            // Sécurisation contre les URLs nulles et centralisation de la résolution de source d'image
             val displayUrl = item.thumbnailUrl ?: item.imageUrl ?: ""
             val hostUrl = org.libera.pictotree.network.RetrofitClient.SERVER_URL
+            val sessionManager = org.libera.pictotree.data.SessionManager(iv.context)
+            val username = sessionManager.getUsername() ?: "default"
             
-            // Protection contre startsWith sur chaine vide ou nulle
-            var finalUrl = if (displayUrl.startsWith("http") || displayUrl.startsWith("file")) {
-                displayUrl
-            } else if (displayUrl.isNotBlank()) {
-                "${hostUrl.removeSuffix("/")}/${displayUrl.removePrefix("/")}"
-            } else {
-                "" // Pas d'image
+            val imageSource = org.libera.pictotree.utils.FileUtils.getFinalImageSource(displayUrl, iv.context, username, hostUrl)
+            val hasImage = when (imageSource) {
+                is java.io.File -> true
+                is String -> imageSource.isNotBlank()
+                else -> false
             }
             
-            if (finalUrl.isNotBlank()) {
-                finalUrl = org.libera.pictotree.utils.FileUtils.normalizeServerAddress(finalUrl)
+            if (hasImage) {
+                val finalSource = if (imageSource is String) {
+                    org.libera.pictotree.utils.FileUtils.normalizeServerAddress(imageSource)
+                } else {
+                    imageSource
+                }
                 val imageLoader = org.libera.pictotree.network.RetrofitClient.getImageLoader(iv.context)
-                iv.load(finalUrl, imageLoader) {
+                iv.load(finalSource, imageLoader) {
                     crossfade(true)
                     placeholder(R.drawable.ic_launcher_foreground)
                     error(R.drawable.ic_launcher_foreground)

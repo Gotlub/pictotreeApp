@@ -51,6 +51,14 @@ class TimeTimerView @JvmOverloads constructor(
     private var translucentColor = ContextCompat.getColor(context, R.color.timer_translucent_red)
     private var solidColor = ContextCompat.getColor(context, R.color.timer_standard_red)
 
+    // Variables de cache pour optimiser les performances de dessin (thread UI)
+    private var centerX = 0f
+    private var centerY = 0f
+    private var dialRadius = 0f
+    private var textRadius = 0f
+    private val textCoordinates = FloatArray(12 * 2)
+    private val minuteStrings = Array(12) { "" }
+
     init {
         updateTimerColors()
     }
@@ -93,33 +101,19 @@ class TimeTimerView @JvmOverloads constructor(
         invalidate()
     }
 
-    override fun onDraw(canvas: Canvas) {
-        super.onDraw(canvas)
-        
-        val centerX = width / 2f
-        val centerY = height / 2f
-        val minDim = min(width, height)
+    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+        super.onSizeChanged(w, h, oldw, oldh)
+        centerX = w / 2f
+        centerY = h / 2f
+        val minDim = min(w, h)
         val outerRadius = minDim / 2f
         
         // Rayon du cadran de l'horloge et rayon pour placer le texte
-        val dialRadius = outerRadius - 16f
-        val textRadius = dialRadius - 22f
+        dialRadius = outerRadius - 16f
+        textRadius = dialRadius - 22f
         
-        // 1. Tracé du contour du cadran (fin et discret)
-        canvas.drawCircle(centerX, centerY, dialRadius, outlinePaint)
-        
-        // 3. Tracé de l'arc restant (sens anti-horaire, donc sweepAngle négatif)
-        // Départ à -90 degrés (midi).
-        piePaint.color = translucentColor
         rect.set(centerX - dialRadius, centerY - dialRadius, centerX + dialRadius, centerY + dialRadius)
-        val sweepAngle = -(remainingMinutes / 60f) * 360f
         
-        canvas.drawArc(rect, -90f, sweepAngle, true, piePaint)
-        
-        // Tracé de la ligne de découpe solide au bout de l'arc pour un rendu aiguisé
-        canvas.drawArc(rect, -90f, sweepAngle, false, arcStrokePaint)
-        
-        // 4. Tracé des numéros de 0 à 55 (par pas de 5) disposés en sens anti-horaire
         val minTextSize = android.util.TypedValue.applyDimension(
             android.util.TypedValue.COMPLEX_UNIT_SP,
             12f,
@@ -135,14 +129,40 @@ class TimeTimerView @JvmOverloads constructor(
         textPaint.getFontMetrics(fontMetrics)
         val yOffset = (fontMetrics.descent + fontMetrics.ascent) / 2f
         
+        // Pré-calculer les positions des 12 libellés (pas de 5 minutes)
+        var idx = 0
         for (minute in 0..55 step 5) {
+            minuteStrings[idx] = minute.toString()
             // Formule mathématique anti-horaire : départ à midi (-90°)
             val angle = -90f - (minute / 60f) * 360f
             val rad = Math.toRadians(angle.toDouble())
             val numX = centerX + textRadius * Math.cos(rad)
             val numY = centerY + textRadius * Math.sin(rad)
             
-            canvas.drawText(minute.toString(), numX.toFloat(), (numY - yOffset).toFloat(), textPaint)
+            textCoordinates[idx * 2] = numX.toFloat()
+            textCoordinates[idx * 2 + 1] = (numY - yOffset).toFloat()
+            idx++
+        }
+    }
+
+    override fun onDraw(canvas: Canvas) {
+        super.onDraw(canvas)
+        
+        // 1. Tracé du contour du cadran (fin et discret)
+        canvas.drawCircle(centerX, centerY, dialRadius, outlinePaint)
+        
+        // 3. Tracé de l'arc restant (sens anti-horaire, donc sweepAngle négatif)
+        piePaint.color = translucentColor
+        val sweepAngle = -(remainingMinutes / 60f) * 360f
+        
+        canvas.drawArc(rect, -90f, sweepAngle, true, piePaint)
+        
+        // Tracé de la ligne de découpe solide au bout de l'arc pour un rendu aiguisé
+        canvas.drawArc(rect, -90f, sweepAngle, false, arcStrokePaint)
+        
+        // 4. Tracé des numéros pré-calculés disposés en sens anti-horaire
+        for (i in 0 until 12) {
+            canvas.drawText(minuteStrings[i], textCoordinates[i * 2], textCoordinates[i * 2 + 1], textPaint)
         }
     }
 }

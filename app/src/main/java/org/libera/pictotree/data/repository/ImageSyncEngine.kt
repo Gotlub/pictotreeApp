@@ -113,7 +113,12 @@ class ImageSyncEngine(
 
                         if (!headerDesc.isNullOrBlank()) {
                             try {
-                                val decoded = java.net.URLDecoder.decode(headerDesc, "UTF-8")
+                                val decoded = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                                    java.net.URLDecoder.decode(headerDesc, java.nio.charset.StandardCharsets.UTF_8)
+                                } else {
+                                    @Suppress("DEPRECATION")
+                                    java.net.URLDecoder.decode(headerDesc, "UTF-8")
+                                }
                                 if (decoded.isNotBlank()) {
                                     finalName = decoded
                                     finalDesc = decoded
@@ -125,8 +130,21 @@ class ImageSyncEngine(
                             finalName = ExternalImageMetadataFetcher.fetchRealName(context, username, cleanUrl, finalName)
                         }
 
-                        connection.inputStream.use { input ->
-                            FileOutputStream(file).use { output -> input.copyTo(output) }
+                        val tempFile = File(userImagesDir, "${fileName}_tmp_${System.currentTimeMillis()}")
+                        try {
+                            connection.inputStream.use { input ->
+                                FileOutputStream(tempFile).use { output -> input.copyTo(output) }
+                            }
+                            if (file.exists()) {
+                                file.delete()
+                            }
+                            if (!tempFile.renameTo(file)) {
+                                throw java.io.IOException("Failed to rename temporary download file to ${file.absolutePath}")
+                            }
+                        } finally {
+                            if (tempFile.exists()) {
+                                tempFile.delete()
+                            }
                         }
 
                         if (existing == null) {
@@ -214,7 +232,12 @@ class ImageSyncEngine(
                         val headerDesc = connection.getHeaderField("X-Image-Description")
                         if (!headerDesc.isNullOrBlank()) {
                             try {
-                                val decoded = java.net.URLDecoder.decode(headerDesc, "UTF-8")
+                                val decoded = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                                    java.net.URLDecoder.decode(headerDesc, java.nio.charset.StandardCharsets.UTF_8)
+                                } else {
+                                    @Suppress("DEPRECATION")
+                                    java.net.URLDecoder.decode(headerDesc, "UTF-8")
+                                }
                                 if (decoded.isNotBlank()) {
                                     finalName = decoded
                                     finalDesc = decoded
@@ -226,8 +249,21 @@ class ImageSyncEngine(
                             finalName = ExternalImageMetadataFetcher.fetchRealName(context, username, cleanUrl, finalName)
                         }
 
-                        connection.inputStream.use { input ->
-                            FileOutputStream(file).use { output -> input.copyTo(output) }
+                        val tempFile = File(userImagesDir, "${fileName}_tmp_${System.currentTimeMillis()}")
+                        try {
+                            connection.inputStream.use { input ->
+                                FileOutputStream(tempFile).use { output -> input.copyTo(output) }
+                            }
+                            if (file.exists()) {
+                                file.delete()
+                            }
+                            if (!tempFile.renameTo(file)) {
+                                throw java.io.IOException("Failed to rename temporary download file to ${file.absolutePath}")
+                            }
+                        } finally {
+                            if (tempFile.exists()) {
+                                tempFile.delete()
+                            }
                         }
 
                         val imageId = if (existing != null) {

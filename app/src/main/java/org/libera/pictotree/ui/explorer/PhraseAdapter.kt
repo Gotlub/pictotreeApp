@@ -21,6 +21,7 @@ class PhraseAdapter(
 
     private val items = mutableListOf<PhraseCard>()
     private var isMovingItem = false
+    private var cachedTimerColor: String? = null
 
     private val differ = androidx.recyclerview.widget.AsyncListDiffer(
         object : androidx.recyclerview.widget.ListUpdateCallback {
@@ -56,6 +57,7 @@ class PhraseAdapter(
     }
 
     fun submitList(newList: List<PhraseCard>) {
+        cachedTimerColor = null
         differ.submitList(newList) {
             items.clear()
             items.addAll(newList)
@@ -95,7 +97,10 @@ class PhraseAdapter(
 
     override fun onBindViewHolder(holder: PhraseViewHolder, position: Int) {
         items[position].isSelectedForConfig = (position == selectedConfigIndex)
-        holder.bind(items[position], position == highlightedPosition, position == 0, isClockModeActive, isTimerActivated)
+        if (cachedTimerColor == null) {
+            cachedTimerColor = org.libera.pictotree.data.SessionManager(holder.itemView.context).getTimerColor()
+        }
+        holder.bind(items[position], position == highlightedPosition, position == 0, isClockModeActive, isTimerActivated, cachedTimerColor ?: "red")
     }
 
     class PhraseViewHolder(
@@ -111,15 +116,13 @@ class PhraseAdapter(
         // Nullable pour supporter les anciens layouts ou les erreurs de merge
         private val timerView: TimeTimerView? = itemView.findViewById(R.id.time_timer_view)
 
-        fun bind(phraseCard: PhraseCard, isHighlighted: Boolean, isActiveCard: Boolean, isClockModeActive: Boolean, isTimerActivated: Boolean) {
+        fun bind(phraseCard: PhraseCard, isHighlighted: Boolean, isActiveCard: Boolean, isClockModeActive: Boolean, isTimerActivated: Boolean, timerColorStr: String) {
             val node = phraseCard.node
             val timeConfig = phraseCard.timeConfig
             
             tvLabel.text = node.label
             card.setCardBackgroundColor(itemView.context.getColor(android.R.color.white))
             
-            // Récupération de la couleur personnalisée du Timer
-            val timerColorStr = org.libera.pictotree.data.SessionManager(itemView.context).getTimerColor()
             val isGreenTimer = timerColorStr.equals("green", ignoreCase = true)
             
             // Couleurs standards/solides
