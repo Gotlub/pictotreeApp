@@ -17,4 +17,10 @@
     <color name="timer_pastel_green">#A5D6A7</color>
     <color name="timer_pastel_red">#EF9A9A</color>
     <color name="jalon_pastel_blue">#90CAF9</color>
+
+    <!-- TimeTimerView Colors -->
+    <color name="timer_dial_text">#212121</color>
+    <color name="timer_dial_outline">#CCCCCC</color>
+    <color name="timer_translucent_green">#444CAF50</color>
+    <color name="timer_translucent_red">#44E53935</color>
 </resources>

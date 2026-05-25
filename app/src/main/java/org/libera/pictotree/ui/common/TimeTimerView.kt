@@ -5,6 +5,8 @@ import android.graphics.*
 import android.util.AttributeSet
 import android.view.View
 import kotlin.math.min
+import androidx.core.content.ContextCompat
+import org.libera.pictotree.R
 
 /**
  * Composant visuel pour le Time Timer.
@@ -23,7 +25,7 @@ class TimeTimerView @JvmOverloads constructor(
     }
     
     private val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.parseColor("#212121")
+        color = ContextCompat.getColor(context, R.color.timer_dial_text)
         textAlign = Paint.Align.CENTER
         typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
         // Ombrage blanc pour assurer la lisibilité sur tous les pictogrammes (clairs ou sombres)
@@ -31,7 +33,7 @@ class TimeTimerView @JvmOverloads constructor(
     }
 
     private val outlinePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.parseColor("#CCCCCC")
+        color = ContextCompat.getColor(context, R.color.timer_dial_outline)
         style = Paint.Style.STROKE
         strokeWidth = 3f
         setShadowLayer(4f, 0f, 0f, Color.WHITE)
@@ -46,8 +48,8 @@ class TimeTimerView @JvmOverloads constructor(
     private val fontMetrics = Paint.FontMetrics()
 
     private var remainingMinutes: Float = 0f // Temps restant en minutes
-    private var translucentColor = Color.parseColor("#44E53935")
-    private var solidColor = Color.parseColor("#FFE53935")
+    private var translucentColor = ContextCompat.getColor(context, R.color.timer_translucent_red)
+    private var solidColor = ContextCompat.getColor(context, R.color.timer_standard_red)
 
     init {
         updateTimerColors()
@@ -56,8 +58,14 @@ class TimeTimerView @JvmOverloads constructor(
     private fun updateTimerColors() {
         val timerColorStr = sessionManager.getTimerColor()
         val isGreen = timerColorStr.equals("green", ignoreCase = true)
-        translucentColor = if (isGreen) Color.parseColor("#444CAF50") else Color.parseColor("#44E53935")
-        solidColor = if (isGreen) Color.parseColor("#FF4CAF50") else Color.parseColor("#FFE53935")
+        translucentColor = ContextCompat.getColor(
+            context,
+            if (isGreen) R.color.timer_translucent_green else R.color.timer_translucent_red
+        )
+        solidColor = ContextCompat.getColor(
+            context,
+            if (isGreen) R.color.timer_standard_green else R.color.timer_standard_red
+        )
         arcStrokePaint.color = solidColor
     }
 

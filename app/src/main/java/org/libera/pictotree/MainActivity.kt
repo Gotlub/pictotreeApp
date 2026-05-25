@@ -49,22 +49,6 @@ class MainActivity : AppCompatActivity() {
             insets
         }
 
-        // Configurer le clic sur le bouton Arrêter de la bannière globale
-        // Commenté : Le popup n'est pas nécessaire pour les utilisateurs
-        /*
-        findViewById<View>(R.id.btn_stop_alarm)?.setOnClickListener {
-            TimerReceiver.stopActiveRingtone(this)
-            val stopIntent = Intent(this, TimerReceiver::class.java).apply {
-                action = TimerReceiver.ACTION_STOP_ALARM
-                activeAlarmLabel?.let {
-                    putExtra("EXTRA_NOTIFICATION_ID", it.hashCode())
-                }
-            }
-            sendBroadcast(stopIntent)
-            hideAlarmBanner()
-        }
-        */
-
 
 
         // Écouter les événements de déconnexion globale (ex: 401)
@@ -75,41 +59,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    /*
-    private fun showAlarmBanner(label: String) {
-        val banner = findViewById<MaterialCardView>(R.id.card_global_alarm_banner) ?: return
-        val tvMessage = findViewById<TextView>(R.id.tv_alarm_message) ?: return
-        
-        tvMessage.text = getString(R.string.alarm_timer_finished, label)
-        
-        if (banner.visibility != View.VISIBLE) {
-            banner.visibility = View.VISIBLE
-            banner.alpha = 0f
-            banner.translationY = -100f
-            banner.animate()
-                .alpha(1f)
-                .translationY(0f)
-                .setDuration(400)
-                .setInterpolator(android.view.animation.DecelerateInterpolator())
-                .start()
-        }
-    }
-
-    private fun hideAlarmBanner() {
-        val banner = findViewById<MaterialCardView>(R.id.card_global_alarm_banner) ?: return
-        if (banner.visibility == View.VISIBLE) {
-            banner.animate()
-                .alpha(0f)
-                .translationY(-100f)
-                .setDuration(300)
-                .setInterpolator(android.view.animation.AccelerateInterpolator())
-                .withEndAction {
-                    banner.visibility = View.GONE
-                }
-                .start()
-        }
-    }
-    */
 
 
 

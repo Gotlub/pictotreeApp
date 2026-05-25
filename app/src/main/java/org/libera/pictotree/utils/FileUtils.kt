@@ -3,6 +3,15 @@ package org.libera.pictotree.utils
 import java.security.MessageDigest
 
 object FileUtils {
+    // Flag de configuration pour forcer la préservation de 127.0.0.1 (ex: en tests unitaires)
+    // Initialisé par défaut via une détection de l'environnement JVM, mais peut être surchargé
+    var forcePreserveLocalhost: Boolean = try {
+        System.getProperty("sun.java.command")?.contains("junit") == true ||
+        System.getProperty("java.class.path")?.contains("junit") == true
+    } catch (e: Exception) {
+        false
+    }
+
     /**
      * Enlève les paramètres de requête (?123456) pour obtenir une clé stable.
      */
@@ -46,14 +55,7 @@ object FileUtils {
         if (url == null) return ""
         if (!url.contains("127.0.0.1")) return url
         
-        // En test unitaire JVM, on préserve l'adresse locale 127.0.0.1 pour MockWebServer
-        val isUnitTest = try {
-            System.getProperty("sun.java.command")?.contains("junit") == true ||
-            System.getProperty("java.class.path")?.contains("junit") == true
-        } catch (e: Exception) {
-            false
-        }
-        if (isUnitTest) return url
+        if (forcePreserveLocalhost) return url
 
         val actualHost = try {
             java.net.URL(org.libera.pictotree.network.RetrofitClient.SERVER_URL).host

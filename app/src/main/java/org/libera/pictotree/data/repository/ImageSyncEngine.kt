@@ -23,7 +23,10 @@ class ImageSyncEngine(
     private val hostUrl: String,
     private val authToken: String? = null
 ) {
-    private val TAG = "ImageSyncEngine"
+    companion object {
+        private const val TAG = "ImageSyncEngine"
+        private const val CONNECTION_TIMEOUT_MS = 15000
+    }
 
     private fun shouldInjectToken(absoluteUrl: String): Boolean {
         if (authToken.isNullOrBlank()) return false
@@ -95,8 +98,8 @@ class ImageSyncEngine(
                 try {
                     connection = URL(absoluteUrl).openConnection() as java.net.HttpURLConnection
                     connection.setRequestProperty("User-Agent", "Mozilla/5.0")
-                    connection.connectTimeout = 5000
-                    connection.readTimeout = 5000
+                    connection.connectTimeout = CONNECTION_TIMEOUT_MS
+                    connection.readTimeout = CONNECTION_TIMEOUT_MS
                     
                     if (shouldInjectToken(absoluteUrl)) {
                         connection.setRequestProperty("Authorization", "Bearer $authToken")
@@ -191,8 +194,8 @@ class ImageSyncEngine(
                 try {
                     connection = URL(absoluteUrl).openConnection() as java.net.HttpURLConnection
                     connection.setRequestProperty("User-Agent", "Mozilla/5.0")
-                    connection.connectTimeout = 10000
-                    connection.readTimeout = 10000
+                    connection.connectTimeout = CONNECTION_TIMEOUT_MS
+                    connection.readTimeout = CONNECTION_TIMEOUT_MS
 
                     if (shouldInjectToken(absoluteUrl)) {
                         connection.setRequestProperty("Authorization", "Bearer $authToken")
