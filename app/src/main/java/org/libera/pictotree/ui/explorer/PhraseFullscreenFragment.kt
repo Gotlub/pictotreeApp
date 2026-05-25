@@ -87,6 +87,7 @@ class PhraseFullscreenFragment : Fragment() {
 
     private fun setupUI(root: View) {
         drawerLayout = root.findViewById(R.id.drawer_layout_fullscreen)
+        drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED)
         drawerLayout.addDrawerListener(object : DrawerLayout.SimpleDrawerListener() {
             override fun onDrawerClosed(drawerView: View) {
                 viewModel.selectedIndexForConfig.value = null
@@ -184,19 +185,19 @@ class PhraseFullscreenFragment : Fragment() {
         fun updateConfigPanelUi(mode: TimeMode) {
             if (mode == TimeMode.TIMER) {
                 val timerColorStr = org.libera.pictotree.data.SessionManager(requireContext()).getTimerColor()
-                val colorHex = when (timerColorStr) {
-                    "green" -> "#E8F5E9" // Vert doux
-                    "blue" -> "#E3F2FD"  // Bleu doux
-                    else -> "#FFEBEE"    // Rouge doux (par défaut)
+                val colorRes = when (timerColorStr) {
+                    "green" -> R.color.panel_pastel_green
+                    "blue" -> R.color.panel_pastel_blue
+                    else -> R.color.panel_pastel_red
                 }
-                configPanel.setBackgroundColor(Color.parseColor(colorHex))
+                configPanel.setBackgroundColor(androidx.core.content.ContextCompat.getColor(requireContext(), colorRes))
                 swSound.isEnabled = true
                 swAutoRemove.isEnabled = true
                 swVisualPulse.isEnabled = true
                 tvLabelDuration.visibility = View.VISIBLE
                 layoutDurationContainer.visibility = View.VISIBLE
             } else {
-                configPanel.setBackgroundColor(Color.parseColor("#E3F2FD")) // Bleu doux (Jalon par défaut)
+                configPanel.setBackgroundColor(androidx.core.content.ContextCompat.getColor(requireContext(), R.color.panel_pastel_blue)) // Bleu doux (Jalon par défaut)
                 swSound.isEnabled = false
                 swAutoRemove.isEnabled = false
                 swVisualPulse.isEnabled = false
@@ -361,10 +362,12 @@ class PhraseFullscreenFragment : Fragment() {
                         )
                         val density = rv.resources.displayMetrics.density
                         if (active) {
+                            drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED)
                             val leftPadding = (16 * density).toInt()
                             val rightPadding = (320 * density).toInt()
                             rv.setPadding(leftPadding, rv.paddingTop, rightPadding, rv.paddingBottom)
                         } else {
+                            drawerLayout.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED)
                             val defaultPadding = (120 * density).toInt()
                             rv.setPadding(defaultPadding, rv.paddingTop, defaultPadding, rv.paddingBottom)
                         }

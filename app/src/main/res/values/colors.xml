@@ -23,4 +23,8 @@
     <color name="timer_dial_outline">#CCCCCC</color>
     <color name="timer_translucent_green">#444CAF50</color>
     <color name="timer_translucent_red">#44E53935</color>
+    <!-- Panel Background Pastels -->
+    <color name="panel_pastel_green">#E8F5E9</color>
+    <color name="panel_pastel_blue">#E3F2FD</color>
+    <color name="panel_pastel_red">#FFEBEE</color>
 </resources>

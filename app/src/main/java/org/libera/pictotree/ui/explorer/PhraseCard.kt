@@ -8,6 +8,5 @@ import org.libera.pictotree.data.model.CardTimeConfig
  */
 data class PhraseCard(
     val node: TreeNode,
-    val timeConfig: CardTimeConfig = CardTimeConfig(),
-    var isSelectedForConfig: Boolean = false
+    val timeConfig: CardTimeConfig = CardTimeConfig()
 )

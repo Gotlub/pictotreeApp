@@ -6,6 +6,7 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
+import androidx.core.content.ContextCompat
 import coil.load
 import org.libera.pictotree.R
 import org.libera.pictotree.data.model.TimeMode
@@ -100,8 +101,8 @@ class PhraseAdapter(
     }
 
     override fun onBindViewHolder(holder: PhraseViewHolder, position: Int) {
-        items[position].isSelectedForConfig = (position == selectedConfigIndex)
-        holder.bind(items[position], position == highlightedPosition, position == 0, isClockModeActive, isTimerActivated, timerColor)
+        val isSelected = (position == selectedConfigIndex)
+        holder.bind(items[position], position == highlightedPosition, position == 0, isClockModeActive, isTimerActivated, timerColor, isSelected)
     }
 
     class PhraseViewHolder(
@@ -117,23 +118,31 @@ class PhraseAdapter(
         // Nullable pour supporter les anciens layouts ou les erreurs de merge
         private val timerView: TimeTimerView? = itemView.findViewById(R.id.time_timer_view)
 
-        fun bind(phraseCard: PhraseCard, isHighlighted: Boolean, isActiveCard: Boolean, isClockModeActive: Boolean, isTimerActivated: Boolean, timerColorStr: String) {
+        fun bind(
+            phraseCard: PhraseCard,
+            isHighlighted: Boolean,
+            isActiveCard: Boolean,
+            isClockModeActive: Boolean,
+            isTimerActivated: Boolean,
+            timerColorStr: String,
+            isSelectedForConfig: Boolean
+        ) {
             val node = phraseCard.node
             val timeConfig = phraseCard.timeConfig
             
             tvLabel.text = node.label
-            card.setCardBackgroundColor(itemView.context.getColor(android.R.color.white))
+            card.setCardBackgroundColor(ContextCompat.getColor(itemView.context, android.R.color.white))
             
             val isGreenTimer = timerColorStr.equals("green", ignoreCase = true)
             
             // Couleurs standards/solides
             val context = itemView.context
-            val standardTimerColor = context.getColor(if (isGreenTimer) R.color.timer_standard_green else R.color.timer_standard_red)
-            val standardJalonColor = context.getColor(R.color.jalon_standard_blue)
+            val standardTimerColor = ContextCompat.getColor(context, if (isGreenTimer) R.color.timer_standard_green else R.color.timer_standard_red)
+            val standardJalonColor = ContextCompat.getColor(context, R.color.jalon_standard_blue)
             
             // Couleurs pastels pour la configuration
-            val pastelTimerColor = context.getColor(if (isGreenTimer) R.color.timer_pastel_green else R.color.timer_pastel_red)
-            val pastelJalonColor = context.getColor(R.color.jalon_pastel_blue)
+            val pastelTimerColor = ContextCompat.getColor(context, if (isGreenTimer) R.color.timer_pastel_green else R.color.timer_pastel_red)
+            val pastelJalonColor = ContextCompat.getColor(context, R.color.jalon_pastel_blue)
             
             // Déterminer si on utilise les pastels
             val usePastel = isClockModeActive
@@ -152,7 +161,7 @@ class PhraseAdapter(
                     card.strokeColor = if (timeConfig.mode == TimeMode.TIMER) timerColor else jalonColor
                     
                     if (timeConfig.visualPulse && timeConfig.mode == TimeMode.TIMER) {
-                        val pulseState = (android.os.SystemClock.elapsedRealtime() / 1000) % 2 == 0L
+                        val pulseState = (SystemClock.elapsedRealtime() / 1000) % 2 == 0L
                         if (pulseState) {
                             card.setCardBackgroundColor(android.graphics.Color.parseColor("#ECEFF1"))
                         } else {
@@ -164,8 +173,8 @@ class PhraseAdapter(
                 } else {
                     itemView.scaleX = 1.0f
                     itemView.scaleY = 1.0f
-                    if (phraseCard.isSelectedForConfig) {
-                        card.strokeColor = itemView.context.getColor(R.color.highlight_stroke)
+                    if (isSelectedForConfig) {
+                        card.strokeColor = ContextCompat.getColor(itemView.context, R.color.highlight_stroke)
                         card.strokeWidth = 8
                     } else if (timeConfig.mode == TimeMode.JALON) {
                         card.strokeColor = jalonColor
@@ -181,12 +190,12 @@ class PhraseAdapter(
             } else {
                 itemView.scaleX = 1.0f
                 itemView.scaleY = 1.0f
-                if (phraseCard.isSelectedForConfig) {
-                    card.strokeColor = itemView.context.getColor(R.color.highlight_stroke)
+                if (isSelectedForConfig) {
+                    card.strokeColor = ContextCompat.getColor(itemView.context, R.color.highlight_stroke)
                     card.strokeWidth = 8
                 } else if (isHighlighted) {
-                    card.setCardBackgroundColor(itemView.context.getColor(R.color.highlight_bg))
-                    card.strokeColor = itemView.context.getColor(R.color.highlight_stroke)
+                    card.setCardBackgroundColor(ContextCompat.getColor(itemView.context, R.color.highlight_bg))
+                    card.strokeColor = ContextCompat.getColor(itemView.context, R.color.highlight_stroke)
                     card.strokeWidth = 6
                 } else {
                     card.strokeColor = android.graphics.Color.parseColor("#DDDDDD")

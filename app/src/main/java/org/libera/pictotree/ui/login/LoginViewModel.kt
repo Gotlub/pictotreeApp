@@ -100,7 +100,7 @@ class LoginViewModel(
                     } else {
                         _uiState.update { it.copy(
                             isLoading = false,
-                            errorMessage = "L'accès hors-ligne n'est pas autorisé pour ce compte. Connectez-vous en ligne."
+                            errorMessage = getApplication<Application>().getString(org.libera.pictotree.R.string.login_offline_not_allowed)
                         ) }
                     }
                 } else {

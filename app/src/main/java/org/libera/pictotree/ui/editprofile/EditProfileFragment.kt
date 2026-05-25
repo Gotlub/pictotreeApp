@@ -33,6 +33,10 @@ import org.libera.pictotree.data.SessionManager
 import org.libera.pictotree.network.RetrofitClient
 import org.libera.pictotree.ui.explorer.TreeGlobalMapDialog
 import java.io.File
+import android.widget.ArrayAdapter
+import android.graphics.drawable.GradientDrawable
+import android.graphics.Color
+import android.util.TypedValue
 
 class EditProfileFragment : Fragment() {
 
@@ -296,12 +300,52 @@ class EditProfileFragment : Fragment() {
     }
 
     private fun showColorPickerDialog(tree: org.libera.pictotree.data.database.entity.TreeEntity, currentColor: String) {
-        val colors = arrayOf("#000000", "#FF0000", "#00FF00", "#0000FF", "#FFFF00", "#FF00FF", "#00FFFF", "#808080")
-        val colorNames = arrayOf("Noir", "Rouge", "Vert", "Bleu", "Jaune", "Magenta", "Cyan", "Gris")
+        val colors = arrayOf("#000000", "#FFD54F", "#81C784", "#FFB74D", "#64B5F6", "#F06292")
+        val colorNames = arrayOf(
+            "Noir (Défaut)",
+            "Jaune (Personnes)",
+            "Vert (Verbes)",
+            "Orange (Noms)",
+            "Bleu (Adjectifs)",
+            "Rose (Social)"
+        )
+
+        val adapter = object : ArrayAdapter<String>(
+            requireContext(),
+            android.R.layout.select_dialog_item,
+            android.R.id.text1,
+            colorNames
+        ) {
+            override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
+                val view = super.getView(position, convertView, parent) as TextView
+                val colorPx = TypedValue.applyDimension(
+                    TypedValue.COMPLEX_UNIT_DIP,
+                    24f,
+                    parent.context.resources.displayMetrics
+                ).toInt()
+
+                val drawable = GradientDrawable().apply {
+                    shape = GradientDrawable.OVAL
+                    setColor(Color.parseColor(colors[position]))
+                    setSize(colorPx, colorPx)
+                }
+                drawable.setBounds(0, 0, colorPx, colorPx)
+
+                val paddingPx = TypedValue.applyDimension(
+                    TypedValue.COMPLEX_UNIT_DIP,
+                    12f,
+                    parent.context.resources.displayMetrics
+                ).toInt()
+                view.compoundDrawablePadding = paddingPx
+                view.setCompoundDrawablesRelative(drawable, null, null, null)
+
+                return view
+            }
+        }
 
         MaterialAlertDialogBuilder(requireContext())
             .setTitle("Couleur CAA")
-            .setItems(colorNames) { _, which ->
+            .setAdapter(adapter) { _, which ->
                 viewModel.updateTreeColor(profileId, tree.id, colors[which])
             }
             .show()
