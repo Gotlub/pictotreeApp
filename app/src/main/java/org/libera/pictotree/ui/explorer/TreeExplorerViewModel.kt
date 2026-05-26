@@ -128,6 +128,9 @@ class TreeExplorerViewModel(
         if (currentMp != null) {
             try {
                 if (currentMp.isPlaying) return
+            } catch (e: IllegalStateException) {
+                try { currentMp.release() } catch (ex: Exception) {}
+                activeMediaPlayer = null
             } catch (e: Exception) {
                 try { currentMp.release() } catch (ex: Exception) {}
                 activeMediaPlayer = null
@@ -137,6 +140,8 @@ class TreeExplorerViewModel(
         activeMediaPlayer?.apply {
             try {
                 if (isPlaying) stop()
+            } catch (e: IllegalStateException) {
+                Log.e(TAG, "Error stopping active media player (IllegalStateException)", e)
             } catch (e: Exception) {
                 Log.e(TAG, "Error stopping active media player", e)
             }
@@ -159,7 +164,6 @@ class TreeExplorerViewModel(
 
                     withContext(Dispatchers.IO) {
                         mp.setDataSource(getApplication(), alarmUri)
-                        mp.prepare()
                     }
 
                     var isReleased = false
@@ -173,24 +177,30 @@ class TreeExplorerViewModel(
                         }
                     }
 
+                    mp.setOnPreparedListener { preparedMp ->
+                        preparedMp.start()
+                        activeMediaPlayer = preparedMp
+
+                        viewModelScope.launch {
+                            delay(3000)
+                            if (!isReleased) {
+                                try {
+                                    if (preparedMp.isPlaying) preparedMp.stop()
+                                } catch (e: IllegalStateException) {
+                                    Log.e(TAG, "Error stopping media player after 3s (IllegalStateException)", e)
+                                } catch (e: Exception) {
+                                    Log.e(TAG, "Error stopping media player after 3s", e)
+                                }
+                                releasePlayer()
+                            }
+                        }
+                    }
+
                     mp.setOnCompletionListener {
                         releasePlayer()
                     }
 
-                    mp.start()
-                    activeMediaPlayer = mp
-
-                    launch {
-                        delay(3000)
-                        if (!isReleased) {
-                            try {
-                                if (mp.isPlaying) mp.stop()
-                            } catch (e: Exception) {
-                                Log.e(TAG, "Error stopping media player after 3s", e)
-                            }
-                            releasePlayer()
-                        }
-                    }
+                    mp.prepareAsync()
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to play local alarm sound", e)
@@ -450,6 +460,8 @@ class TreeExplorerViewModel(
         activeMediaPlayer?.apply {
             try {
                 if (isPlaying) stop()
+            } catch (e: IllegalStateException) {
+                Log.e(TAG, "Error stopping media player in stopAllTimers (IllegalStateException)", e)
             } catch (e: Exception) {
                 Log.e(TAG, "Error stopping media player in stopAllTimers", e)
             }
@@ -546,6 +558,8 @@ class TreeExplorerViewModel(
         activeMediaPlayer?.apply {
             try {
                 if (isPlaying) stop()
+            } catch (e: IllegalStateException) {
+                Log.e(TAG, "Error stopping media player in onCleared (IllegalStateException)", e)
             } catch (e: Exception) {
                 Log.e(TAG, "Error stopping media player in onCleared", e)
             }
