@@ -18,7 +18,7 @@
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
-            android:background="?attr/colorPrimary">
+            android:background="@color/timer_pastel_green">
 
             <LinearLayout
                 android:layout_width="wrap_content"
@@ -31,7 +31,7 @@
                     android:layout_width="40dp"
                     android:layout_height="40dp"
                     android:layout_marginEnd="10dp"
-                    android:src="@drawable/ic_logo"
+                    android:src="@drawable/ic_logo_original"
                     android:contentDescription="PictoTree Logo" />
 
                 <TextView
@@ -39,7 +39,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/dashboard_new_title"
-                    android:textColor="@android:color/white"
+                    android:textColor="@color/timer_dial_text"
                     android:textSize="20sp"
                     android:textStyle="bold" />
             </LinearLayout>
@@ -51,7 +51,7 @@
                 android:layout_gravity="end"
                 android:layout_marginEnd="16dp"
                 android:src="@android:drawable/ic_lock_power_off"
-                app:tint="@android:color/white"
+                app:tint="@color/timer_dial_text"
                 android:foreground="?attr/selectableItemBackgroundBorderless"
                 android:clickable="true"
                 android:focusable="true"
@@ -64,7 +64,7 @@
                 android:layout_gravity="end"
                 android:layout_marginEnd="16dp"
                 android:src="@android:drawable/ic_secure"
-                app:tint="@android:color/white"
+                app:tint="@color/timer_dial_text"
                 android:foreground="?attr/selectableItemBackgroundBorderless"
                 android:clickable="true"
                 android:focusable="true"
