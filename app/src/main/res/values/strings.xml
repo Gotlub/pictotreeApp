@@ -44,7 +44,7 @@
     <string name="edit_profile_save_btn">Save Changes</string>
 
     <!-- Alarm / Timer Strings -->
-    <string name="alarm_timer_finished">Timer finished: %s</string>
+    <string name="alarm_timer_finished">Timer finished : %s</string>
 
     <!-- Login Offline Restriction -->
     <string name="login_offline_not_allowed">Offline access not allowed for this account.</string>
@@ -106,8 +106,8 @@
     <string name="dialog_unlock_admin_positive">Unlock</string>
     <string name="dialog_unlock_admin_toast_success">Access granted</string>
     <string name="dialog_unlock_admin_toast_error">Failed : %s</string>
-    <string name="dialog_unlock_admin_user_prefix">User: %s</string>
-    <string name="profile_choose_avatar_layout">Choose an avatar:</string>
+    <string name="dialog_unlock_admin_user_prefix">User : %s</string>
+    <string name="profile_choose_avatar_layout">Choose an avatar :</string>
     <string name="timer_config_title">Time configuration</string>
     <string name="timer_picto_none">Pictogram: None</string>
     <string name="timer_mode">Mode</string>
@@ -115,9 +115,9 @@
     <string name="timer_mode_milestone">Milestone</string>
     <string name="timer_mode_timer">Timer</string>
     <string name="timer_duration">Duration (min)</string>
-    <string name="timer_minus" translatable="false">-</string>
-    <string name="timer_one" translatable="false">1</string>
-    <string name="timer_plus" translatable="false">+</string>
+    <string name="timer_minus">-</string>
+    <string name="timer_one">1</string>
+    <string name="timer_plus">+</string>
     <string name="timer_ring_end">Ring at end</string>
     <string name="timer_auto_delete">Auto delete</string>
     <string name="timer_visual_pulse">Visual pulse</string>
@@ -140,7 +140,6 @@
     <string name="timer_finished_title">Timer finished!</string>
     <string name="stop">Stop</string>
     <string name="profile_name">Profile name</string>
-    <string name="import_btn_en">Import</string>
     <string name="profile_options_title">Profile Options</string>
     <string name="save_to_web">Save to Web</string>
     <string name="delete_local_profile">Delete local profile</string>
