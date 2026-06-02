@@ -26,6 +26,7 @@ import org.libera.pictotree.utils.AuthEvents
 class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
         super.onCreate(savedInstanceState)
         
         // Initialiser Retrofit avec les providers du SessionManager
@@ -41,7 +42,6 @@ class MainActivity : AppCompatActivity() {
         )
 
         enableEdgeToEdge()
-        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
         setContentView(R.layout.activity_main)
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
