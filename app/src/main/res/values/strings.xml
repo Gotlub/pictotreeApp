@@ -115,9 +115,9 @@
     <string name="timer_mode_milestone">Milestone</string>
     <string name="timer_mode_timer">Timer</string>
     <string name="timer_duration">Duration (min)</string>
-    <string name="timer_minus">-</string>
-    <string name="timer_one">1</string>
-    <string name="timer_plus">+</string>
+    <string name="timer_minus" translatable="false">-</string>
+    <string name="timer_one" translatable="false">1</string>
+    <string name="timer_plus" translatable="false">+</string>
     <string name="timer_ring_end">Ring at end</string>
     <string name="timer_auto_delete">Auto delete</string>
     <string name="timer_visual_pulse">Visual pulse</string>
