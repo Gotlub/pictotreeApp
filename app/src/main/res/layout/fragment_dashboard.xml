@@ -131,7 +131,7 @@
                     android:padding="10dp"
                     android:src="@android:drawable/ic_menu_rotate"
                     app:tint="#E65100"
-                    android:contentDescription="@string/changer_orientation" />
+                    android:contentDescription="@string/change_orientation" />
             </com.google.android.material.card.MaterialCardView>
 
         </LinearLayout>

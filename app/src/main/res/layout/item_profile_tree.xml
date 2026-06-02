@@ -72,7 +72,7 @@
             android:layout_height="40dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@android:drawable/ic_popup_sync"
-            android:contentDescription="@string/r_parer_les_images"
+            android:contentDescription="@string/repair_images"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toStartOf="@+id/buttonViewTree" />
@@ -83,7 +83,7 @@
             android:layout_height="40dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@android:drawable/ic_menu_view"
-            android:contentDescription="@string/visualiser_l_arbre"
+            android:contentDescription="@string/view_tree"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toStartOf="@+id/buttonDeleteTree" />
@@ -106,7 +106,7 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@drawable/ic_drag_handle"
             app:tint="?attr/colorOnSurface"
-            android:contentDescription="@string/faire_glisser_pour_r_ordonner"
+            android:contentDescription="@string/drag_to_reorder"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent" />
