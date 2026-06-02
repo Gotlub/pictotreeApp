@@ -10,7 +10,7 @@
         android:id="@+id/tv_unlock_user"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Utilisateur : "
+        android:text="@string/user_prefix_label"
         android:textStyle="bold"
         android:layout_marginBottom="16dp" />
 
@@ -32,7 +32,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:text="La connexion internet est requise pour déverrouiller l'édition si vous n'êtes pas déjà connecté."
+        android:text="@string/internet_required_unlock"
         android:textSize="12sp"
         android:textColor="#666666" />
 

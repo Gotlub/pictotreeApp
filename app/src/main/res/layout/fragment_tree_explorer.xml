@@ -139,7 +139,7 @@
 
         <LinearLayout android:id="@+id/layout_action" android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="vertical" android:gravity="center" android:layout_marginEnd="16dp" android:layout_marginBottom="16dp" android:elevation="10dp" app:layout_constraintEnd_toEndOf="parent" app:layout_constraintBottom_toBottomOf="parent">
             <ImageView android:id="@+id/iv_selected_large" android:layout_width="80dp" android:layout_height="80dp" android:background="@drawable/rounded_bottom_sheet" android:backgroundTint="#F0F0F0" android:padding="4dp" android:scaleType="centerInside" />
-            <com.google.android.material.button.MaterialButton android:id="@+id/btn_add_to_phrase" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="Ajouter" android:textAllCaps="false" app:cornerRadius="20dp" />
+            <com.google.android.material.button.MaterialButton android:id="@+id/btn_add_to_phrase" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:text="@string/add_btn" android:textAllCaps="false" app:cornerRadius="20dp" />
         </LinearLayout>
 
         <ImageView android:id="@+id/iv_arrow_to_siblings" android:layout_width="32dp" android:layout_height="32dp" android:src="@android:drawable/arrow_down_float" app:tint="@color/primary_color" android:elevation="15dp" app:layout_constraintTop_toBottomOf="@id/container_parent" app:layout_constraintBottom_toTopOf="@id/rv_siblings" app:layout_constraintStart_toStartOf="@id/container_parent" app:layout_constraintEnd_toEndOf="@id/container_parent" />

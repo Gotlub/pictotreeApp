@@ -8,7 +8,7 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Importer un arbre distants"
+        android:text="@string/import_remote_tree"
         android:textSize="20sp"
         android:textStyle="bold"
         android:layout_marginBottom="12dp" />

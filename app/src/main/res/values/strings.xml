@@ -44,11 +44,11 @@
     <string name="edit_profile_save_btn">Save Changes</string>
 
     <!-- Alarm / Timer Strings -->
-    <string name="alarm_timer_finished">Minuteur terminé : %s</string>
+    <string name="alarm_timer_finished">Timer finished : %s</string>
 
     <!-- Login Offline Restriction -->
-    <string name="login_offline_not_allowed">Accès hors-ligne non autorisé pour ce compte.</string>
-    <string name="login_offline_read_only">Mode déconnecté (Lecture seule)</string>
+    <string name="login_offline_not_allowed">Offline access not allowed for this account.</string>
+    <string name="login_offline_read_only">Offline mode (Read only)</string>
 
     <!-- Settings Options Arrays -->
     <string-array name="settings_languages">
@@ -71,8 +71,8 @@
     </string-array>
 
     <string-array name="settings_startup_view_options">
-        <item>Vue Spatiale</item>
-        <item>Carte Globale</item>
+        <item>Spatial View</item>
+        <item>Global Map</item>
     </string-array>
     <string-array name="settings_startup_view_values">
         <item>EXPLORER</item>
@@ -81,7 +81,7 @@
 
     <string-array name="settings_orientation_options">
         <item>Portrait</item>
-        <item>Paysage</item>
+        <item>Landscape</item>
     </string-array>
     <string-array name="settings_orientation_values">
         <item>PORTRAIT</item>
@@ -89,22 +89,72 @@
     </string-array>
 
     <string-array name="settings_timer_color_options">
-        <item>Rouge</item>
-        <item>Vert</item>
+        <item>Red</item>
+        <item>Green</item>
     </string-array>
     <string-array name="settings_timer_color_values">
         <item>red</item>
         <item>green</item>
     </string-array>
     <!-- Edit Locking / Unlocking Dialogs -->
-    <string name="dialog_lock_admin_title">Verrouiller l\'édition ?</string>
-    <string name="dialog_lock_admin_message">Le mode administrateur sera désactivé. Vous devrez vous reconnecter pour modifier les profils.</string>
-    <string name="dialog_lock_admin_positive">Verrouiller</string>
-    <string name="dialog_lock_admin_negative">Annuler</string>
-    <string name="dialog_lock_admin_toast">Édition verrouillée</string>
-    <string name="dialog_unlock_admin_title">Déverrouiller l\'édition</string>
-    <string name="dialog_unlock_admin_positive">Déverrouiller</string>
-    <string name="dialog_unlock_admin_toast_success">Accès autorisé</string>
-    <string name="dialog_unlock_admin_toast_error">Échec : %s</string>
-    <string name="dialog_unlock_admin_user_prefix">Utilisateur : %s</string>
+    <string name="dialog_lock_admin_title">Lock editing?</string>
+    <string name="dialog_lock_admin_message">Admin mode will be disabled. You will need to log in again to edit profiles.</string>
+    <string name="dialog_lock_admin_positive">Lock</string>
+    <string name="dialog_lock_admin_negative">Cancel</string>
+    <string name="dialog_lock_admin_toast">Editing locked</string>
+    <string name="dialog_unlock_admin_title">Unlock editing</string>
+    <string name="dialog_unlock_admin_positive">Unlock</string>
+    <string name="dialog_unlock_admin_toast_success">Access granted</string>
+    <string name="dialog_unlock_admin_toast_error">Failed : %s</string>
+    <string name="dialog_unlock_admin_user_prefix">User : %s</string>
+    <string name="profile_choose_avatar_layout">Choose an avatar :</string>
+    <string name="timer_config_title">Time configuration</string>
+    <string name="timer_picto_none">Pictogram: None</string>
+    <string name="timer_mode">Mode</string>
+    <string name="timer_mode_no">No</string>
+    <string name="timer_mode_milestone">Milestone</string>
+    <string name="timer_mode_timer">Timer</string>
+    <string name="timer_duration">Duration (min)</string>
+    <string name="timer_minus">-</string>
+    <string name="timer_one">1</string>
+    <string name="timer_plus">+</string>
+    <string name="timer_ring_end">Ring at end</string>
+    <string name="timer_auto_delete">Auto delete</string>
+    <string name="timer_visual_pulse">Visual pulse</string>
+    <string name="timer_apply">Apply</string>
+    <string name="picto_search_title">Pictogram Search</string>
+    <string name="search">Search</string>
+    <string name="label">Label</string>
+    <string name="choose_tree">Choose a tree</string>
+    <string name="options">Options</string>
+    <string name="add_tree">Add tree</string>
+    <string name="user_prefix_label">User: </string>
+    <string name="internet_required_unlock">Internet connection is required to unlock editing if you are not already logged in.</string>
+    <string name="menu">Menu</string>
+    <string name="import_btn">Import</string>
+    <string name="new_btn">New</string>
+    <string name="import_profile_title">Import a Profile</string>
+    <string name="import_remote_tree">Import a remote tree</string>
+    <string name="add_btn">Add</string>
+    <string name="no_result">No result</string>
+    <string name="timer_finished_title">Timer finished!</string>
+    <string name="stop">Stop</string>
+    <string name="profile_name">Profile name</string>
+    <string name="profile_options_title">Profile Options</string>
+    <string name="save_to_web">Save to Web</string>
+    <string name="delete_local_profile">Delete local profile</string>
+    <string name="app_settings_title">App Settings</string>
+    <string name="connection_security">Connection security</string>
+    <string name="allow_offline_access">Allow offline access</string>
+    <string name="offline_access_desc">If enabled, this device will be able to access profiles without a password in offline mode (Read-only).</string>
+    <string name="app_language">App language</string>
+    <string name="app_display">App display</string>
+    <string name="start_on">Start on:</string>
+    <string name="fixed_orientation">Fixed orientation:</string>
+    <string name="timer_color">Timer color:</string>
+    <string name="enable_text_search">Enable text search</string>
+    <string name="rotation_button">Rotation button</string>
+    <string name="tts_button">Voice reading button</string>
+    <string name="view_switch">View switch (Map/Spatial)</string>
+    <string name="close">Close</string>
 </resources>

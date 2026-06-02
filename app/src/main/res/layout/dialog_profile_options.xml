@@ -13,7 +13,7 @@
             android:id="@+id/tvOptionsTitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Options du Profil"
+            android:text="@string/profile_options_title"
             android:textSize="20sp"
             android:textStyle="bold"
             android:textColor="?attr/colorPrimary"
@@ -44,7 +44,7 @@
                     android:id="@+id/btnSyncProfile"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Sauvegarder sur le Web"
+                    android:text="@string/save_to_web"
                     android:layout_marginBottom="8dp"
                     app:icon="@android:drawable/ic_popup_sync" />
 
@@ -53,7 +53,7 @@
                     style="?attr/materialButtonOutlinedStyle"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Supprimer le profil local"
+                    android:text="@string/delete_local_profile"
                     android:textColor="@android:color/holo_red_dark"
                     app:strokeColor="@android:color/holo_red_dark"
                     app:icon="@android:drawable/ic_menu_delete"

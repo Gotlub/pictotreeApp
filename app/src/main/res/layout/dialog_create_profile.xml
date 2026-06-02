@@ -28,7 +28,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
-        android:text="Choisir un avatar :"
+        android:text="@string/profile_choose_avatar_layout"
         android:textStyle="bold" />
 
     <LinearLayout
