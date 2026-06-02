@@ -33,7 +33,7 @@
         app:layout_constraintBottom_toTopOf="@id/tabLayout"
         app:layout_constraintEnd_toEndOf="parent" />
 
-    <!-- Barre de recherche (Occupe tout l'espace horizontal entre le titre et le close button) -->
+    <!-- Search bar (Occupies all horizontal space between the title and the close button) -->
     <com.google.android.material.textfield.TextInputLayout
         android:id="@+id/tilSearch"
         android:layout_width="0dp"
