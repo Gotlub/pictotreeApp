@@ -44,7 +44,7 @@
     <string name="edit_profile_save_btn">Save Changes</string>
 
     <!-- Alarm / Timer Strings -->
-    <string name="alarm_timer_finished">Timer finished : %s</string>
+    <string name="alarm_timer_finished">Timer finished: %s</string>
 
     <!-- Login Offline Restriction -->
     <string name="login_offline_not_allowed">Offline access not allowed for this account.</string>
