@@ -106,7 +106,7 @@
     <string name="dialog_unlock_admin_positive">Unlock</string>
     <string name="dialog_unlock_admin_toast_success">Access granted</string>
     <string name="dialog_unlock_admin_toast_error">Failed : %s</string>
-    <string name="dialog_unlock_admin_user_prefix">User : %s</string>
+    <string name="dialog_unlock_admin_user_prefix">User: %s</string>
     <string name="profile_choose_avatar_layout">Choose an avatar :</string>
     <string name="timer_config_title">Time configuration</string>
     <string name="timer_picto_none">Pictogram: None</string>
