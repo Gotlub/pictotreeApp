@@ -77,25 +77,25 @@ class DashboardFragment : Fragment() {
         ivAdminStatus = view.findViewById(R.id.ivAdminStatus)
         ivLogout = view.findViewById(R.id.ivLogout)
 
-        val titleText = "PictoTree.eu"
+        val titleText = tvTitle.text.toString()
         val spannableTitle = SpannableString(titleText)
         val colors = listOf(
-            R.color.brand_pink,    // P
-            R.color.brand_orange,  // i
-            R.color.brand_yellow,  // c
-            R.color.brand_green,   // t
-            R.color.brand_blue,    // o
-            R.color.brand_indigo,  // T
-            R.color.brand_red,     // r
-            R.color.brand_pink,    // e
-            R.color.brand_orange,  // e
-            R.color.white,         // .
-            R.color.brand_blue,    // e
-            R.color.brand_indigo   // u
+            R.color.brand_pink,
+            R.color.brand_orange,
+            R.color.brand_yellow,
+            R.color.brand_green,
+            R.color.brand_blue,
+            R.color.brand_indigo,
+            R.color.brand_red,
+            R.color.brand_pink,
+            R.color.brand_orange,
+            R.color.white,
+            R.color.brand_blue,
+            R.color.brand_indigo
         )
 
         for (i in titleText.indices) {
-            val colorRes = colors[i]
+            val colorRes = colors[i % colors.size]
             val color = ContextCompat.getColor(requireContext(), colorRes)
             spannableTitle.setSpan(
                 ForegroundColorSpan(color),
