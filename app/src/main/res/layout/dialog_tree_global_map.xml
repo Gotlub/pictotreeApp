@@ -56,7 +56,7 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
         <ImageView android:id="@+id/iv_selection_preview" android:layout_width="80dp" android:layout_height="80dp" android:background="@drawable/rounded_bottom_sheet" android:backgroundTint="#FFFFFF" android:padding="4dp" android:scaleType="centerInside" android:visibility="gone" tools:visibility="visible" tools:src="@drawable/ic_launcher_foreground" />
-        <com.google.android.material.button.MaterialButton android:id="@+id/btn_add_to_basket" android:layout_width="wrap_content" android:layout_height="44dp" android:layout_marginTop="8dp" android:text="Ajouter" android:textAllCaps="false" app:cornerRadius="22dp" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/btn_add_to_basket" android:layout_width="wrap_content" android:layout_height="44dp" android:layout_marginTop="8dp" android:text="@string/add_btn" android:textAllCaps="false" app:cornerRadius="22dp" />
     </LinearLayout>
 
     <!-- NAVIGATION ARROWS -->

@@ -17,7 +17,7 @@
             android:layout_height="wrap_content"
             android:layout_centerVertical="true"
             android:layout_marginStart="8dp"
-            android:text="Recherche de Pictogramme"
+            android:text="@string/picto_search_title"
             android:textStyle="bold"
             android:textSize="16sp" />
 

@@ -42,5 +42,5 @@
         android:id="@+id/buttonImport"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Import" />
+        android:text="@string/import_btn_en" />
 </LinearLayout>

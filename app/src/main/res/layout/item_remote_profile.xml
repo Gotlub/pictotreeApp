@@ -27,7 +27,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:layout_marginStart="16dp"
-            android:text="Nom du profil"
+            android:text="@string/profile_name"
             android:textSize="16sp"
             android:textStyle="bold" />
 
@@ -35,7 +35,7 @@
             android:id="@+id/btnDoImport"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Importer"
+            android:text="@string/import_btn"
             style="?attr/materialButtonOutlinedStyle" />
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>

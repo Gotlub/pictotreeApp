@@ -60,7 +60,7 @@
         android:id="@+id/tv_offline_hint"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:text="Mode déconnecté (Lecture seule)"
+        android:text="@string/login_offline_read_only"
         android:textSize="12sp"
         android:textColor="#666666"
         android:visibility="gone"

@@ -108,7 +108,7 @@
                 android:id="@+id/btnGlobalMenu"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Menu"
+                android:text="@string/menu"
                 app:icon="@android:drawable/ic_menu_manage"
                 style="?attr/materialButtonOutlinedStyle"
                 android:visibility="gone"
@@ -152,7 +152,7 @@
                 android:id="@+id/btnImportProfile"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Importer"
+                android:text="@string/import_btn"
                 app:icon="@android:drawable/ic_menu_revert"
                 android:layout_marginBottom="8dp"
                 style="?attr/materialButtonOutlinedStyle" />
@@ -161,7 +161,7 @@
                 android:id="@+id/btnCreateProfile"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Nouveau"
+                android:text="@string/new_btn"
                 app:icon="@android:drawable/ic_input_add" />
         </LinearLayout>
 

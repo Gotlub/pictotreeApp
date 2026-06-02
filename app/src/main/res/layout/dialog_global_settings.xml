@@ -13,7 +13,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Paramètres de l'application"
+            android:text="@string/app_settings_title"
             android:textSize="20sp"
             android:textStyle="bold"
             android:textColor="?attr/colorPrimary"
@@ -23,19 +23,19 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Sécurité de connexion"
+            android:text="@string/connection_security"
             android:textStyle="bold"
             android:layout_marginBottom="8dp" />
         <com.google.android.material.materialswitch.MaterialSwitch
             android:id="@+id/switchOfflineAccess"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Autoriser l'accès hors-ligne"
+            android:text="@string/allow_offline_access"
             android:layout_marginBottom="4dp"/>
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Si activé, ce périphérique pourra accéder aux profils sans mot de passe en mode déconnecté (Consultation uniquement)."
+            android:text="@string/offline_access_desc"
             android:textSize="11sp"
             android:textColor="#666666"
             android:layout_marginBottom="16dp" />
@@ -50,7 +50,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Langue de l'application"
+            android:text="@string/app_language"
             android:textStyle="bold"
             android:layout_marginBottom="8dp" />
         <Spinner
@@ -63,22 +63,22 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Affichage de l'app"
+            android:text="@string/app_display"
             android:textStyle="bold"
             android:layout_marginBottom="12dp" />
 
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginBottom="12dp">
-            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Démarrer sur :" />
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="@string/start_on" />
             <Spinner android:id="@+id/spinnerStartupView" android:layout_width="wrap_content" android:layout_height="wrap_content" />
         </LinearLayout>
 
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginBottom="16dp">
-            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Orientation fixe :" />
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="@string/fixed_orientation" />
             <Spinner android:id="@+id/spinnerOrientation" android:layout_width="wrap_content" android:layout_height="wrap_content" />
         </LinearLayout>
 
         <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginBottom="24dp">
-            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Couleur du Timer :" />
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="@string/timer_color" />
             <Spinner android:id="@+id/spinnerTimerColor" android:layout_width="wrap_content" android:layout_height="wrap_content" />
         </LinearLayout>
 
@@ -87,35 +87,35 @@
             android:id="@+id/switchGlobalSearch"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Activer la recherche textuelle"
+            android:text="@string/enable_text_search"
             android:layout_marginBottom="8dp"/>
 
         <com.google.android.material.materialswitch.MaterialSwitch
             android:id="@+id/switchEnableRotation"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Bouton de rotation"
+            android:text="@string/rotation_button"
             android:layout_marginBottom="8dp"/>
 
         <com.google.android.material.materialswitch.MaterialSwitch
             android:id="@+id/switchEnableTTS"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Bouton de lecture vocale"
+            android:text="@string/tts_button"
             android:layout_marginBottom="8dp"/>
 
         <com.google.android.material.materialswitch.MaterialSwitch
             android:id="@+id/switchEnableViewChange"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Changement de vue (Carte/Spatiale)"
+            android:text="@string/view_switch"
             android:layout_marginBottom="24dp"/>
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnCloseSettings"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Fermer" />
+            android:text="@string/close" />
 
     </LinearLayout>
 </ScrollView>
