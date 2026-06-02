@@ -9,7 +9,7 @@
     <string name="login_quit_button">Quit Application</string>
     <!-- Dashboard View Strings -->
     <string name="dashboard_title">Who are you?</string>
-    <string name="dashboard_new_title">PictoTree</string>
+    <string name="dashboard_new_title">PictoTree.eu</string>
     <string name="dashboard_admin_status_desc">Admin status</string>
     <string name="dashboard_add_profile_btn">New</string>
     <string name="dashboard_empty_state">No profiles found, tap + to start</string>

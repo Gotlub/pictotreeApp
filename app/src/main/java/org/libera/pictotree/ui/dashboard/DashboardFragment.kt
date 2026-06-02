@@ -8,6 +8,9 @@ import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
+import androidx.core.content.ContextCompat
+import android.text.SpannableString
+import android.text.style.ForegroundColorSpan
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModelProvider
@@ -35,6 +38,7 @@ class DashboardFragment : Fragment() {
     private lateinit var viewModel: DashboardViewModel
     private lateinit var adapter: ProfileAdapter
     
+    private lateinit var tvTitle: TextView
     private lateinit var rvProfiles: RecyclerView
     private lateinit var progressBar: ProgressBar
     private lateinit var tvEmptyState: TextView
@@ -61,6 +65,7 @@ class DashboardFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        tvTitle = view.findViewById(R.id.tvTitle)
         rvProfiles = view.findViewById(R.id.rvProfiles)
         progressBar = view.findViewById(R.id.progressBar)
         tvEmptyState = view.findViewById(R.id.tvEmptyState)
@@ -71,6 +76,35 @@ class DashboardFragment : Fragment() {
         cardRotate = view.findViewById(R.id.card_rotate)
         ivAdminStatus = view.findViewById(R.id.ivAdminStatus)
         ivLogout = view.findViewById(R.id.ivLogout)
+
+        val titleText = tvTitle.text.toString()
+        val spannableTitle = SpannableString(titleText)
+        val colors = listOf(
+            R.color.brand_pink,
+            R.color.brand_orange,
+            R.color.brand_yellow,
+            R.color.brand_green,
+            R.color.brand_blue,
+            R.color.brand_indigo,
+            R.color.brand_red,
+            R.color.brand_pink,
+            R.color.brand_orange,
+            R.color.white,
+            R.color.brand_blue,
+            R.color.brand_indigo
+        )
+
+        for (i in titleText.indices) {
+            val colorRes = colors[i % colors.size]
+            val color = ContextCompat.getColor(requireContext(), colorRes)
+            spannableTitle.setSpan(
+                ForegroundColorSpan(color),
+                i,
+                i + 1,
+                SpannableString.SPAN_EXCLUSIVE_EXCLUSIVE
+            )
+        }
+        tvTitle.text = spannableTitle
 
         val sessionManager = SessionManager(requireContext())
         val isOnline = sessionManager.isOnline()

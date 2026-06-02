@@ -23,6 +23,17 @@
     <color name="timer_dial_outline">#CCCCCC</color>
     <color name="timer_translucent_green">#444CAF50</color>
     <color name="timer_translucent_red">#44E53935</color>
+
+    <!-- Brand Colors -->
+    <color name="brand_pink">#ff9ebb</color>
+    <color name="brand_orange">#ffb37c</color>
+    <color name="brand_yellow">#fdf196</color>
+    <color name="brand_green">#a5e1a9</color>
+    <color name="brand_blue">#9adcfa</color>
+    <color name="brand_indigo">#a0c4ff</color>
+    <color name="brand_red">#ff9e9e</color>
+    <color name="dark_background">#212529</color>
+
     <!-- Panel Background Pastels -->
     <color name="panel_pastel_green">#E8F5E9</color>
     <color name="panel_pastel_blue">#E3F2FD</color>
