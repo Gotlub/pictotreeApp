@@ -28,7 +28,7 @@
             android:layout_alignParentEnd="true"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@android:drawable/ic_menu_close_clear_cancel"
-            android:contentDescription="Fermer" />
+            android:contentDescription="@string/fermer" />
     </RelativeLayout>
 
     <com.google.android.material.textfield.TextInputLayout
@@ -42,7 +42,7 @@
             android:id="@+id/etSearch"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Search pictogram..."
+            android:hint="@string/search_pictogram"
             android:imeOptions="actionSearch"
             android:inputType="text" />
     </com.google.android.material.textfield.TextInputLayout>

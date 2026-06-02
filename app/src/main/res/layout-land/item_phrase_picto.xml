@@ -23,7 +23,7 @@
             android:layout_width="56dp"
             android:layout_height="56dp"
             android:scaleType="centerInside"
-            android:contentDescription="Pictogram"
+            android:contentDescription="@string/pictogram"
             app:srcCompat="@drawable/ic_launcher_foreground" />
 
         <TextView

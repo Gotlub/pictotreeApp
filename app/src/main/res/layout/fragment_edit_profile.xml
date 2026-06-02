@@ -13,7 +13,7 @@
         android:layout_height="48dp"
         android:background="?attr/selectableItemBackgroundBorderless"
         android:src="@android:drawable/ic_menu_revert"
-        android:contentDescription="Retour au Dashboard"
+        android:contentDescription="@string/retour_au_dashboard"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
 
@@ -61,7 +61,7 @@
             android:layout_width="64dp"
             android:layout_height="64dp"
             android:src="@android:drawable/ic_menu_myplaces"
-            android:contentDescription="Avatar Preview" />
+            android:contentDescription="@string/avatar_preview" />
 
         <View
             android:layout_width="0dp"
@@ -76,7 +76,7 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@android:drawable/ic_menu_search"
             app:tint="?attr/colorPrimary"
-            android:contentDescription="Search Avatar" />
+            android:contentDescription="@string/search_avatar" />
     </LinearLayout>
 
     <androidx.recyclerview.widget.RecyclerView

@@ -15,7 +15,7 @@
         android:layout_height="48dp"
         android:background="?attr/selectableItemBackgroundBorderless"
         android:src="@android:drawable/ic_menu_revert"
-        android:contentDescription="Retour au Dashboard"
+        android:contentDescription="@string/retour_au_dashboard"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
 
@@ -38,7 +38,7 @@
             android:layout_height="match_parent"
             android:src="@android:drawable/ic_menu_myplaces"
             android:scaleType="centerCrop"
-            android:contentDescription="Avatar Preview" />
+            android:contentDescription="@string/avatar_preview" />
     </com.google.android.material.card.MaterialCardView>
 
     <!-- Bouton Recherche Avatar (à côté de l'avatar preview pour ne plus le cacher) -->
@@ -50,7 +50,7 @@
         android:background="?attr/selectableItemBackground"
         android:src="@android:drawable/ic_menu_search"
         app:tint="?attr/colorPrimary"
-        android:contentDescription="Search Avatar"
+        android:contentDescription="@string/search_avatar"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toEndOf="@id/layoutAvatarSelector" />
 
