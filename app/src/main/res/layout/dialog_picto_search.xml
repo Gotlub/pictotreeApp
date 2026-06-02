@@ -28,7 +28,7 @@
             android:layout_alignParentEnd="true"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@android:drawable/ic_menu_close_clear_cancel"
-            android:contentDescription="@string/fermer" />
+            android:contentDescription="@string/close" />
     </RelativeLayout>
 
     <com.google.android.material.textfield.TextInputLayout

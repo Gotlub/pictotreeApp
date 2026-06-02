@@ -27,7 +27,7 @@
             android:elevation="10dp"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            android:contentDescription="@string/fermer" />
+            android:contentDescription="@string/close" />
 
         <!-- Le RecyclerView central -->
         <androidx.recyclerview.widget.RecyclerView
@@ -149,7 +149,7 @@
                 android:id="@+id/fab_speak_fullscreen"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:contentDescription="@string/lire_la_phrase"
+                android:contentDescription="@string/read_phrase"
                 android:src="@android:drawable/ic_btn_speak_now"
                 app:backgroundTint="@color/primary_color"
                 app:elevation="6dp"

@@ -22,7 +22,7 @@
             android:id="@+id/etSearchRemoteTrees"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="@string/rechercher_par_nom"
+            android:hint="@string/search_by_name"
             android:inputType="text" />
     </com.google.android.material.textfield.TextInputLayout>
 

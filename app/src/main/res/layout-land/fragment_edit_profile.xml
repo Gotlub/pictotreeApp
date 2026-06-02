@@ -15,7 +15,7 @@
         android:layout_height="48dp"
         android:background="?attr/selectableItemBackgroundBorderless"
         android:src="@android:drawable/ic_menu_revert"
-        android:contentDescription="@string/retour_au_dashboard"
+        android:contentDescription="@string/back_to_dashboard"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
 
