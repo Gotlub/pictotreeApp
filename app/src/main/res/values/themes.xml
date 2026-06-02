@@ -1,6 +1,6 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme. -->
-    <style name="Base.Theme.PictotreeApp" parent="Theme.Material3.DayNight.NoActionBar">
+    <style name="Base.Theme.PictotreeApp" parent="Theme.Material3.Light.NoActionBar">
         <!-- Customize your light theme here. -->
         <item name="colorPrimary">@color/black</item>
         <item name="colorOnPrimary">@color/white</item>
@@ -10,7 +10,7 @@
 
     <style name="Theme.PictotreeApp" parent="Base.Theme.PictotreeApp" />
     
-    <style name="Theme.PictotreeApp.FullscreenDialog" parent="Theme.Material3.DayNight.NoActionBar">
+    <style name="Theme.PictotreeApp.FullscreenDialog" parent="Theme.Material3.Light.NoActionBar">
         <item name="android:windowNoTitle">true</item>
         <item name="android:windowIsFloating">false</item>
         <item name="android:windowBackground">@android:color/white</item>
