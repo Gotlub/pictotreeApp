@@ -18,7 +18,7 @@
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
-            android:background="@color/timer_pastel_green">
+            android:background="@color/dark_background">
 
             <LinearLayout
                 android:layout_width="wrap_content"
@@ -31,7 +31,7 @@
                     android:layout_width="40dp"
                     android:layout_height="40dp"
                     android:layout_marginEnd="10dp"
-                    android:src="@drawable/ic_logo_original"
+                    android:src="@drawable/logo"
                     android:contentDescription="PictoTree Logo" />
 
                 <TextView
@@ -51,7 +51,7 @@
                 android:layout_gravity="end"
                 android:layout_marginEnd="16dp"
                 android:src="@android:drawable/ic_lock_power_off"
-                app:tint="@color/timer_dial_text"
+                app:tint="@color/white"
                 android:foreground="?attr/selectableItemBackgroundBorderless"
                 android:clickable="true"
                 android:focusable="true"
@@ -64,7 +64,7 @@
                 android:layout_gravity="end"
                 android:layout_marginEnd="16dp"
                 android:src="@android:drawable/ic_secure"
-                app:tint="@color/timer_dial_text"
+                app:tint="@color/white"
                 android:foreground="?attr/selectableItemBackgroundBorderless"
                 android:clickable="true"
                 android:focusable="true"
