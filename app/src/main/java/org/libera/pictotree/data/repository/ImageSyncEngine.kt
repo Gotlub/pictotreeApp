@@ -78,20 +78,11 @@ class ImageSyncEngine(
         connection.inputStream.use { input ->
             java.io.FileOutputStream(tempFile).use { output -> input.copyTo(output) }
         }
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-            java.nio.file.Files.move(
-                tempFile.toPath(),
-                destinationFile.toPath(),
-                java.nio.file.StandardCopyOption.ATOMIC_MOVE,
-                java.nio.file.StandardCopyOption.REPLACE_EXISTING
-            )
-        } else {
-            if (destinationFile.exists()) {
-                destinationFile.delete()
-            }
-            if (!tempFile.renameTo(destinationFile)) {
-                throw java.io.IOException("Failed to rename temporary download file to ${destinationFile.absolutePath}")
-            }
+        if (destinationFile.exists()) {
+            destinationFile.delete()
+        }
+        if (!tempFile.renameTo(destinationFile)) {
+            throw java.io.IOException("Failed to rename temporary download file to ${destinationFile.absolutePath}")
         }
     }
 

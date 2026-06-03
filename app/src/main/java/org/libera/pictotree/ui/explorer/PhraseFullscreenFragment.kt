@@ -281,9 +281,8 @@ class PhraseFullscreenFragment : Fragment() {
             1 -> R.layout.item_phrase_picto_medium
             else -> R.layout.item_phrase_picto_large
         }
-        var localAdapter: PhraseAdapter? = null
-        localAdapter = PhraseAdapter(username, layoutRes, onItemClick = { position ->
-            val cardList = localAdapter?.getCurrentList() ?: return@PhraseAdapter
+        adapter = PhraseAdapter(username, layoutRes, onItemClick = { position ->
+            val cardList = adapter.getCurrentList()
             if (position !in cardList.indices) return@PhraseAdapter
             if (viewModel.isClockModeActive.value) {
                 viewModel.selectedIndexForConfig.value = position
@@ -310,7 +309,6 @@ class PhraseFullscreenFragment : Fragment() {
         }).apply {
             timerColor = org.libera.pictotree.data.SessionManager(requireContext()).getTimerColor()
         }
-        adapter = localAdapter!!
         adapter.isClockModeActive = viewModel.isClockModeActive.value
         adapter.isTimerActivated = viewModel.isTimerActivated.value
         rv.adapter = adapter
