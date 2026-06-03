@@ -107,10 +107,13 @@ class GlobalSettingsDialogFragment : DialogFragment() {
                 if (viewModel.userConfig.value?.locale != codes[position]) {
                     viewModel.setLanguage(codes[position]) {
                         // When language is changed, recreate the activity to apply changes across all strings
-                        requireActivity().recreate()
+                        if (isAdded) {
+                            activity?.recreate()
+                        }
                     }
                 }
             }
+        }
             override fun onNothingSelected(parent: AdapterView<*>?) {}
         }
 
