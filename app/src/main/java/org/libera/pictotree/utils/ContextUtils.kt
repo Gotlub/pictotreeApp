@@ -9,8 +9,9 @@ import java.util.Locale
 class ContextUtils(base: Context) : ContextWrapper(base) {
     companion object {
         fun updateLocale(context: Context, localeToSwitchTo: Locale): ContextWrapper {
-            var context = context
-            val resources = context.resources
+            Locale.setDefault(localeToSwitchTo)
+            var updatedContext = context
+            val resources = updatedContext.resources
             val configuration = resources.configuration
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
@@ -18,16 +19,18 @@ class ContextUtils(base: Context) : ContextWrapper(base) {
                 android.os.LocaleList.setDefault(localeList)
                 configuration.setLocales(localeList)
             } else {
+                @Suppress("DEPRECATION")
                 configuration.locale = localeToSwitchTo
             }
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N_MR1) {
-                context = context.createConfigurationContext(configuration)
+                updatedContext = updatedContext.createConfigurationContext(configuration)
             } else {
+                @Suppress("DEPRECATION")
                 resources.updateConfiguration(configuration, resources.displayMetrics)
             }
 
-            return ContextUtils(context)
+            return ContextUtils(updatedContext)
         }
     }
 }

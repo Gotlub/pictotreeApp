@@ -31,7 +31,7 @@ class MainActivity : AppCompatActivity() {
     override fun attachBaseContext(newBase: Context) {
         val prefs = newBase.getSharedPreferences("pictotree_session", Context.MODE_PRIVATE)
         val localeStr = prefs.getString("app_locale", Locale.getDefault().language) ?: "en"
-        val localeToSwitchTo = Locale.forLanguageTag(localeStr)
+        val localeToSwitchTo = Locale(localeStr)
 
         val context = ContextUtils.updateLocale(newBase, localeToSwitchTo)
         super.attachBaseContext(context)

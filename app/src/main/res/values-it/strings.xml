@@ -2,7 +2,7 @@
 <resources>
     <string name="app_name">Pictotree App</string>
 
-    <string name="login_select_user_hint">Select user / New user</string>
+    <string name="login_select_user_hint">Seleziona utente / Nuovo utente</string>
     <string name="login_online_mode">Modalità online</string>
     <string name="login_password_hint">Password</string>
     <string name="login_button">Accedi</string>
