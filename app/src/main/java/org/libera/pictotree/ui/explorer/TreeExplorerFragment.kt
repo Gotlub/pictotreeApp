@@ -373,7 +373,7 @@ class TreeExplorerFragment : Fragment() {
         ttsManager.setListeners(
             onStart = { id -> 
                 id.toIntOrNull()?.let { idx -> 
-                    requireActivity().runOnUiThread { 
+                    activity?.runOnUiThread { 
                         phraseAdapter.highlightPosition(idx)
                         rvPhrase.smoothScrollToPosition(idx) 
                     } 
@@ -381,10 +381,10 @@ class TreeExplorerFragment : Fragment() {
             }, 
             onDone = { id -> 
                 if (id.toIntOrNull() == phraseAdapter.itemCount - 1) {
-                    requireActivity().runOnUiThread { 
+                    activity?.runOnUiThread { 
                         phraseAdapter.highlightPosition(-1) 
                     } 
-                }
+                } 
             }
         )
     }
