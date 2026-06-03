@@ -282,6 +282,8 @@ class PhraseFullscreenFragment : Fragment() {
             else -> R.layout.item_phrase_picto_large
         }
         adapter = PhraseAdapter(username, layoutRes, onItemClick = { position -> 
+            val cardList = adapter.getCurrentList()
+            if (position !in cardList.indices) return@PhraseAdapter
             if (viewModel.isClockModeActive.value) {
                 viewModel.selectedIndexForConfig.value = position
                 drawerLayout.openDrawer(GravityCompat.END)
@@ -301,7 +303,7 @@ class PhraseFullscreenFragment : Fragment() {
                     }
                 }
             } else {
-                val card = adapter.getCurrentList()[position]
+                val card = cardList[position]
                 ttsManager.speak(card.node.label)
             }
         }).apply {
