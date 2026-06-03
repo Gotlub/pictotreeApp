@@ -113,7 +113,6 @@ class GlobalSettingsDialogFragment : DialogFragment() {
                     }
                 }
             }
-        }
             override fun onNothingSelected(parent: AdapterView<*>?) {}
         }
 
