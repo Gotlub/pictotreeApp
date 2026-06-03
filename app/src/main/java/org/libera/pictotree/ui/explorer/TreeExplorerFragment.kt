@@ -80,7 +80,7 @@ class TreeExplorerFragment : Fragment() {
     override fun onStop() {
         super.onStop()
         activity?.window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        (requireActivity() as? org.libera.pictotree.MainActivity)?.restoreSystemOrientation()
+        (activity as? org.libera.pictotree.MainActivity)?.restoreSystemOrientation()
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
