@@ -33,15 +33,24 @@
             android:layout_width="match_parent" android:layout_height="match_parent" android:padding="10dp" android:src="@android:drawable/ic_menu_sort_by_size" app:tint="#5E35B1" /></com.google.android.material.card.MaterialCardView>
 
         <androidx.constraintlayout.helper.widget.Flow
+            android:id="@+id/flow_actions_right"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            app:flow_wrapMode="aligned"
-            app:flow_maxElementsWrap="3"
-            app:flow_horizontalGap="12dp"
+            android:orientation="vertical"
             app:flow_verticalGap="12dp"
-            app:constraint_referenced_ids="card_search,card_speak,card_rotate,card_back_to_trees,btn_back_to_nav"
+            app:constraint_referenced_ids="card_back_to_trees,btn_back_to_nav"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintEnd_toEndOf="parent" />
+
+        <androidx.constraintlayout.helper.widget.Flow
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            app:flow_verticalGap="12dp"
+            app:constraint_referenced_ids="card_search,card_speak,card_rotate"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/flow_actions_right"
+            android:layout_marginEnd="16dp" />
     </androidx.constraintlayout.widget.ConstraintLayout>
 
     <!-- Preview and Add Panel -->
@@ -57,7 +66,7 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
         <ImageView android:id="@+id/iv_selection_preview" android:layout_width="80dp" android:layout_height="80dp" android:background="@drawable/rounded_bottom_sheet" android:backgroundTint="#FFFFFF" android:padding="4dp" android:scaleType="centerInside" android:visibility="gone" tools:visibility="visible" tools:src="@drawable/ic_launcher_foreground" />
-        <com.google.android.material.button.MaterialButton android:id="@+id/btn_add_to_basket" android:layout_width="wrap_content" android:layout_height="44dp" android:layout_marginTop="8dp" android:text="@string/add_btn" android:textAllCaps="false" app:cornerRadius="22dp" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/btn_add_to_basket" android:layout_width="wrap_content" android:layout_height="44dp" android:layout_marginTop="8dp" android:text="@string/add_btn" android:textAllCaps="false" app:cornerRadius="22dp" android:backgroundTint="?attr/colorPrimary" />
     </LinearLayout>
 
     <!-- NAVIGATION ARROWS -->

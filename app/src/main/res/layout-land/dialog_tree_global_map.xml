@@ -57,7 +57,7 @@
         app:layout_constraintBottom_toTopOf="@id/panel_phrase"
         app:layout_constraintEnd_toEndOf="parent">
         <ImageView android:id="@+id/iv_selection_preview" android:layout_width="50dp" android:layout_height="50dp" android:background="@drawable/rounded_bottom_sheet" android:backgroundTint="#FFFFFF" android:padding="4dp" android:scaleType="centerInside" android:visibility="gone" tools:visibility="visible" tools:src="@drawable/ic_launcher_foreground" />
-        <com.google.android.material.button.MaterialButton android:id="@+id/btn_add_to_basket" android:layout_width="wrap_content" android:layout_height="32dp" android:layout_marginTop="2dp" android:text="@string/add_btn" android:textSize="9sp" android:textAllCaps="false" app:cornerRadius="16dp" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/btn_add_to_basket" android:layout_width="wrap_content" android:layout_height="32dp" android:layout_marginTop="2dp" android:text="@string/add_btn" android:textSize="9sp" android:textAllCaps="false" app:cornerRadius="16dp" android:backgroundTint="?attr/colorPrimary" />
     </LinearLayout>
 
     <androidx.constraintlayout.widget.ConstraintLayout
