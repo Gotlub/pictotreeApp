@@ -78,8 +78,13 @@ class DashboardViewModel(
         }
     }
 
-    fun setLanguage(lang: String) {
-        viewModelScope.launch { userConfigRepository.saveLocale(lang) }
+    fun setLanguage(lang: String, onComplete: () -> Unit) {
+        viewModelScope.launch {
+            userConfigRepository.saveLocale(lang, getApplication())
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                onComplete()
+            }
+        }
     }
 
     fun setGlobalDisplaySettings(startupView: String, orientation: String) {
