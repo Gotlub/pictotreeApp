@@ -14,7 +14,6 @@ import org.libera.pictotree.data.repository.AuthRepository
 import org.libera.pictotree.data.database.AppDatabase
 import org.libera.pictotree.data.SessionManager
 import org.libera.pictotree.utils.UiText
-import org.libera.pictotree.R
 
 /**
  * UI State for the Login Screen

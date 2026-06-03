@@ -17,7 +17,6 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.firstOrNull
 import org.libera.pictotree.utils.UiText
-import org.libera.pictotree.R
 
 sealed class SearchUiState {
     data object Idle : SearchUiState()
