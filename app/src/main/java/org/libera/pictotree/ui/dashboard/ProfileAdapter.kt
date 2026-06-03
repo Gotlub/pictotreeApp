@@ -55,6 +55,7 @@ class ProfileAdapter(
     }
 
     fun moveItem(fromPosition: Int, toPosition: Int) {
+        if (fromPosition !in profiles.indices || toPosition !in profiles.indices) return
         if (fromPosition < toPosition) {
             for (i in fromPosition until toPosition) {
                 Collections.swap(profiles, i, i + 1)
