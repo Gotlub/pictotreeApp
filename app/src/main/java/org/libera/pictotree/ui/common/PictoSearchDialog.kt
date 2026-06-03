@@ -53,8 +53,7 @@ class PictoSearchDialog : DialogFragment() {
                     ArasaacRepository(),
                     userConfigRepository,
                     connectivityObserver,
-                    username,
-                    RetrofitClient.SERVER_URL
+                    username
                 ) as T
             }
         }

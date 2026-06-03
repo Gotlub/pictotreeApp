@@ -270,7 +270,8 @@ class PhraseFullscreenFragment : Fragment() {
             )
             viewModel.updateCardTimeConfig(index, newConfig)
             drawerLayout.closeDrawer(GravityCompat.END)
-            Toast.makeText(requireContext(), "Configuration appliquée", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(),
+                getString(R.string.configuration_appliqu_e), Toast.LENGTH_SHORT).show()
         }
     }
 

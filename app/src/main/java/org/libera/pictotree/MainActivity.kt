@@ -68,14 +68,14 @@ class MainActivity : AppCompatActivity() {
         if (isFinishing || isDestroyed) return
         // Éviter d'empiler les dialogues si plusieurs 401 arrivent
         com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
-            .setTitle("Session expirée")
-            .setMessage("Votre connexion au serveur a expiré. Souhaitez-vous continuer en mode hors-ligne (votre travail actuel sera conservé) ou vous reconnecter ?")
+            .setTitle(getString(R.string.session_expir_e))
+            .setMessage(getString(R.string.votre_connexion_au_serveur_a_expir_souhaitez_vous_continuer_en_mode_hors_ligne_votre_travail_actuel_sera_conserv_ou_vous_reconnecter))
             .setCancelable(false)
-            .setPositiveButton("Rester hors-ligne") { _, _ ->
+            .setPositiveButton(getString(R.string.rester_hors_ligne)) { _, _ ->
                 sessionManager.switchToOfflineMode()
                 // L'utilisateur reste là où il est, les fonctions online se griseront
             }
-            .setNegativeButton("Se reconnecter") { _, _ ->
+            .setNegativeButton(getString(R.string.se_reconnecter)) { _, _ ->
                 handleLogout(sessionManager)
             }
             .show()

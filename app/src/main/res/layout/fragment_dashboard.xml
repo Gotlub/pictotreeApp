@@ -15,7 +15,6 @@
         app:layout_constraintTop_toTopOf="parent">
 
         <androidx.appcompat.widget.Toolbar
-            android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
             android:background="@color/dark_background">
@@ -27,7 +26,6 @@
                 android:gravity="center_vertical">
 
                 <ImageView
-                    android:id="@+id/ivLogo"
                     android:layout_width="40dp"
                     android:layout_height="40dp"
                     android:layout_marginEnd="10dp"
@@ -88,7 +86,6 @@
 
     <!-- DASHBOARD ACTIONS (Stacked on right, Menu on left) -->
     <androidx.constraintlayout.widget.ConstraintLayout
-        android:id="@+id/layout_dashboard_controls"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:padding="16dp"

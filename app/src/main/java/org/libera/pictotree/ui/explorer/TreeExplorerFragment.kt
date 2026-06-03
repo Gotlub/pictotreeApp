@@ -1,7 +1,6 @@
 package org.libera.pictotree.ui.explorer
 
 import android.os.Bundle
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -24,7 +23,6 @@ import org.libera.pictotree.R
 import org.libera.pictotree.data.database.AppDatabase
 import org.libera.pictotree.utils.TTSManager
 import org.libera.pictotree.utils.FileUtils
-import java.io.File
 
 class TreeExplorerFragment : Fragment() {
 
@@ -298,7 +296,7 @@ class TreeExplorerFragment : Fragment() {
 
     private fun setupListeners(view: View) {
         cardEye.setOnClickListener {
-            val dialog = TreeGlobalMapDialog.newInstance(viewModel.getProfileTreeIds(), viewModel.getCurrentTreeId(), org.libera.pictotree.data.SessionManager(requireContext()).getUsername() ?: "default", viewModel.uiState.value.previewNode?.id ?: "")
+            val dialog = TreeGlobalMapDialog.newInstance(viewModel.getProfileTreeIds(), viewModel.getCurrentTreeId(), org.libera.pictotree.data.SessionManager(requireContext()).getUsername() ?: "default")
             dialog.show(childFragmentManager, "TreeGlobalMapDialog")
         }
         cardSearch.setOnClickListener {
@@ -320,7 +318,10 @@ class TreeExplorerFragment : Fragment() {
     }
 
     private fun showClearPhraseConfirmation() {
-        com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext()).setTitle("Effacer le bandeau ?").setMessage("Voulez-vous vraiment vider toute la phrase ?")
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext()).setTitle(
+            getString(
+                R.string.effacer_le_bandeau
+            )).setMessage(getString(R.string.voulez_vous_vraiment_vider_toute_la_phrase))
             .setPositiveButton("Oui") { _, _ -> viewModel.clearPhrase() }.setNegativeButton("Non", null).setIcon(android.R.drawable.ic_menu_delete).show()
     }
 

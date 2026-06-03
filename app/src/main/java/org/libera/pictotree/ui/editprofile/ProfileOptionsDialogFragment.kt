@@ -59,21 +59,22 @@ class ProfileOptionsDialogFragment : DialogFragment() {
 
         btnDeleteProfile.setOnClickListener {
             MaterialAlertDialogBuilder(requireContext())
-                .setTitle("Supprimer le Profil ?")
-                .setMessage("Toutes les données locales de ce profil seront perdues. Cette action est irréversible.")
-                .setPositiveButton("Supprimer") { _, _ ->
+                .setTitle(getString(R.string.supprimer_le_profil))
+                .setMessage(getString(R.string.toutes_les_donn_es_locales_de_ce_profil_seront_perdues_cette_action_est_irr_versible))
+                .setPositiveButton(getString(R.string.supprimer)) { _, _ ->
                     viewModel.deleteFullProfile(profileId) {
                         dismiss()
                         requireActivity().onBackPressedDispatcher.onBackPressed()
                     }
                 }
-                .setNegativeButton("Annuler", null)
+                .setNegativeButton(getString(R.string.annuler), null)
                 .setIcon(android.R.drawable.ic_menu_delete)
                 .show()
         }
 
         btnSyncProfile.setOnClickListener {
-            Toast.makeText(requireContext(), "Synchronisation Cloud bientôt disponible", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(),
+                getString(R.string.synchronisation_cloud_bient_t_disponible), Toast.LENGTH_SHORT).show()
         }
     }
 }

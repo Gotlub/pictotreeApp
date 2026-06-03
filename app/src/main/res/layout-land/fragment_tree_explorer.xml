@@ -37,7 +37,6 @@
 
         <!-- Fil d'Ariane Horizontal -->
         <androidx.constraintlayout.widget.ConstraintLayout
-            android:id="@+id/container_breadcrumbs"
             android:layout_width="0dp"
             android:layout_height="80dp"
             android:layout_marginTop="4dp"
@@ -62,13 +61,17 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent">
             <com.google.android.material.card.MaterialCardView android:id="@+id/card_search" android:layout_width="40dp" android:layout_height="40dp" app:cardCornerRadius="10dp" app:cardBackgroundColor="#EDE7F6" app:cardElevation="2dp"><ImageView android:layout_width="match_parent" android:layout_height="match_parent" android:padding="10dp" android:src="@android:drawable/ic_menu_search" app:tint="#5E35B1" /></com.google.android.material.card.MaterialCardView>
-            <com.google.android.material.card.MaterialCardView android:id="@+id/card_speak" android:layout_width="40dp" android:layout_height="40dp" app:cardCornerRadius="10dp" app:cardBackgroundColor="#E8F5E9" app:cardElevation="2dp"><ImageView android:id="@+id/iv_speak_icon" android:layout_width="match_parent" android:layout_height="match_parent" android:padding="10dp" android:src="@android:drawable/ic_btn_speak_now" app:tint="#2E7D32" /></com.google.android.material.card.MaterialCardView>
-            <com.google.android.material.card.MaterialCardView android:id="@+id/card_rotate" android:layout_width="40dp" android:layout_height="40dp" app:cardCornerRadius="10dp" app:cardBackgroundColor="#FFF3E0" app:cardElevation="2dp"><ImageView android:id="@+id/iv_menu_rotate" android:layout_width="match_parent" android:layout_height="match_parent" android:padding="10dp" android:src="@android:drawable/ic_menu_rotate" app:tint="#E65100" /></com.google.android.material.card.MaterialCardView>
+            <com.google.android.material.card.MaterialCardView android:id="@+id/card_speak" android:layout_width="40dp" android:layout_height="40dp" app:cardCornerRadius="10dp" app:cardBackgroundColor="#E8F5E9" app:cardElevation="2dp"><ImageView
+                android:layout_width="match_parent" android:layout_height="match_parent" android:padding="10dp" android:src="@android:drawable/ic_btn_speak_now" app:tint="#2E7D32" /></com.google.android.material.card.MaterialCardView>
+            <com.google.android.material.card.MaterialCardView android:id="@+id/card_rotate" android:layout_width="40dp" android:layout_height="40dp" app:cardCornerRadius="10dp" app:cardBackgroundColor="#FFF3E0" app:cardElevation="2dp"><ImageView
+                android:layout_width="match_parent" android:layout_height="match_parent" android:padding="10dp" android:src="@android:drawable/ic_menu_rotate" app:tint="#E65100" /></com.google.android.material.card.MaterialCardView>
             
             <com.google.android.material.card.MaterialCardView android:id="@+id/card_back_to_trees" android:layout_width="40dp" android:layout_height="40dp" app:cardCornerRadius="10dp" app:cardBackgroundColor="#EDE7F6" app:cardElevation="2dp"><ImageView android:layout_width="match_parent" android:layout_height="match_parent" android:padding="10dp" android:src="@android:drawable/ic_dialog_dialer" app:tint="#5E35B1" /></com.google.android.material.card.MaterialCardView>
-            <com.google.android.material.card.MaterialCardView android:id="@+id/card_eye" android:layout_width="40dp" android:layout_height="40dp" app:cardCornerRadius="10dp" app:cardBackgroundColor="#EDE7F6" app:cardElevation="2dp"><ImageView android:id="@+id/iv_eye" android:layout_width="match_parent" android:layout_height="match_parent" android:padding="10dp" android:src="@drawable/ic_tree_structure" app:tint="#5E35B1" /></com.google.android.material.card.MaterialCardView>
+            <com.google.android.material.card.MaterialCardView android:id="@+id/card_eye" android:layout_width="40dp" android:layout_height="40dp" app:cardCornerRadius="10dp" app:cardBackgroundColor="#EDE7F6" app:cardElevation="2dp"><ImageView
+                android:layout_width="match_parent" android:layout_height="match_parent" android:padding="10dp" android:src="@drawable/ic_tree_structure" app:tint="#5E35B1" /></com.google.android.material.card.MaterialCardView>
             
-            <androidx.constraintlayout.helper.widget.Flow android:id="@+id/flow_actions_land" android:layout_width="wrap_content" android:layout_height="wrap_content" app:flow_wrapMode="aligned" app:flow_maxElementsWrap="3" app:flow_horizontalGap="8dp" app:flow_verticalGap="8dp" app:constraint_referenced_ids="card_search,card_speak,card_rotate,card_back_to_trees,card_eye" app:layout_constraintTop_toTopOf="parent" app:layout_constraintEnd_toEndOf="parent" />
+            <androidx.constraintlayout.helper.widget.Flow
+                android:layout_width="wrap_content" android:layout_height="wrap_content" app:flow_wrapMode="aligned" app:flow_maxElementsWrap="3" app:flow_horizontalGap="8dp" app:flow_verticalGap="8dp" app:constraint_referenced_ids="card_search,card_speak,card_rotate,card_back_to_trees,card_eye" app:layout_constraintTop_toTopOf="parent" app:layout_constraintEnd_toEndOf="parent" />
         </androidx.constraintlayout.widget.ConstraintLayout>
 
 
@@ -106,7 +109,6 @@
         <View android:id="@+id/children_gradient_right" android:layout_width="40dp" android:layout_height="0dp" android:background="@drawable/scroll_gradient_right" android:visibility="invisible" app:layout_constraintEnd_toEndOf="parent" app:layout_constraintTop_toTopOf="@id/rv_children_preview" app:layout_constraintBottom_toBottomOf="@id/rv_children_preview" />
 
         <LinearLayout
-            android:id="@+id/layout_action"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="vertical"
@@ -171,7 +173,9 @@
     <View android:id="@+id/fab_speak" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone" />
     <View android:id="@+id/iv_siblings_arrow_left" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone" />
     <View android:id="@+id/iv_siblings_arrow_right" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone" />
-    <View android:id="@+id/iv_children_arrow_left" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone" />
-    <View android:id="@+id/iv_children_arrow_right" android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone" />
+    <View
+        android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone" />
+    <View
+        android:layout_width="1dp" android:layout_height="1dp" android:visibility="gone" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

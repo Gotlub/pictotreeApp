@@ -131,7 +131,7 @@ class TreeSelectionFragment : Fragment() {
                     
                     val treeIds = explorerViewModel.getProfileTreeIds()
                     val dialog = org.libera.pictotree.ui.explorer.TreeGlobalMapDialog.newInstance(
-                        treeIds, tree.id, username, ""
+                        treeIds, tree.id, username
                     )
                     dialog.show(childFragmentManager, "TreeGlobalMapDialog")
                 } else {

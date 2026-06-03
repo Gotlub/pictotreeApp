@@ -31,8 +31,7 @@ class PictoSearchViewModel(
     private val arasaacRepository: ArasaacRepository,
     private val userConfigRepository: UserConfigRepository,
     private val connectivityObserver: ConnectivityObserver,
-    private val username: String,
-    private val hostUrl: String
+    private val username: String
 ) : AndroidViewModel(application) {
 
     private val _localResults = MutableStateFlow<SearchUiState>(SearchUiState.Idle)

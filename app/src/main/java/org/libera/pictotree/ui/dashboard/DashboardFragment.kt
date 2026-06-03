@@ -196,12 +196,17 @@ class DashboardFragment : Fragment() {
                     viewModel.syncResultEvent.collect { result ->
                         if (result.errors > 0) {
                             MaterialAlertDialogBuilder(requireContext())
-                                .setTitle("Importation partielle")
-                                .setMessage("Le profil a été importé, mais ${result.errors} image(s) n'ont pas pu être téléchargées. Vous pourrez les réparer plus tard dans l'édition du profil.")
+                                .setTitle(getString(R.string.importation_partielle))
+                                .setMessage(
+                                    getString(
+                                        R.string.le_profil_a_t_import_mais_image_s_n_ont_pas_pu_tre_t_l_charg_es_vous_pourrez_les_r_parer_plus_tard_dans_l_dition_du_profil,
+                                        result.errors
+                                    ))
                                 .setPositiveButton("OK", null)
                                 .show()
                         } else {
-                            Toast.makeText(requireContext(), "Profil importé avec succès !", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(requireContext(),
+                                getString(R.string.profil_import_avec_succ_s), Toast.LENGTH_SHORT).show()
                         }
                     }
                 }

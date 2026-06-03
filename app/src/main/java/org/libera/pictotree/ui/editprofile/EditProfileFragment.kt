@@ -2,7 +2,6 @@ package org.libera.pictotree.ui.editprofile
 
 import android.os.Bundle
 import androidx.activity.OnBackPressedCallback
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -10,7 +9,6 @@ import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
-import androidx.core.widget.doAfterTextChanged
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModelProvider
@@ -21,18 +19,15 @@ import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import coil.load
-import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.textfield.TextInputEditText
 import kotlinx.coroutines.launch
 import org.libera.pictotree.R
 import org.libera.pictotree.data.database.AppDatabase
 import org.libera.pictotree.data.repository.ProfileRepository
-import org.libera.pictotree.data.repository.UserConfigRepository
 import org.libera.pictotree.data.SessionManager
 import org.libera.pictotree.network.RetrofitClient
 import org.libera.pictotree.ui.explorer.TreeGlobalMapDialog
-import java.io.File
 import android.widget.ArrayAdapter
 import android.graphics.drawable.GradientDrawable
 import android.graphics.Color
@@ -71,7 +66,7 @@ class EditProfileFragment : Fragment() {
         setupUIReferences(view)
         setupViewModel()
         setupAdapter()
-        setupListeners(view)
+        setupListeners()
         setupObservers()
 
         if (profileId != -1) {
@@ -150,24 +145,24 @@ class EditProfileFragment : Fragment() {
                     intArrayOf(tree.id),
                     tree.id,
                     username,
-                    "",
                     isSimplePreview = true // Nouveau mode
                 )
                 dialog.show(childFragmentManager, "TreePreview")
             },
-            onColorClick = { tree, currentColor -> showColorPickerDialog(tree, currentColor) },
+            onColorClick = { tree, currentColor -> showColorPickerDialog(tree) },
             onStartDrag = { viewHolder -> itemTouchHelper.startDrag(viewHolder) },
             onRepairTree = { tree -> 
                 val username = SessionManager(requireContext()).getUsername() ?: "default"
                 viewModel.repairTree(tree.id, username)
-                Toast.makeText(requireContext(), "Réparation de l'arbre en cours...", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(),
+                    getString(R.string.r_paration_de_l_arbre_en_cours), Toast.LENGTH_SHORT).show()
             }
         )
         recyclerView.layoutManager = LinearLayoutManager(requireContext())
         recyclerView.adapter = adapter
     }
 
-    private fun setupListeners(view: View) {
+    private fun setupListeners() {
         btnOpenOptions.setOnClickListener {
             if (profileId != -1) {
                 val dialog = ProfileOptionsDialogFragment.newInstance(profileId)
@@ -186,7 +181,8 @@ class EditProfileFragment : Fragment() {
                 onTreeSelected = { treeMetadata ->
                     val username = SessionManager(requireContext()).getUsername() ?: "default"
                     viewModel.synchronizeAndImportTree(treeMetadata.id, profileId, username)
-                    Toast.makeText(requireContext(), "Importation de l'arbre...", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(requireContext(),
+                        getString(R.string.importation_de_l_arbre), Toast.LENGTH_SHORT).show()
                 }
             )
             dialog.show(childFragmentManager, "TreeSelection")
@@ -275,13 +271,19 @@ class EditProfileFragment : Fragment() {
                     viewModel.syncResultEvent.collect { result ->
                         if (result.errors > 0) {
                             MaterialAlertDialogBuilder(requireContext())
-                                .setTitle("Importation incomplète")
-                                .setMessage("Il manque ${result.errors} image(s) sur un total de ${result.total}. Voulez-vous réessayer ?")
-                                .setPositiveButton("Réessayer") { _, _ -> }
-                                .setNegativeButton("Plus tard", null)
+                                .setTitle(getString(R.string.importation_incompl_te))
+                                .setMessage(
+                                    getString(
+                                        R.string.il_manque_image_s_sur_un_total_de_voulez_vous_r_essayer,
+                                        result.errors,
+                                        result.total
+                                    ))
+                                .setPositiveButton(getString(R.string.r_essayer)) { _, _ -> }
+                                .setNegativeButton(getString(R.string.plus_tard), null)
                                 .show()
                         } else if (result.total > 0) {
-                            Toast.makeText(requireContext(), "Synchronisation réussie (${result.total} images)", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(requireContext(),
+                                getString(R.string.synchronisation_r_ussie_images, result.total), Toast.LENGTH_SHORT).show()
                         }
                     }
                 }
@@ -299,15 +301,15 @@ class EditProfileFragment : Fragment() {
         }
     }
 
-    private fun showColorPickerDialog(tree: org.libera.pictotree.data.database.entity.TreeEntity, currentColor: String) {
+    private fun showColorPickerDialog(tree: org.libera.pictotree.data.database.entity.TreeEntity) {
         val colors = arrayOf("#000000", "#FFD54F", "#81C784", "#FFB74D", "#64B5F6", "#F06292")
         val colorNames = arrayOf(
-            "Noir (Défaut)",
-            "Jaune (Personnes)",
-            "Vert (Verbes)",
-            "Orange (Noms)",
-            "Bleu (Adjectifs)",
-            "Rose (Social)"
+            getString(R.string.noir_d_faut),
+            getString(R.string.jaune_personnes),
+            getString(R.string.vert_verbes),
+            getString(R.string.orange_noms),
+            getString(R.string.bleu_adjectifs),
+            getString(R.string.rose_social)
         )
 
         val adapter = object : ArrayAdapter<String>(
@@ -344,7 +346,7 @@ class EditProfileFragment : Fragment() {
         }
 
         MaterialAlertDialogBuilder(requireContext())
-            .setTitle("Couleur CAA")
+            .setTitle(getString(R.string.couleur_caa))
             .setAdapter(adapter) { _, which ->
                 viewModel.updateTreeColor(profileId, tree.id, colors[which])
             }

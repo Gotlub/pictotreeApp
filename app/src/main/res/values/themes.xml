@@ -2,9 +2,9 @@
     <!-- Base application theme. -->
     <style name="Base.Theme.PictotreeApp" parent="Theme.Material3.Light.NoActionBar">
         <!-- Customize your light theme here. -->
-        <item name="colorPrimary">@color/black</item>
+        <item name="colorPrimary">@color/primary_color</item>
         <item name="colorOnPrimary">@color/white</item>
-        <item name="colorPrimaryContainer">@color/black</item>
+        <item name="colorPrimaryContainer">@color/primary_color</item>
         <item name="colorOnPrimaryContainer">@color/white</item>
     </style>
 

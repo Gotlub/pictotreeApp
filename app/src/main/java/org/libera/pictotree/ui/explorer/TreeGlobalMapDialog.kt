@@ -11,7 +11,6 @@ import android.webkit.*
 import android.widget.ImageButton
 import android.widget.ImageView
 import androidx.fragment.app.DialogFragment
-import androidx.fragment.app.Fragment
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
@@ -28,7 +27,6 @@ import org.libera.pictotree.data.database.AppDatabase
 import org.libera.pictotree.utils.WebViewImageInterceptor
 import org.libera.pictotree.utils.TTSManager
 import org.libera.pictotree.utils.FileUtils
-import org.json.JSONObject
 
 class TreeGlobalMapDialog : DialogFragment() {
 
@@ -38,8 +36,7 @@ class TreeGlobalMapDialog : DialogFragment() {
         fun newInstance(
             treeIds: IntArray, 
             currentTreeId: Int, 
-            username: String, 
-            selectedNodeId: String = "",
+            username: String,
             isSimplePreview: Boolean = false
         ): TreeGlobalMapDialog {
             val dialog = TreeGlobalMapDialog()
@@ -391,7 +388,7 @@ class TreeGlobalMapDialog : DialogFragment() {
 
         val bridge = object {
             @JavascriptInterface
-            fun onNodeSelected(prefixedNodeId: String, imageUrl: String?) {
+            fun onNodeSelected(prefixedNodeId: String) {
                 if (!isSimplePreview) {
                     viewModel.selectNodeWithoutNavigatingById(prefixedNodeId)
                 }
