@@ -18,7 +18,7 @@ class UserConfigRepository(private val userConfigDao: UserConfigDao) {
         }
 
         // Also save to SharedPreferences for synchronous access in attachBaseContext
-        val prefs = context.getSharedPreferences("pictotree_session", android.content.Context.MODE_PRIVATE)
+        val prefs = context.applicationContext.getSharedPreferences("pictotree_session", android.content.Context.MODE_PRIVATE)
         prefs.edit().putString("app_locale", languageCode).apply()
     }
 
