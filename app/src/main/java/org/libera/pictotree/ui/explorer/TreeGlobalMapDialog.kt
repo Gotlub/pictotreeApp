@@ -412,7 +412,7 @@ class TreeGlobalMapDialog : DialogFragment() {
             }
             override fun shouldInterceptRequest(view: WebView?, request: WebResourceRequest?): WebResourceResponse? {
                 val ctx = appContext ?: return null
-                val dao = imageDao ?: AppDatabase.getDatabase(ctx, username).imageDao().also { imageDao = it }
+                val dao = imageDao ?: AppDatabase.getDatabase(ctx, username).imageDao()
                 return WebViewImageInterceptor.intercept(ctx, username, dao, request?.url, strictOffline = true)
             }
         }
