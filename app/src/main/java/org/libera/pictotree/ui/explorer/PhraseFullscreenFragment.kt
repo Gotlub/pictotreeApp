@@ -307,6 +307,7 @@ class PhraseFullscreenFragment : Fragment() {
                 ttsManager.speak(card.node.label)
             }
         }).apply {
+            adapter = this
             timerColor = org.libera.pictotree.data.SessionManager(requireContext()).getTimerColor()
         }
         adapter.isClockModeActive = viewModel.isClockModeActive.value
