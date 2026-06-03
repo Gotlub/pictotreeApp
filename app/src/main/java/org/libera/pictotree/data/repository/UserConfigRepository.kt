@@ -9,13 +9,17 @@ class UserConfigRepository(private val userConfigDao: UserConfigDao) {
 
     val userConfig: Flow<UserConfig?> = userConfigDao.getUserConfigFlow()
 
-    suspend fun saveLocale(languageCode: String) {
+    suspend fun saveLocale(languageCode: String, context: android.content.Context) {
         val current = userConfigDao.getUserConfig()
         if (current == null) {
             userConfigDao.insertUserConfig(UserConfig(locale = languageCode))
         } else {
             userConfigDao.updateUserConfig(current.copy(locale = languageCode))
         }
+
+        // Also save to SharedPreferences for synchronous access in attachBaseContext
+        val prefs = context.getSharedPreferences("pictotree_session", android.content.Context.MODE_PRIVATE)
+        prefs.edit().putString("app_locale", languageCode).apply()
     }
 
     suspend fun saveGlobalDisplaySettings(startupView: String, orientation: String) {

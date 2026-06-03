@@ -105,7 +105,10 @@ class GlobalSettingsDialogFragment : DialogFragment() {
         spinnerLanguage.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
                 if (viewModel.userConfig.value?.locale != codes[position]) {
-                    viewModel.setLanguage(codes[position])
+                    viewModel.setLanguage(codes[position]) {
+                        // When language is changed, recreate the activity to apply changes across all strings
+                        requireActivity().recreate()
+                    }
                 }
             }
             override fun onNothingSelected(parent: AdapterView<*>?) {}

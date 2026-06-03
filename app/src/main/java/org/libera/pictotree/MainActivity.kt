@@ -23,7 +23,19 @@ import org.libera.pictotree.data.SessionManager
 import org.libera.pictotree.network.RetrofitClient
 import org.libera.pictotree.utils.AuthEvents
 
+import org.libera.pictotree.utils.ContextUtils
+import java.util.Locale
+
 class MainActivity : AppCompatActivity() {
+
+    override fun attachBaseContext(newBase: Context) {
+        val prefs = newBase.getSharedPreferences("pictotree_session", Context.MODE_PRIVATE)
+        val localeStr = prefs.getString("app_locale", Locale.getDefault().language) ?: "en"
+        val localeToSwitchTo = Locale(localeStr)
+
+        val context = ContextUtils.updateLocale(newBase, localeToSwitchTo)
+        super.attachBaseContext(context)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
