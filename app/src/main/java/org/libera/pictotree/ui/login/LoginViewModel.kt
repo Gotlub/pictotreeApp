@@ -13,6 +13,7 @@ import org.libera.pictotree.network.RetrofitClient
 import org.libera.pictotree.data.repository.AuthRepository
 import org.libera.pictotree.data.database.AppDatabase
 import org.libera.pictotree.data.SessionManager
+import org.libera.pictotree.utils.UiText
 
 /**
  * UI State for the Login Screen
@@ -23,7 +24,7 @@ data class LoginUiState(
     val isOnlineMode: Boolean = false,
     val isPasswordVisible: Boolean = false,
     val isLoading: Boolean = false,
-    val errorMessage: String? = null,
+    val errorMessage: UiText? = null,
     val isLoginSuccessful: Boolean = false,
     val token: String? = null,
     val refreshToken: String? = null,
@@ -78,7 +79,7 @@ class LoginViewModel(
         val isOnline = _uiState.value.isOnlineMode
         
         if (username.isNullOrBlank()) {
-            _uiState.update { it.copy(errorMessage = "Veuillez entrer un nom d'utilisateur valide.") }
+            _uiState.update { it.copy(errorMessage = UiText.StringResource(org.libera.pictotree.R.string.error_invalid_username)) }
             return
         }
 
@@ -100,13 +101,13 @@ class LoginViewModel(
                     } else {
                         _uiState.update { it.copy(
                             isLoading = false,
-                            errorMessage = getApplication<Application>().getString(org.libera.pictotree.R.string.login_offline_not_allowed)
+                            errorMessage = UiText.StringResource(org.libera.pictotree.R.string.login_offline_not_allowed)
                         ) }
                     }
                 } else {
                     _uiState.update { it.copy(
                         isLoading = false,
-                        errorMessage = "Utilisateur inconnu localement. Connectez-vous en ligne."
+                        errorMessage = UiText.StringResource(org.libera.pictotree.R.string.error_user_unknown_local)
                     ) }
                 }
             }
@@ -125,7 +126,8 @@ class LoginViewModel(
                     username = username
                 ) }
             }.onFailure { exception ->
-                _uiState.update { it.copy(errorMessage = exception.message ?: "Erreur de connexion") }
+                val errorUiText = exception.message?.let { UiText.DynamicString(it) } ?: UiText.StringResource(org.libera.pictotree.R.string.error_connection)
+                _uiState.update { it.copy(errorMessage = errorUiText) }
             }
         }
     }

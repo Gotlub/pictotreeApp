@@ -105,7 +105,7 @@ class LoginFragment : Fragment() {
 
                     // Erreurs
                     if (state.errorMessage != null) {
-                        Toast.makeText(requireContext(), state.errorMessage, Toast.LENGTH_LONG).show()
+                        Toast.makeText(requireContext(), state.errorMessage.asString(requireContext()), Toast.LENGTH_LONG).show()
                     }
 
                     // Connexion réussie

@@ -91,7 +91,7 @@ class SearchTabFragment : Fragment() {
                     }
                     is SearchUiState.Error -> {
                         progressBar.visibility = View.GONE
-                        tvEmpty.text = state.message
+                        tvEmpty.text = state.message.asString(requireContext())
                         tvEmpty.visibility = View.VISIBLE
                         adapter.submitList(emptyList())
                     }
