@@ -174,4 +174,13 @@
     <string name="synchronisation_cloud_bient_t_disponible">Synchronisation Cloud bientôt disponible</string>
     <string name="effacer_le_bandeau">Effacer le bandeau ?</string>
     <string name="voulez_vous_vraiment_vider_toute_la_phrase">Voulez-vous vraiment vider toute la phrase ?</string>
+
+    <!-- ViewModel Error Strings -->
+    <string name="error_invalid_username">Please enter a valid username.</string>
+    <string name="error_user_unknown_local">User unknown locally. Please connect online.</string>
+    <string name="error_connection">Connection error</string>
+    <string name="error_offline_check_connection">Offline: Check your internet connection.</string>
+    <string name="error_generic">Error</string>
+    <string name="error_server_code">Server error: %1$d</string>
+    <string name="error_network">Network error</string>
 </resources>
