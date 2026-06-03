@@ -128,8 +128,7 @@
                             globalSelectedNodeId = uniqueId;
                             $('.node-selected').removeClass('node-selected');
                             $(target).addClass('node-selected');
-                            let imgElement = target.querySelector('img');
-                            if (window.AndroidBridge) window.AndroidBridge.onNodeSelected(uniqueId, imgElement ? imgElement.src : null);
+                            if (window.AndroidBridge) window.AndroidBridge.onNodeSelected(uniqueId);
                         }
                     });
                     isListenerAttached = true;
