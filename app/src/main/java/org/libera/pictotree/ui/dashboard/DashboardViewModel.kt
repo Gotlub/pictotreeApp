@@ -116,7 +116,7 @@ class DashboardViewModel(
 
     suspend fun tryUnlock(password: String): Result<Unit> {
         val sessionManager = SessionManager(getApplication())
-        val username = sessionManager.getUsername() ?: return Result.failure(Exception("Utilisateur non défini"))
+        val username = sessionManager.getUsername() ?: return Result.failure(Exception(getApplication<Application>().getString(org.libera.pictotree.R.string.error_invalid_username)))
         
         return authRepository.login(username, password).map { response ->
             sessionManager.saveSession(username, response.accessToken, response.refreshToken)
