@@ -155,6 +155,7 @@ class TreeExplorerViewModel(
                     ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
                 if (alarmUri != null) {
                     val mp = MediaPlayer()
+                    activeMediaPlayer = mp
                     mp.setAudioAttributes(
                         AudioAttributes.Builder()
                             .setUsage(AudioAttributes.USAGE_NOTIFICATION_EVENT)
