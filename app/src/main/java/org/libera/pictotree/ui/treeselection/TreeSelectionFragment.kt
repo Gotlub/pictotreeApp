@@ -146,8 +146,11 @@ class TreeSelectionFragment : Fragment() {
         phraseAdapter = PhraseAdapter(
             username = username,
             onItemClick = { position -> 
-                val card = phraseAdapter.getCurrentList()[position]
-                ttsManager.speak(card.node.label) 
+                val cardList = phraseAdapter.getCurrentList()
+                if (position in cardList.indices) {
+                    val card = cardList[position]
+                    ttsManager.speak(card.node.label)
+                }
             }
         ).apply {
             timerColor = org.libera.pictotree.data.SessionManager(requireContext()).getTimerColor()
