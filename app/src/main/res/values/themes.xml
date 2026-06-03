@@ -10,7 +10,7 @@
 
     <style name="Theme.PictotreeApp" parent="Base.Theme.PictotreeApp" />
     
-    <style name="Theme.PictotreeApp.FullscreenDialog" parent="Theme.Material3.Light.NoActionBar">
+    <style name="Theme.PictotreeApp.FullscreenDialog" parent="Theme.PictotreeApp">
         <item name="android:windowNoTitle">true</item>
         <item name="android:windowIsFloating">false</item>
         <item name="android:windowBackground">@android:color/white</item>
