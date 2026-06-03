@@ -69,6 +69,7 @@ class TreeGlobalMapDialog : DialogFragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        appContext = requireContext().applicationContext
         setStyle(STYLE_NORMAL, R.style.Theme_PictotreeApp_FullscreenDialog)
     }
 
@@ -85,7 +86,6 @@ class TreeGlobalMapDialog : DialogFragment() {
     @Suppress("DEPRECATION")
     override fun onStart() {
         super.onStart()
-        appContext = requireContext().applicationContext
         (requireActivity() as? org.libera.pictotree.MainActivity)?.applyUserOrientation()
         dialog?.window?.apply {
             setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
