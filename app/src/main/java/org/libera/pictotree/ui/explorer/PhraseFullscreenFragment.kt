@@ -437,11 +437,15 @@ class PhraseFullscreenFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
-        ttsManager.stop()
+        if (::ttsManager.isInitialized) {
+            ttsManager.stop()
+        }
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        ttsManager.shutdown()
+        if (::ttsManager.isInitialized) {
+            ttsManager.shutdown()
+        }
     }
 }

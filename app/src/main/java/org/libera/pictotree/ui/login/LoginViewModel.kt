@@ -86,30 +86,28 @@ class LoginViewModel(
         _uiState.update { it.copy(isLoading = true, errorMessage = null, isLoginSuccessful = false) }
 
         if (!isOnline) {
-            viewModelScope.launch {
-                val knownUsers = _uiState.value.availableUsers
-                if (knownUsers.contains(username)) {
-                    val isAllowed = sessionManager.isOfflineAccessAllowed(username)
-                    
-                    if (isAllowed) {
-                        _uiState.update { it.copy(
-                            isLoading = false,
-                            isLoginSuccessful = true,
-                            token = null,
-                            username = username
-                        ) }
-                    } else {
-                        _uiState.update { it.copy(
-                            isLoading = false,
-                            errorMessage = UiText.StringResource(org.libera.pictotree.R.string.login_offline_not_allowed)
-                        ) }
-                    }
+            val knownUsers = _uiState.value.availableUsers
+            if (knownUsers.contains(username)) {
+                val isAllowed = sessionManager.isOfflineAccessAllowed(username)
+
+                if (isAllowed) {
+                    _uiState.update { it.copy(
+                        isLoading = false,
+                        isLoginSuccessful = true,
+                        token = null,
+                        username = username
+                    ) }
                 } else {
                     _uiState.update { it.copy(
                         isLoading = false,
-                        errorMessage = UiText.StringResource(org.libera.pictotree.R.string.error_user_unknown_local)
+                        errorMessage = UiText.StringResource(org.libera.pictotree.R.string.login_offline_not_allowed)
                     ) }
                 }
+            } else {
+                _uiState.update { it.copy(
+                    isLoading = false,
+                    errorMessage = UiText.StringResource(org.libera.pictotree.R.string.error_user_unknown_local)
+                ) }
             }
             return
         }
