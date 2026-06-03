@@ -167,6 +167,11 @@ class TreeExplorerViewModel(
                         mp.setDataSource(getApplication(), alarmUri)
                     }
 
+                    if (activeMediaPlayer != mp) {
+                        try { mp.release() } catch (e: Exception) {}
+                        return@launch
+                    }
+
                     var isReleased = false
                     val releasePlayer = {
                         if (!isReleased) {
