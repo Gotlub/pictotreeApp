@@ -184,21 +184,24 @@ class TreeExplorerViewModel(
                     }
 
                     mp.setOnPreparedListener { preparedMp ->
-                        preparedMp.start()
-                        activeMediaPlayer = preparedMp
+                        try {
+                            preparedMp.start()
+                            activeMediaPlayer = preparedMp
 
-                        viewModelScope.launch {
-                            delay(3000)
-                            if (!isReleased) {
-                                try {
-                                    if (preparedMp.isPlaying) preparedMp.stop()
-                                } catch (e: IllegalStateException) {
-                                    Log.e(TAG, "Error stopping media player after 3s (IllegalStateException)", e)
-                                } catch (e: Exception) {
-                                    Log.e(TAG, "Error stopping media player after 3s", e)
+                            viewModelScope.launch {
+                                delay(3000)
+                                if (!isReleased) {
+                                    try {
+                                        if (preparedMp.isPlaying) preparedMp.stop()
+                                    } catch (e: Exception) {
+                                        Log.e(TAG, "Error stopping media player after 3s", e)
+                                    }
+                                    releasePlayer()
                                 }
-                                releasePlayer()
                             }
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Error starting media player in onPrepared", e)
+                            releasePlayer()
                         }
                     }
 
