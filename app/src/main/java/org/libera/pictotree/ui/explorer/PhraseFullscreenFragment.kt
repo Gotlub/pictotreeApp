@@ -309,6 +309,7 @@ class PhraseFullscreenFragment : Fragment() {
         }).apply {
             timerColor = org.libera.pictotree.data.SessionManager(requireContext()).getTimerColor()
         }
+        adapter = localAdapter
         adapter.isClockModeActive = viewModel.isClockModeActive.value
         adapter.isTimerActivated = viewModel.isTimerActivated.value
         rv.adapter = adapter
