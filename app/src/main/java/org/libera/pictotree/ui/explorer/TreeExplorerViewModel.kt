@@ -184,8 +184,18 @@ class TreeExplorerViewModel(
                     }
 
                     mp.setOnPreparedListener { preparedMp ->
-                        preparedMp.start()
-                        activeMediaPlayer = preparedMp
+                        try {
+                            if (activeMediaPlayer != preparedMp) {
+                                releasePlayer()
+                                return@setOnPreparedListener
+                            }
+                            preparedMp.start()
+                            activeMediaPlayer = preparedMp
+                        } catch (e: IllegalStateException) {
+                            Log.e(TAG, "Error starting media player in onPrepared", e)
+                            releasePlayer()
+                            return@setOnPreparedListener
+                        }
 
                         viewModelScope.launch {
                             delay(3000)
