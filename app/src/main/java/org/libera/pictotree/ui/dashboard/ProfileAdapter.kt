@@ -48,6 +48,7 @@ class ProfileAdapter(
         }
 
     fun submitList(newProfiles: List<Profile>) {
+        isMovingItem = false
         differ.submitList(newProfiles) {
             profiles.clear()
             profiles.addAll(newProfiles)
@@ -65,16 +66,15 @@ class ProfileAdapter(
                 Collections.swap(profiles, i, i - 1)
             }
         }
-        isMovingItem = true
-        differ.submitList(profiles.toList()) {
-            isMovingItem = false
-        }
         notifyItemMoved(fromPosition, toPosition)
     }
 
     fun dispatchUpdates() {
-        onOrderChanged(profiles)
-        notifyDataSetChanged()
+        isMovingItem = true
+        differ.submitList(profiles.toList()) {
+            isMovingItem = false
+            onOrderChanged(profiles.toList())
+        }
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ProfileViewHolder {
