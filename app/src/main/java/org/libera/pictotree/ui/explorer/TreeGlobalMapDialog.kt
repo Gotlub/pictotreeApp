@@ -237,7 +237,7 @@ class TreeGlobalMapDialog : DialogFragment() {
             rvPhrase = root.findViewById(R.id.rv_phrase)
             phraseAdapter = PhraseAdapter(username = username, onItemClick = { position ->
                 val card = phraseAdapter?.getCurrentList()?.getOrNull(position)
-                card?.let { ttsManager.speak(it.node.label) }
+                card?.let { ttsManager.speak(it.node.description?.takeIf { it.isNotBlank() } ?: it.node.label) }
             }).apply {
                 timerColor = org.libera.pictotree.data.SessionManager(requireContext()).getTimerColor()
             }
@@ -317,7 +317,7 @@ class TreeGlobalMapDialog : DialogFragment() {
                 val phrase = viewModel.phraseList.value
                 if (phrase.isNotEmpty()) {
                     ttsManager.stop()
-                    phrase.forEachIndexed { index, card -> ttsManager.speak(card.node.label, index.toString()) }
+                    phrase.forEachIndexed { index, card -> ttsManager.speak(card.node.description?.takeIf { it.isNotBlank() } ?: card.node.label, index.toString()) }
                 }
             }
 

@@ -196,7 +196,8 @@ class DashboardViewModel(
                 val localProfileIdLong = profileRepository.insertProfile(Profile(
                     name = detailedProfile.name,
                     avatarUrl = localAvatarUrl,
-                    remoteAvatarUrl = detailedProfile.remoteAvatarUrl
+                    remoteAvatarUrl = detailedProfile.remoteAvatarUrl,
+                    lastModif = detailedProfile.lastModif
                 ))
                 val localProfileId = localProfileIdLong.toInt()
                 
@@ -210,7 +211,8 @@ class DashboardViewModel(
                                 id = fullTree.treeId,
                                 name = fullTree.name,
                                 jsonPayload = jsonStr,
-                                rootUrl = fullTree.rootNode?.imageUrl
+                                rootUrl = fullTree.rootNode?.imageUrl,
+                                lastModif = fullTree.lastModif
                             )
                             treeDao.insertTree(entity)
                             

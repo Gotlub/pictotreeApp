@@ -77,7 +77,13 @@ object FileUtils {
         
         val bytes = MessageDigest.getInstance("SHA-256").digest(cleanUrl.toByteArray())
         val hash = bytes.joinToString("") { "%02x".format(it) }
-        val ext = cleanUrl.substringAfterLast('.', "png")
+        
+        val lastSegment = cleanUrl.substringAfterLast('/')
+        val ext = if (lastSegment.contains('.')) {
+            lastSegment.substringAfterLast('.')
+        } else {
+            "png"
+        }
         return "$hash.$ext"
     }
 

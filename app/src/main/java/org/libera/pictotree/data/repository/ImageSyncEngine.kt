@@ -36,7 +36,8 @@ class ImageSyncEngine(
             requestHost.equals(hostHost, ignoreCase = true) &&
                     (absoluteUrl.contains("/api/v1/mobile/") ||
                      absoluteUrl.contains("/uploads/") ||
-                     absoluteUrl.contains("/pictograms/"))
+                     absoluteUrl.contains("/pictograms/") ||
+                     absoluteUrl.contains("/pictogramsmin/"))
         } catch (e: Exception) {
             false
         }
@@ -136,14 +137,31 @@ class ImageSyncEngine(
                     if (connection.responseCode in 200..299) {
                         var finalName = name ?: fileName
                         var finalDesc = description
-                        val headerDesc = connection.getHeaderField("X-Image-Description")
 
-                        val decoded = decodeDescriptionHeader(headerDesc)
-                        if (!decoded.isNullOrBlank()) {
-                            finalName = decoded
-                            finalDesc = decoded
-                        } else if (name == null) {
+                        val headerName = connection.getHeaderField("X-Image-Name")
+                        val headerDesc = connection.getHeaderField("X-Image-Description")
+                        val headerHash = connection.getHeaderField("X-Image-Hash")
+                        val headerLastModif = connection.getHeaderField("X-Image-Updated-At")
+                        val headerId = connection.getHeaderField("X-Image-Id")
+
+                        val decodedName = decodeDescriptionHeader(headerName)
+                        val decodedDesc = decodeDescriptionHeader(headerDesc)
+
+                        if (!decodedName.isNullOrBlank()) {
+                            finalName = decodedName
+                        }
+                        if (!decodedDesc.isNullOrBlank()) {
+                            finalDesc = decodedDesc
+                        } else if (name == null && decodedName.isNullOrBlank()) {
                             finalName = ExternalImageMetadataFetcher.fetchRealName(context, username, cleanUrl, finalName)
+                        }
+
+                        val finalHash = headerHash?.takeIf { it.isNotBlank() }
+                        val finalLastModif = headerLastModif?.takeIf { it.isNotBlank() }
+                        val finalRemoteId = try {
+                            headerId?.toInt() ?: -1
+                        } catch (e: Exception) {
+                            -1
                         }
 
                         val tempFile = File.createTempFile("download_${fileName}_", ".tmp", userImagesDir)
@@ -161,14 +179,23 @@ class ImageSyncEngine(
                                               remotePath = cleanUrl,
                                               localPath = "images/$fileName",
                                               name = finalName,
-                                              description = finalDesc
+                                              description = finalDesc,
+                                              remoteId = finalRemoteId,
+                                              lastModif = finalLastModif,
+                                              hash = finalHash
                                      )
                             )
                             if (insertedId == -1L) {
                                 throw java.io.IOException("Failed to insert image entity into database")
                             }
                         } else {
-                            imageDao.updateImage(existing.copy(name = finalName, description = finalDesc))
+                            imageDao.updateImage(existing.copy(
+                                name = finalName, 
+                                description = finalDesc,
+                                remoteId = finalRemoteId,
+                                lastModif = finalLastModif,
+                                hash = finalHash
+                            ))
                         }
                         return@withContext localUrl
                     } else if (connection.responseCode == 401) {
@@ -240,13 +267,30 @@ class ImageSyncEngine(
                         var finalName = name ?: fileName
                         var finalDesc = description
 
+                        val headerName = connection.getHeaderField("X-Image-Name")
                         val headerDesc = connection.getHeaderField("X-Image-Description")
-                        val decoded = decodeDescriptionHeader(headerDesc)
-                        if (!decoded.isNullOrBlank()) {
-                            finalName = decoded
-                            finalDesc = decoded
-                        } else if (name == null) {
+                        val headerHash = connection.getHeaderField("X-Image-Hash")
+                        val headerLastModif = connection.getHeaderField("X-Image-Updated-At")
+                        val headerId = connection.getHeaderField("X-Image-Id")
+
+                        val decodedName = decodeDescriptionHeader(headerName)
+                        val decodedDesc = decodeDescriptionHeader(headerDesc)
+
+                        if (!decodedName.isNullOrBlank()) {
+                            finalName = decodedName
+                        }
+                        if (!decodedDesc.isNullOrBlank()) {
+                            finalDesc = decodedDesc
+                        } else if (name == null && decodedName.isNullOrBlank()) {
                             finalName = ExternalImageMetadataFetcher.fetchRealName(context, username, cleanUrl, finalName)
+                        }
+
+                        val finalHash = headerHash?.takeIf { it.isNotBlank() }
+                        val finalLastModif = headerLastModif?.takeIf { it.isNotBlank() }
+                        val finalRemoteId = try {
+                            headerId?.toInt() ?: -1
+                        } catch (e: Exception) {
+                            -1
                         }
 
                         val tempFile = File.createTempFile("download_${fileName}_", ".tmp", userImagesDir)
@@ -260,7 +304,13 @@ class ImageSyncEngine(
 
                         val imageId = if (existing != null) {
                             // On a l'entrée BDD mais le fichier manquait : on met à jour
-                            imageDao.updateImage(existing.copy(name = finalName, description = finalDesc))
+                            imageDao.updateImage(existing.copy(
+                                name = finalName, 
+                                description = finalDesc,
+                                remoteId = finalRemoteId,
+                                lastModif = finalLastModif,
+                                hash = finalHash
+                            ))
                             existing.id
                         } else {
                             // Nouvelle image complète (avec vérification robuste d'échec SQLite et typage d'IDs conforme)
@@ -269,7 +319,10 @@ class ImageSyncEngine(
                                     remotePath = cleanUrl,
                                     localPath = localPath,
                                     name = finalName,
-                                    description = finalDesc
+                                    description = finalDesc,
+                                    remoteId = finalRemoteId,
+                                    lastModif = finalLastModif,
+                                    hash = finalHash
                                 )
                             )
                             if (insertedId == -1L) {

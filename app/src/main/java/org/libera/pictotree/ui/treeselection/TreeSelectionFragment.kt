@@ -149,7 +149,7 @@ class TreeSelectionFragment : Fragment() {
                 val cardList = phraseAdapter.getCurrentList()
                 if (position in cardList.indices) {
                     val card = cardList[position]
-                    ttsManager.speak(card.node.label)
+                    ttsManager.speak(card.node.description?.takeIf { it.isNotBlank() } ?: card.node.label)
                 }
             }
         ).apply {
@@ -192,7 +192,7 @@ class TreeSelectionFragment : Fragment() {
             val phrase = explorerViewModel.phraseList.value
             if (phrase.isNotEmpty()) {
                 ttsManager.stop()
-                phrase.forEachIndexed { index, card -> ttsManager.speak(card.node.label, index.toString()) }
+                phrase.forEachIndexed { index, card -> ttsManager.speak(card.node.description?.takeIf { it.isNotBlank() } ?: card.node.label, index.toString()) }
             }
         }
         cardRotate.setOnClickListener {

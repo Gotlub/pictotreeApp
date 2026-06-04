@@ -57,7 +57,7 @@ class NodeAdapter(
         private val card: com.google.android.material.card.MaterialCardView = itemView as? com.google.android.material.card.MaterialCardView ?: itemView.findViewById(R.id.card_node)
 
         fun bind(node: TreeNode, isSelected: Boolean, colorCode: String) {
-            tvLabel.text = node.label
+            tvLabel.text = node.description?.takeIf { it.isNotBlank() } ?: node.label
             
             if (node.id == "MORE_CHILDREN") {
                 ivPicto.setImageResource(android.R.drawable.ic_menu_more)

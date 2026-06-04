@@ -144,7 +144,7 @@
             let treantNode = {
                 HTMLclass: 'nodeExample1',
                 HTMLid: 'node-' + uniqueId,
-                text: { name: node.label || node.text || node.name || '---' }
+                text: { name: node.description || node.label || node.text || node.name || '---' }
             };
             if (node.image_url || node.image || node.url) treantNode.image = node.image_url || node.image || node.url;
             if (node.children && node.children.length > 0) {

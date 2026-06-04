@@ -140,7 +140,7 @@ class PhraseFullscreenFragment : Fragment() {
             val phrase = viewModel.phraseList.value
             if (phrase.isEmpty()) return@setOnClickListener
             ttsManager.stop()
-            phrase.forEachIndexed { index, card -> ttsManager.speak(card.node.label, index.toString()) }
+            phrase.forEachIndexed { index, card -> ttsManager.speak(card.node.description?.takeIf { it.isNotBlank() } ?: card.node.label, index.toString()) }
         }
 
         cardClockMode.setOnClickListener {
@@ -232,7 +232,7 @@ class PhraseFullscreenFragment : Fragment() {
                     adapter.selectedConfigIndex = index
                     if (index != null && index in viewModel.phraseList.value.indices) {
                         val card = viewModel.phraseList.value[index]
-                        tvSelectedPictoName?.text = "Pictogramme : ${card.node.label}"
+                        tvSelectedPictoName?.text = "Pictogramme : ${card.node.description?.takeIf { it.isNotBlank() } ?: card.node.label}"
                         val config = card.timeConfig
                         val targetMode = if (config.mode == TimeMode.NONE) TimeMode.JALON else config.mode
                         when(targetMode) {
@@ -305,7 +305,7 @@ class PhraseFullscreenFragment : Fragment() {
                 }
             } else {
                 val card = cardList[position]
-                ttsManager.speak(card.node.label)
+                ttsManager.speak(card.node.description?.takeIf { it.isNotBlank() } ?: card.node.label)
             }
         }).apply {
             timerColor = org.libera.pictotree.data.SessionManager(requireContext()).getTimerColor()

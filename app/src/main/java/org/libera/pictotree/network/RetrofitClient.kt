@@ -10,6 +10,7 @@ import org.json.JSONObject
 
 object RetrofitClient {
     const val SERVER_URL = "https://pictotree.eu"
+    //const val SERVER_URL = "http://10.0.2.2:5000" #For local test
     private const val BASE_URL = "$SERVER_URL/api/v1/mobile/"
 
     private var tokenProvider: (() -> String?)? = null

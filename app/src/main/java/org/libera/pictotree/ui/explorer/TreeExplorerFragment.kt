@@ -200,7 +200,7 @@ class TreeExplorerFragment : Fragment() {
         phraseAdapter = PhraseAdapter(username, onItemClick = { position -> 
             val cardList = phraseAdapter.getCurrentList()
             if (position in cardList.indices) {
-                ttsManager.speak(cardList[position].node.label)
+                ttsManager.speak(cardList[position].node.description?.takeIf { it.isNotBlank() } ?: cardList[position].node.label)
             }
         }).apply {
             timerColor = org.libera.pictotree.data.SessionManager(requireContext()).getTimerColor()
@@ -306,7 +306,7 @@ class TreeExplorerFragment : Fragment() {
         }
         cardSpeak.setOnClickListener {
             val phrase = viewModel.phraseList.value
-            if (phrase.isNotEmpty()) { ttsManager.stop(); phrase.forEachIndexed { index, card -> ttsManager.speak(card.node.label, index.toString()) } }
+            if (phrase.isNotEmpty()) { ttsManager.stop(); phrase.forEachIndexed { index, card -> ttsManager.speak(card.node.description?.takeIf { it.isNotBlank() } ?: card.node.label, index.toString()) } }
         }
         view.findViewById<View>(R.id.card_back_to_trees)?.setOnClickListener { findNavController().popBackStack() }
         cardRotate.setOnClickListener { (requireActivity() as? org.libera.pictotree.MainActivity)?.toggleOrientation() }
@@ -395,7 +395,7 @@ class TreeExplorerFragment : Fragment() {
         try { containerParent.strokeColor = Color.parseColor(state.colorCode); containerParent.strokeWidth = (3 * resources.displayMetrics.density).toInt() } catch (e: Exception) { containerParent.strokeColor = Color.BLACK }
         
         state.parent?.let { parent ->
-            containerParent.visibility = View.VISIBLE; tvParentLabel.text = parent.label
+            containerParent.visibility = View.VISIBLE; tvParentLabel.text = parent.description?.takeIf { it.isNotBlank() } ?: parent.label
             ivParent.load(getFinalUrl(parent.imageUrl)) { placeholder(R.drawable.ic_launcher_background); error(R.drawable.ic_launcher_background) }
         } ?: run { containerParent.visibility = View.INVISIBLE }
         

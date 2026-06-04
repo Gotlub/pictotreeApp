@@ -138,7 +138,15 @@ class EditProfileViewModel(
                         org.libera.pictotree.utils.FileUtils.getCleanUrl(normalized)
                     }
 
-                    val treeEntity = TreeEntity(id = fullTree.treeId, name = fullTree.name, jsonPayload = jsonPayload, isPublic = false, lastSync = System.currentTimeMillis(), rootUrl = cleanRootUrl)
+                    val treeEntity = TreeEntity(
+                        id = fullTree.treeId,
+                        name = fullTree.name,
+                        jsonPayload = jsonPayload,
+                        isPublic = false,
+                        lastSync = System.currentTimeMillis(),
+                        rootUrl = cleanRootUrl,
+                        lastModif = fullTree.lastModif
+                    )
                     treeDao.insertTree(treeEntity)
 
                     val engine = ImageSyncEngine(getApplication(), imageDao, username, hostUrl, authToken)

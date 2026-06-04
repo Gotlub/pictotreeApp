@@ -1,5 +1,6 @@
 package org.libera.pictotree.data.database.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
@@ -11,5 +12,7 @@ data class TreeEntity(
     val jsonPayload: String,
     val isPublic: Boolean = false,
     val lastSync: Long = System.currentTimeMillis(),
-    val rootUrl: String? = null
+    val rootUrl: String? = null,
+    @ColumnInfo(name = "last_modif")
+    val lastModif: String? = null
 )

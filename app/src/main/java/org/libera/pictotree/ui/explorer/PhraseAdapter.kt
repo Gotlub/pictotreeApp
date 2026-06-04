@@ -130,7 +130,7 @@ class PhraseAdapter(
             val node = phraseCard.node
             val timeConfig = phraseCard.timeConfig
             
-            tvLabel.text = node.label
+            tvLabel.text = node.description?.takeIf { it.isNotBlank() } ?: node.label
             card.setCardBackgroundColor(ContextCompat.getColor(itemView.context, android.R.color.white))
             
             val isGreenTimer = timerColorStr.equals("green", ignoreCase = true)
