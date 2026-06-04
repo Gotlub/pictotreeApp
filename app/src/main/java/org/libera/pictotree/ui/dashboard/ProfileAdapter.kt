@@ -48,6 +48,7 @@ class ProfileAdapter(
         }
 
     fun submitList(newProfiles: List<Profile>) {
+        isMovingItem = false
         differ.submitList(newProfiles) {
             profiles.clear()
             profiles.addAll(newProfiles)
@@ -72,7 +73,7 @@ class ProfileAdapter(
         isMovingItem = true
         differ.submitList(profiles.toList()) {
             isMovingItem = false
-            onOrderChanged(profiles)
+            onOrderChanged(profiles.toList())
         }
     }
 
