@@ -8,5 +8,6 @@ data class TreeMetadataDTO(
     @SerializedName("owner") val owner: String,
     @SerializedName("is_public") val isPublic: Boolean,
     @SerializedName("root_image_url") val rootImageUrl: String?,
-    @SerializedName("root_thumbnail_url") val rootThumbnailUrl: String? = null
+    @SerializedName("root_thumbnail_url") val rootThumbnailUrl: String? = null,
+    @SerializedName("updated_at") val lastModif: String? = null
 )

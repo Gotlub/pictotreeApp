@@ -22,10 +22,12 @@ import kotlinx.coroutines.flow.combine
 import org.libera.pictotree.data.database.entity.UserConfig
 import org.libera.pictotree.data.repository.UserConfigRepository
 import org.libera.pictotree.data.repository.ImageSyncEngine
+import org.libera.pictotree.data.repository.SyncResult
 import org.libera.pictotree.data.database.dao.ImageDao
 import org.libera.pictotree.data.database.dao.TreeDao
 import org.libera.pictotree.data.SessionManager
 import org.libera.pictotree.network.RetrofitClient
+import org.libera.pictotree.data.repository.AuthRepository
 
 class DashboardViewModel(
     application: Application,
@@ -33,17 +35,21 @@ class DashboardViewModel(
     private val userConfigRepository: UserConfigRepository,
     private val treeDao: TreeDao,
     private val imageDao: ImageDao,
-    private val treeApiService: TreeApiService
+    private val treeApiService: TreeApiService,
+    private val authRepository: AuthRepository
 ) : AndroidViewModel(application) {
 
     private val _isAdminMode = MutableStateFlow(false)
     val isAdminMode: StateFlow<Boolean> = _isAdminMode
 
-    private val _navigateToProfileEvent = Channel<Long>(Channel.BUFFERED)
+    private val _navigateToProfileEvent = Channel<Int>(Channel.BUFFERED)
     val navigateToProfileEvent = _navigateToProfileEvent.receiveAsFlow()
 
     private val _playProfileEvent = Channel<Int>(Channel.BUFFERED)
     val playProfileEvent = _playProfileEvent.receiveAsFlow()
+
+    private val _syncResultEvent = Channel<SyncResult>(Channel.BUFFERED)
+    val syncResultEvent = _syncResultEvent.receiveAsFlow()
 
     private val _remoteProfiles = MutableStateFlow<List<ProfileDTO>>(emptyList())
     val remoteProfiles: StateFlow<List<ProfileDTO>> = _remoteProfiles
@@ -72,27 +78,57 @@ class DashboardViewModel(
         }
     }
 
-    fun setLanguage(lang: String) {
-        viewModelScope.launch { userConfigRepository.saveLocale(lang) }
+    fun setLanguage(lang: String, onComplete: () -> Unit) {
+        viewModelScope.launch {
+            userConfigRepository.saveLocale(lang, getApplication())
+            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                onComplete()
+            }
+        }
     }
 
-    fun setPin(pin: String?) {
-        viewModelScope.launch { userConfigRepository.savePin(pin) }
+    fun setGlobalDisplaySettings(startupView: String, orientation: String) {
+        viewModelScope.launch { userConfigRepository.saveGlobalDisplaySettings(startupView, orientation) }
+    }
+
+    fun setOfflineAccessAllowed(allowed: Boolean) {
+        viewModelScope.launch { 
+            userConfigRepository.saveOfflineAccessAllowed(allowed) 
+            val username = SessionManager(getApplication()).getUsername() ?: "default"
+            SessionManager(getApplication()).setOfflineAccessAllowed(username, allowed)
+        }
+    }
+
+    fun setEnableSearch(enabled: Boolean) {
+        viewModelScope.launch { userConfigRepository.saveEnableSearch(enabled) }
+    }
+
+    fun updateUIControls(rotation: Boolean, tts: Boolean, viewChange: Boolean) {
+        viewModelScope.launch { userConfigRepository.updateUIControls(rotation, tts, viewChange) }
     }
 
     fun setAdminMode(isAdmin: Boolean) {
         _isAdminMode.value = isAdmin
+        if (!isAdmin) {
+            SessionManager(getApplication()).clearAdminSession()
+        }
     }
 
-    fun verifyPin(input: String): Boolean {
-        val storedPin = userConfig.value?.offlineSettingsPin
-        return storedPin != null && storedPin == input
+    suspend fun tryUnlock(password: String): Result<Unit> {
+        val sessionManager = SessionManager(getApplication())
+        val username = sessionManager.getUsername() ?: return Result.failure(Exception(getApplication<Application>().getString(org.libera.pictotree.R.string.error_invalid_username)))
+        
+        return authRepository.login(username, password).map { response ->
+            sessionManager.saveSession(username, response.accessToken, response.refreshToken)
+            setAdminMode(true)
+            Unit
+        }
     }
 
     fun addProfile(name: String, avatarUrl: String? = null) {
         viewModelScope.launch {
             val id = profileRepository.insertProfile(Profile(name = name, avatarUrl = avatarUrl))
-            _navigateToProfileEvent.send(id)
+            _navigateToProfileEvent.send(id.toInt())
         }
     }
 
@@ -102,12 +138,21 @@ class DashboardViewModel(
             val currentCount = if (state is DashboardUiState.Success) state.profiles.size else 0
             val defaultName = "Profil ${currentCount + 1}"
             val id = profileRepository.insertProfile(Profile(name = defaultName))
-            _navigateToProfileEvent.send(id)
+            _navigateToProfileEvent.send(id.toInt())
         }
     }
 
     fun deleteProfile(profile: Profile) {
         viewModelScope.launch { profileRepository.deleteFullProfile(profile.id) }
+    }
+
+    fun updateProfilesOrder(reorderedProfiles: List<Profile>) {
+        viewModelScope.launch {
+            val updatedProfiles = reorderedProfiles.mapIndexed { index, p ->
+                p.copy(displayOrder = index)
+            }
+            profileRepository.updateProfiles(updatedProfiles)
+        }
     }
 
     fun playProfile(profileId: Int) {
@@ -130,31 +175,32 @@ class DashboardViewModel(
     fun importRemoteProfile(remoteProfile: ProfileDTO) {
         viewModelScope.launch {
             _isImporting.value = true
+            var totalSynced = 0
+            var totalErrors = 0
             try {
                 val sessionManager = SessionManager(getApplication())
                 val username = sessionManager.getUsername() ?: "default"
                 val token = sessionManager.getToken() ?: ""
                 val hostUrl = RetrofitClient.SERVER_URL
                 
-                // 1. Fetch full details (with tree list)
                 val response = treeApiService.getProfileDetails(remoteProfile.id)
                 if (!response.isSuccessful) return@launch
                 val detailedProfile = response.body() ?: return@launch
                 
-                // 2. Cascade Sync: Create Local Profile
                 var localAvatarUrl: String? = null
                 if (!detailedProfile.remoteAvatarUrl.isNullOrEmpty()) {
                     val engine = ImageSyncEngine(getApplication(), imageDao, username, hostUrl, token)
-                    localAvatarUrl = engine.downloadSingleImage(detailedProfile.remoteAvatarUrl)
+                    localAvatarUrl = engine.downloadSingleImage(detailedProfile.remoteAvatarUrl!!)
                 }
                 
-                val localProfileId = profileRepository.insertProfile(Profile(
+                val localProfileIdLong = profileRepository.insertProfile(Profile(
                     name = detailedProfile.name,
                     avatarUrl = localAvatarUrl,
-                    remoteAvatarUrl = detailedProfile.remoteAvatarUrl
-                )).toInt()
+                    remoteAvatarUrl = detailedProfile.remoteAvatarUrl,
+                    lastModif = detailedProfile.lastModif
+                ))
+                val localProfileId = localProfileIdLong.toInt()
                 
-                // 3. Cascade Sync: Download Trees
                 detailedProfile.trees?.forEachIndexed { index, treeConfig ->
                     val treeId = treeConfig.treeId
                     val treeResponse = treeApiService.getTree(treeId)
@@ -165,11 +211,11 @@ class DashboardViewModel(
                                 id = fullTree.treeId,
                                 name = fullTree.name,
                                 jsonPayload = jsonStr,
-                                rootUrl = fullTree.rootNode?.imageUrl
+                                rootUrl = fullTree.rootNode?.imageUrl,
+                                lastModif = fullTree.lastModif
                             )
                             treeDao.insertTree(entity)
                             
-                            // Associate with profile using the remote colorCode
                             profileRepository.insertProfileTreeCrossRef(
                                 org.libera.pictotree.data.database.entity.ProfileTreeCrossRef(
                                     profileId = localProfileId,
@@ -179,15 +225,20 @@ class DashboardViewModel(
                                 )
                             )
                             
-                            // Synchronize images for this tree
                             val engine = ImageSyncEngine(getApplication(), imageDao, username, hostUrl, token)
                             if (fullTree.rootNode != null) {
-                                engine.syncImagesFromNode(fullTree.rootNode, fullTree.treeId)
+                                val result = engine.syncImagesFromNode(fullTree.rootNode!!, fullTree.treeId)
+                                totalSynced += result.total
+                                totalErrors += result.errors
                             }
                         }
                     }
                 }
                 
+                _syncResultEvent.send(SyncResult(totalSynced, totalErrors))
+                
+            } catch (e: org.libera.pictotree.data.repository.UnauthorizedException) {
+                org.libera.pictotree.utils.AuthEvents.triggerLogout()
             } catch (e: Exception) {
                 e.printStackTrace()
             } finally {
@@ -203,12 +254,13 @@ class DashboardViewModelFactory(
     private val userConfigRepository: UserConfigRepository,
     private val treeDao: TreeDao,
     private val imageDao: ImageDao,
-    private val treeApiService: TreeApiService
+    private val treeApiService: TreeApiService,
+    private val authRepository: AuthRepository
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(DashboardViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST") 
-            return DashboardViewModel(application, profileRepository, userConfigRepository, treeDao, imageDao, treeApiService) as T
+            return DashboardViewModel(application, profileRepository, userConfigRepository, treeDao, imageDao, treeApiService, authRepository) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

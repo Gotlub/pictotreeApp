@@ -6,7 +6,8 @@ data class ProfileDTO(
     @SerializedName("id") val id: Int,
     @SerializedName("name") val name: String,
     @SerializedName("remote_avatar_url") val remoteAvatarUrl: String?,
-    @SerializedName("trees") val trees: List<ProfileTreeDTO>? = null
+    @SerializedName("trees") val trees: List<ProfileTreeDTO>? = null,
+    @SerializedName("updated_at") val lastModif: String? = null
 )
 
 data class ProfileTreeDTO(

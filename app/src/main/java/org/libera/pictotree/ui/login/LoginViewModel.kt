@@ -1,14 +1,19 @@
 package org.libera.pictotree.ui.login
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.first
 import org.libera.pictotree.network.RetrofitClient
 import org.libera.pictotree.data.repository.AuthRepository
+import org.libera.pictotree.data.database.AppDatabase
+import org.libera.pictotree.data.SessionManager
+import org.libera.pictotree.utils.UiText
 
 /**
  * UI State for the Login Screen
@@ -19,23 +24,23 @@ data class LoginUiState(
     val isOnlineMode: Boolean = false,
     val isPasswordVisible: Boolean = false,
     val isLoading: Boolean = false,
-    val errorMessage: String? = null,
+    val errorMessage: UiText? = null,
     val isLoginSuccessful: Boolean = false,
     val token: String? = null,
     val refreshToken: String? = null,
-    val username: String? = null
+    val username: String? = null,
+    // NOUVEAU : Information sur la disponibilité du mode hors-ligne
+    val isOfflineAvailable: Boolean = true 
 )
 
 class LoginViewModel(
-    private val authRepository: AuthRepository = AuthRepository(RetrofitClient.apiService)
-) : ViewModel() {
+    application: Application
+) : AndroidViewModel(application) {
 
+    private val authRepository = AuthRepository(RetrofitClient.apiService)
+    private val sessionManager = SessionManager(application)
     private val _uiState = MutableStateFlow(LoginUiState())
     val uiState: StateFlow<LoginUiState> = _uiState.asStateFlow()
-
-    init {
-        // Known users are now injected dynamically from the Fragment using loadKnownUsers()
-    }
 
     fun loadKnownUsers(users: List<String>) {
         if (_uiState.value.availableUsers != users) {
@@ -48,11 +53,14 @@ class LoginViewModel(
             val isKnownUser = currentState.availableUsers.contains(username)
             val isNewUser = !isKnownUser && username.isNotBlank()
             
+            // VERIFIER SI LE MODE HORS LIGNE EST AUTORISÉ POUR CETTE PERSONNE
+            val offlineAllowed = if (isKnownUser) sessionManager.isOfflineAccessAllowed(username) else false
+
             currentState.copy(
                 selectedUser = username,
-                // Automatically activate online mode if new user
-                isOnlineMode = if (isNewUser) true else currentState.isOnlineMode,
-                isPasswordVisible = if (isNewUser) true else currentState.isPasswordVisible
+                isOnlineMode = if (isNewUser || !offlineAllowed) true else currentState.isOnlineMode,
+                isPasswordVisible = if (isNewUser || !offlineAllowed) true else currentState.isPasswordVisible,
+                isOfflineAvailable = offlineAllowed
             )
         }
     }
@@ -71,32 +79,41 @@ class LoginViewModel(
         val isOnline = _uiState.value.isOnlineMode
         
         if (username.isNullOrBlank()) {
-            _uiState.update { it.copy(errorMessage = "Veuillez entrer un nom d'utilisateur valide.") }
+            _uiState.update { it.copy(errorMessage = UiText.StringResource(org.libera.pictotree.R.string.error_invalid_username)) }
             return
         }
 
-        // On affiche le loading et on efface l'erreur précédente
         _uiState.update { it.copy(isLoading = true, errorMessage = null, isLoginSuccessful = false) }
 
         if (!isOnline) {
-            _uiState.update { it.copy(isLoading = false) }
             val knownUsers = _uiState.value.availableUsers
             if (knownUsers.contains(username)) {
-                _uiState.update { it.copy(
-                    isLoginSuccessful = true,
-                    token = null,
-                    username = username
-                ) }
+                val isAllowed = sessionManager.isOfflineAccessAllowed(username)
+
+                if (isAllowed) {
+                    _uiState.update { it.copy(
+                        isLoading = false,
+                        isLoginSuccessful = true,
+                        token = null,
+                        username = username
+                    ) }
+                } else {
+                    _uiState.update { it.copy(
+                        isLoading = false,
+                        errorMessage = UiText.StringResource(org.libera.pictotree.R.string.login_offline_not_allowed)
+                    ) }
+                }
             } else {
-                _uiState.update { it.copy(errorMessage = "Utilisateur inconnu localement. Passez en mode Ligne pour vous connecter la première fois.") }
+                _uiState.update { it.copy(
+                    isLoading = false,
+                    errorMessage = UiText.StringResource(org.libera.pictotree.R.string.error_user_unknown_local)
+                ) }
             }
             return
         }
 
         viewModelScope.launch {
             val result = authRepository.login(username, password)
-            
-            // À la fin de la requête, on retire le loader
             _uiState.update { it.copy(isLoading = false) }
 
             result.onSuccess { response ->
@@ -107,8 +124,8 @@ class LoginViewModel(
                     username = username
                 ) }
             }.onFailure { exception ->
-                // Afficher le message d'erreur
-                _uiState.update { it.copy(errorMessage = exception.message ?: "Erreur inconnue de connexion") }
+                val errorUiText = exception.message?.let { UiText.DynamicString(it) } ?: UiText.StringResource(org.libera.pictotree.R.string.error_connection)
+                _uiState.update { it.copy(errorMessage = errorUiText) }
             }
         }
     }

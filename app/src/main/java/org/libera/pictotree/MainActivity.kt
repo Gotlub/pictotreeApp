@@ -3,6 +3,7 @@ package org.libera.pictotree
 import android.os.Bundle
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 
@@ -10,12 +11,34 @@ import androidx.lifecycle.lifecycleScope
 import androidx.navigation.findNavController
 import kotlinx.coroutines.launch
 import android.content.pm.ActivityInfo
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import android.os.Build
+import android.view.View
+import android.widget.TextView
+import com.google.android.material.card.MaterialCardView
 import org.libera.pictotree.data.SessionManager
 import org.libera.pictotree.network.RetrofitClient
 import org.libera.pictotree.utils.AuthEvents
 
+import org.libera.pictotree.utils.ContextUtils
+import java.util.Locale
+
 class MainActivity : AppCompatActivity() {
+
+    override fun attachBaseContext(newBase: Context) {
+        val prefs = newBase.getSharedPreferences("pictotree_session", Context.MODE_PRIVATE)
+        val localeStr = prefs.getString("app_locale", Locale.getDefault().language) ?: "en"
+        val localeToSwitchTo = Locale(localeStr)
+
+        val context = ContextUtils.updateLocale(newBase, localeToSwitchTo)
+        super.attachBaseContext(context)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
+        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
         super.onCreate(savedInstanceState)
         
         // Initialiser Retrofit avec les providers du SessionManager
@@ -40,6 +63,8 @@ class MainActivity : AppCompatActivity() {
             insets
         }
 
+
+
         // Écouter les événements de déconnexion globale (ex: 401)
         lifecycleScope.launch {
             AuthEvents.logoutEvent.collect {
@@ -48,17 +73,21 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+
+
+
     private fun showSessionExpiredDialog(sessionManager: SessionManager) {
+        if (isFinishing || isDestroyed) return
         // Éviter d'empiler les dialogues si plusieurs 401 arrivent
         com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
-            .setTitle("Session expirée")
-            .setMessage("Votre connexion au serveur a expiré. Souhaitez-vous continuer en mode hors-ligne (votre travail actuel sera conservé) ou vous reconnecter ?")
+            .setTitle(getString(R.string.session_expir_e))
+            .setMessage(getString(R.string.votre_connexion_au_serveur_a_expir_souhaitez_vous_continuer_en_mode_hors_ligne_votre_travail_actuel_sera_conserv_ou_vous_reconnecter))
             .setCancelable(false)
-            .setPositiveButton("Rester hors-ligne") { _, _ ->
+            .setPositiveButton(getString(R.string.rester_hors_ligne)) { _, _ ->
                 sessionManager.switchToOfflineMode()
                 // L'utilisateur reste là où il est, les fonctions online se griseront
             }
-            .setNegativeButton("Se reconnecter") { _, _ ->
+            .setNegativeButton(getString(R.string.se_reconnecter)) { _, _ ->
                 handleLogout(sessionManager)
             }
             .show()
@@ -74,7 +103,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun handleLogout(sessionManager: SessionManager) {
-        sessionManager.clearSession()
+        sessionManager.logout()
         // Rediriger vers le Login
         try {
             findNavController(R.id.fragment_container).navigate(R.id.loginFragment)
@@ -92,7 +121,10 @@ class MainActivity : AppCompatActivity() {
         if (isOrientationLockDisabled) return
         val sessionManager = SessionManager(this)
         val username = sessionManager.getUsername() ?: return
-        requestedOrientation = sessionManager.getPreferredOrientation(username)
+        val preferred = sessionManager.getPreferredOrientation(username)
+        if (requestedOrientation != preferred) {
+            requestedOrientation = preferred
+        }
     }
 
     fun restoreSystemOrientation() {

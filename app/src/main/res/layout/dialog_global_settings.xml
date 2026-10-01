@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/app_settings_title"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:textColor="?attr/colorPrimary"
+            android:layout_marginBottom="24dp"/>
+
+        <!-- 1. SÉCURITÉ DE CONNEXION -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/connection_security"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp" />
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/switchOfflineAccess"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/allow_offline_access"
+            android:layout_marginBottom="4dp"/>
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/offline_access_desc"
+            android:textSize="11sp"
+            android:textColor="#666666"
+            android:layout_marginBottom="16dp" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#DDDDDD"
+            android:layout_marginBottom="16dp" />
+
+        <!-- 2. LANGUE -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/app_language"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp" />
+        <Spinner
+            android:id="@+id/spinnerLanguage"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp" />
+
+        <!-- 3. AFFICHAGE DE L'APP -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/app_display"
+            android:textStyle="bold"
+            android:layout_marginBottom="12dp" />
+
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginBottom="12dp">
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="@string/start_on" />
+            <Spinner android:id="@+id/spinnerStartupView" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+        </LinearLayout>
+
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginBottom="16dp">
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="@string/fixed_orientation" />
+            <Spinner android:id="@+id/spinnerOrientation" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+        </LinearLayout>
+
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginBottom="24dp">
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="@string/timer_color" />
+            <Spinner android:id="@+id/spinnerTimerColor" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+        </LinearLayout>
+
+        <!-- 4. CONTRÔLES INTERFACE -->
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/switchGlobalSearch"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/enable_text_search"
+            android:layout_marginBottom="8dp"/>
+
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/switchEnableRotation"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/rotation_button"
+            android:layout_marginBottom="8dp"/>
+
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/switchEnableTTS"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/tts_button"
+            android:layout_marginBottom="8dp"/>
+
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/switchEnableViewChange"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/view_switch"
+            android:layout_marginBottom="24dp"/>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnCloseSettings"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/close" />
+
+    </LinearLayout>
+</ScrollView>

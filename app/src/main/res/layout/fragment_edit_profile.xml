@@ -6,13 +6,25 @@
     android:layout_height="match_parent"
     android:padding="16dp">
 
+    <!-- BOUTON RETOUR -->
+    <ImageButton
+        android:id="@+id/btnBackToDashboard"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:src="@android:drawable/ic_menu_revert"
+        android:contentDescription="@string/back_to_dashboard"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
     <com.google.android.material.textfield.TextInputLayout
         android:id="@+id/parentProfileNameLayout"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
         android:hint="@string/dialog_create_profile_name_hint"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintStart_toEndOf="@id/btnBackToDashboard"
         app:layout_constraintEnd_toEndOf="parent">
         
         <com.google.android.material.textfield.TextInputEditText
@@ -49,7 +61,7 @@
             android:layout_width="64dp"
             android:layout_height="64dp"
             android:src="@android:drawable/ic_menu_myplaces"
-            android:contentDescription="Avatar Preview" />
+            android:contentDescription="@string/avatar_preview" />
 
         <View
             android:layout_width="0dp"
@@ -64,7 +76,7 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@android:drawable/ic_menu_search"
             app:tint="?attr/colorPrimary"
-            android:contentDescription="Search Avatar" />
+            android:contentDescription="@string/search_avatar" />
     </LinearLayout>
 
     <androidx.recyclerview.widget.RecyclerView
@@ -88,7 +100,7 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="16dp"
         android:layout_marginBottom="32dp"
-        android:text="Options"
+        android:text="@string/options"
         app:icon="@android:drawable/ic_menu_preferences"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
@@ -100,7 +112,7 @@
         android:layout_height="wrap_content"
         android:layout_marginEnd="16dp"
         android:layout_marginBottom="32dp"
-        android:text="Add tree"
+        android:text="@string/add_tree"
         app:icon="@android:drawable/ic_input_add"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />

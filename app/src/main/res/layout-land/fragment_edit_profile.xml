@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="12dp">
+
+    <!-- LIGNE DU HAUT (Horizontal Row compact) -->
+
+    <!-- Bouton de retour -->
+    <ImageButton
+        android:id="@+id/btnBackToDashboard"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:src="@android:drawable/ic_menu_revert"
+        android:contentDescription="@string/back_to_dashboard"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <!-- Avatar Preview -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/layoutAvatarSelector"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_marginStart="8dp"
+        app:cardCornerRadius="24dp"
+        app:cardElevation="0dp"
+        app:strokeWidth="1.5dp"
+        app:strokeColor="?attr/colorOutline"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toEndOf="@id/btnBackToDashboard">
+
+        <ImageView
+            android:id="@+id/ivAvatarPreview"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:src="@android:drawable/ic_menu_myplaces"
+            android:scaleType="centerCrop"
+            android:contentDescription="@string/avatar_preview" />
+    </com.google.android.material.card.MaterialCardView>
+
+    <!-- Bouton Recherche Avatar (à côté de l'avatar preview pour ne plus le cacher) -->
+    <ImageButton
+        android:id="@+id/btnSearchAvatar"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_marginStart="8dp"
+        android:background="?attr/selectableItemBackground"
+        android:src="@android:drawable/ic_menu_search"
+        app:tint="?attr/colorPrimary"
+        android:contentDescription="@string/search_avatar"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toEndOf="@id/layoutAvatarSelector" />
+
+    <!-- Nom du Profil (prend tout le reste de la largeur de la première ligne) -->
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/parentProfileNameLayout"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:hint="@string/dialog_create_profile_name_hint"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toEndOf="@id/btnSearchAvatar"
+        app:layout_constraintEnd_toEndOf="parent">
+        
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/editProfileName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            tools:text="Gotlub"
+            android:inputType="textPersonName"
+            android:textSize="14sp"
+            android:paddingVertical="10dp" />
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <!-- Libellé de l'avatar (masqué en paysage pour maximiser l'espace en hauteur) -->
+    <TextView
+        android:id="@+id/tvAvatarLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:ignore="MissingConstraints" />
+
+    <!-- ACTIONS EN BAS -->
+
+    <!-- Bouton Options (Ancré en bas à gauche) -->
+    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+        android:id="@+id/btnOpenOptions"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="4dp"
+        android:text="@string/options"
+        app:icon="@android:drawable/ic_menu_preferences"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <!-- Bouton d'ajout d'arbre (Ancré en bas à droite) -->
+    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+        android:id="@+id/fabAddTree"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="4dp"
+        android:text="@string/add_tree"
+        app:icon="@android:drawable/ic_input_add"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- MILIEU : LISTE DES ARBRES DE PROFIL (Prend toute la largeur de l'écran en dessous) -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recyclerViewProfileTrees"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="8dp"
+        android:clipToPadding="false"
+        android:paddingBottom="4dp"
+        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+        app:layout_constraintTop_toBottomOf="@id/parentProfileNameLayout"
+        app:layout_constraintBottom_toTopOf="@id/btnOpenOptions"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        tools:listitem="@layout/item_profile_tree" />
+
+    <!-- Indicateur de progression (Centré) -->
+    <ProgressBar
+        android:id="@+id/progressBarSync"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

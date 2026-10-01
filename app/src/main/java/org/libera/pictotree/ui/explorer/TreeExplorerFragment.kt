@@ -1,13 +1,13 @@
 package org.libera.pictotree.ui.explorer
 
 import android.os.Bundle
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
+import android.graphics.Color
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModelProvider
@@ -22,26 +22,25 @@ import kotlinx.coroutines.launch
 import org.libera.pictotree.R
 import org.libera.pictotree.data.database.AppDatabase
 import org.libera.pictotree.utils.TTSManager
+import org.libera.pictotree.utils.FileUtils
 
 class TreeExplorerFragment : Fragment() {
 
     private lateinit var viewModel: TreeExplorerViewModel
     private lateinit var ttsManager: TTSManager
 
-    // Adapters
     private lateinit var breadcrumbAdapter: NodeAdapter
     private lateinit var siblingAdapter: NodeAdapter
     private lateinit var childrenAdapter: NodeAdapter
     private lateinit var phraseAdapter: PhraseAdapter
 
-    // UI References
     private lateinit var rvBreadcrumbs: RecyclerView
     private lateinit var rvSiblings: RecyclerView
     private lateinit var rvChildren: RecyclerView
     private lateinit var rvPhrase: RecyclerView
     
-    private lateinit var scrollTopIndicator: View
-    private lateinit var scrollBottomIndicator: View
+    private var scrollTopIndicator: View? = null
+    private var scrollBottomIndicator: View? = null
     
     private lateinit var containerParent: com.google.android.material.card.MaterialCardView
     private lateinit var ivParent: ImageView
@@ -52,23 +51,22 @@ class TreeExplorerFragment : Fragment() {
     private lateinit var ivArrowToChildren: ImageView
     private lateinit var ivArrowToSiblings: ImageView
     
-    private var isDraggingPhrase = false
+    private lateinit var cardSearch: View
+    private lateinit var cardSpeak: View
+    private lateinit var cardRotate: View
+    private lateinit var cardEye: View
     
-    // NAVIGATION STABILITY FLAGS
+    private var isDraggingPhrase = false
     private var ignoreScrollEvents = false 
     private var userIsSwiping = false 
 
-    // Indicateurs Siblings
-    private lateinit var siblingsGradLeft: View
-    private lateinit var siblingsGradRight: View
-    private lateinit var siblingsArrowLeft: View
-    private lateinit var siblingsArrowRight: View
+    private var siblingsGradLeft: View? = null
+    private var siblingsGradRight: View? = null
+    private var siblingsArrowLeft: View? = null
+    private var siblingsArrowRight: View? = null
     
-    // Indicateurs Enfants
-    private lateinit var childrenGradLeft: View
-    private lateinit var childrenGradRight: View
-    private lateinit var childrenArrowLeft: View
-    private lateinit var childrenArrowRight: View
+    private var childrenGradLeft: View? = null
+    private var childrenGradRight: View? = null
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         return inflater.inflate(R.layout.fragment_tree_explorer, container, false)
@@ -81,7 +79,8 @@ class TreeExplorerFragment : Fragment() {
 
     override fun onStop() {
         super.onStop()
-        (requireActivity() as? org.libera.pictotree.MainActivity)?.restoreSystemOrientation()
+        activity?.window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        (activity as? org.libera.pictotree.MainActivity)?.restoreSystemOrientation()
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -95,7 +94,7 @@ class TreeExplorerFragment : Fragment() {
 
         setupUIReferences(view)
         setupAdapters()
-        setupViewModel(savedInstanceState == null)
+        setupViewModelLogic(savedInstanceState == null)
         setupListeners(view)
         setupObservers()
     }
@@ -106,10 +105,6 @@ class TreeExplorerFragment : Fragment() {
         rvChildren = view.findViewById(R.id.rv_children_preview)
         rvPhrase = view.findViewById(R.id.rv_phrase)
         
-        rvSiblings.isSaveEnabled = false
-        rvChildren.isSaveEnabled = false
-        rvBreadcrumbs.isSaveEnabled = false
-
         scrollTopIndicator = view.findViewById(R.id.breadcrumb_scroll_top)
         scrollBottomIndicator = view.findViewById(R.id.breadcrumb_scroll_bottom)
         
@@ -122,6 +117,11 @@ class TreeExplorerFragment : Fragment() {
         ivArrowToChildren = view.findViewById(R.id.iv_arrow_to_children)
         ivArrowToSiblings = view.findViewById(R.id.iv_arrow_to_siblings)
         
+        cardSearch = view.findViewById(R.id.card_search)
+        cardSpeak = view.findViewById(R.id.card_speak)
+        cardRotate = view.findViewById(R.id.card_rotate)
+        cardEye = view.findViewById(R.id.card_eye)
+        
         siblingsGradLeft = view.findViewById(R.id.siblings_gradient_left)
         siblingsGradRight = view.findViewById(R.id.siblings_gradient_right)
         siblingsArrowLeft = view.findViewById(R.id.iv_siblings_arrow_left)
@@ -129,8 +129,6 @@ class TreeExplorerFragment : Fragment() {
         
         childrenGradLeft = view.findViewById(R.id.children_gradient_left)
         childrenGradRight = view.findViewById(R.id.children_gradient_right)
-        childrenArrowLeft = view.findViewById(R.id.iv_children_arrow_left)
-        childrenArrowRight = view.findViewById(R.id.iv_children_arrow_right)
     }
 
     private fun setupAdapters() {
@@ -140,11 +138,15 @@ class TreeExplorerFragment : Fragment() {
         rvBreadcrumbs.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.VERTICAL, false)
         rvBreadcrumbs.adapter = breadcrumbAdapter
         
+        breadcrumbAdapter.registerAdapterDataObserver(object : RecyclerView.AdapterDataObserver() {
+            override fun onItemRangeInserted(positionStart: Int, itemCount: Int) {
+                rvBreadcrumbs.scrollToPosition(breadcrumbAdapter.itemCount - 1)
+            }
+        })
+
         rvBreadcrumbs.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
-                if (::scrollTopIndicator.isInitialized && ::scrollBottomIndicator.isInitialized) {
-                    updateVerticalScrollIndicators(recyclerView, scrollTopIndicator, scrollBottomIndicator)
-                }
+                updateVerticalScrollIndicators(rvBreadcrumbs, scrollTopIndicator, scrollBottomIndicator)
             }
         })
 
@@ -171,30 +173,41 @@ class TreeExplorerFragment : Fragment() {
             }
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
                 positionChildrenArrow() 
-                if (::siblingsGradLeft.isInitialized && ::siblingsArrowLeft.isInitialized && 
-                    ::siblingsGradRight.isInitialized && ::siblingsArrowRight.isInitialized) {
-                    updateHorizontalScrollIndicators(recyclerView, siblingsGradLeft, siblingsArrowLeft, siblingsGradRight, siblingsArrowRight)
-                }
+                updateHorizontalScrollIndicators(rvSiblings, siblingsGradLeft, siblingsArrowLeft, siblingsGradRight, siblingsArrowRight)
             }
         })
 
         childrenAdapter = NodeAdapter(username, R.layout.item_sibling_node) { node ->
-            if (node.children.isNotEmpty()) viewModel.focusOnNode(node) else viewModel.selectNodeWithoutNavigating(node)
+            val isParentRoot = node.parent != null && node.parent?.parent == null
+            if (node.children.isNotEmpty() || isParentRoot) {
+                viewModel.focusOnNode(node)
+            } else {
+                val position = childrenAdapter.currentList.indexOf(node)
+                if (position != -1) {
+                    childrenAdapter.setSelectedPosition(position)
+                }
+                viewModel.selectNodeWithoutNavigating(node)
+            }
         }
         rvChildren.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
         rvChildren.adapter = childrenAdapter
         rvChildren.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
-                if (::childrenGradLeft.isInitialized && ::childrenArrowLeft.isInitialized && 
-                    ::childrenGradRight.isInitialized && ::childrenArrowRight.isInitialized) {
-                    updateHorizontalScrollIndicators(recyclerView, childrenGradLeft, childrenArrowLeft, childrenGradRight, childrenArrowRight)
-                }
+                updateHorizontalScrollIndicators(rvChildren, childrenGradLeft, null, childrenGradRight, null)
             }
         })
 
-        phraseAdapter = PhraseAdapter(username, onItemClick = { node -> ttsManager.speak(node.label) })
+        phraseAdapter = PhraseAdapter(username, onItemClick = { position -> 
+            val cardList = phraseAdapter.getCurrentList()
+            if (position in cardList.indices) {
+                ttsManager.speak(cardList[position].node.description?.takeIf { it.isNotBlank() } ?: cardList[position].node.label)
+            }
+        }).apply {
+            timerColor = org.libera.pictotree.data.SessionManager(requireContext()).getTimerColor()
+        }
         rvPhrase.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
         rvPhrase.adapter = phraseAdapter
+        (rvPhrase.itemAnimator as? androidx.recyclerview.widget.SimpleItemAnimator)?.supportsChangeAnimations = false
 
         val itemTouchHelper = androidx.recyclerview.widget.ItemTouchHelper(object : androidx.recyclerview.widget.ItemTouchHelper.SimpleCallback(
             androidx.recyclerview.widget.ItemTouchHelper.LEFT or androidx.recyclerview.widget.ItemTouchHelper.RIGHT, androidx.recyclerview.widget.ItemTouchHelper.UP
@@ -217,29 +230,40 @@ class TreeExplorerFragment : Fragment() {
         if (!::ivArrowToChildren.isInitialized || !::rvSiblings.isInitialized) return
         val state = viewModel.uiState.value
         val targetNode = state.navigationNode ?: return
-        var position = siblingAdapter.currentList.indexOfFirst { it.id == targetNode.id }
+        
+        val position = siblingAdapter.currentList.indexOfFirst { it.id == targetNode.id }
         if (position != -1) {
-            val view = (rvSiblings.layoutManager as LinearLayoutManager).findViewByPosition(position)
-            if (view != null) {
-                ivArrowToChildren.visibility = if (state.children.isNotEmpty()) View.VISIBLE else View.INVISIBLE
-                val viewCenter = (view.left + view.right) / 2
-                ivArrowToChildren.translationX = (viewCenter - rvSiblings.width / 2).toFloat()
-            } else ivArrowToChildren.visibility = View.INVISIBLE
-        } else ivArrowToChildren.visibility = View.INVISIBLE
+            val layoutManager = rvSiblings.layoutManager as LinearLayoutManager
+            val itemView = layoutManager.findViewByPosition(position)
+            if (itemView != null) {
+                // Rendre visible UNIQUEMENT s'il y a des enfants
+                ivArrowToChildren.visibility = if (targetNode.children.isNotEmpty()) View.VISIBLE else View.INVISIBLE
+                
+                val viewCenter = (itemView.left + itemView.right) / 2
+                val rvCenter = rvSiblings.width / 2
+                ivArrowToChildren.translationX = (viewCenter - rvCenter).toFloat()
+            } else {
+                ivArrowToChildren.visibility = View.INVISIBLE
+            }
+        } else {
+            ivArrowToChildren.visibility = View.INVISIBLE
+        }
     }
 
     private fun updateHorizontalScrollIndicators(rv: RecyclerView, gradL: View?, arrowL: View?, gradR: View?, arrowR: View?) {
-        val canLeft = rv.canScrollHorizontally(-1); val canRight = rv.canScrollHorizontally(1)
-        if (gradL != null && gradL.parent != null) gradL.visibility = if (canLeft) View.VISIBLE else View.INVISIBLE
-        if (arrowL != null && arrowL.parent != null) arrowL.visibility = if (canLeft) View.VISIBLE else View.INVISIBLE
-        if (gradR != null && gradR.parent != null) gradR.visibility = if (canRight) View.VISIBLE else View.INVISIBLE
-        if (arrowR != null && arrowR.parent != null) arrowR.visibility = if (canRight) View.VISIBLE else View.INVISIBLE
+        val canLeft = rv.canScrollHorizontally(-1)
+        val canRight = rv.canScrollHorizontally(1)
+        gradL?.visibility = if (canLeft) View.VISIBLE else View.INVISIBLE
+        arrowL?.visibility = if (canLeft) View.VISIBLE else View.INVISIBLE
+        gradR?.visibility = if (canRight) View.VISIBLE else View.INVISIBLE
+        arrowR?.visibility = if (canRight) View.VISIBLE else View.INVISIBLE
     }
 
     private fun updateVerticalScrollIndicators(rv: RecyclerView, gradTop: View?, gradBottom: View?) {
-        val canUp = rv.canScrollVertically(-1); val canDown = rv.canScrollVertically(1)
-        if (gradTop != null && gradTop.parent != null) gradTop.visibility = if (canUp) View.VISIBLE else View.INVISIBLE
-        if (gradBottom != null && gradBottom.parent != null) gradBottom.visibility = if (canDown) View.VISIBLE else View.INVISIBLE
+        val canUp = rv.canScrollVertically(-1)
+        val canDown = rv.canScrollVertically(1)
+        gradTop?.visibility = if (canUp) View.VISIBLE else View.INVISIBLE
+        gradBottom?.visibility = if (canDown) View.VISIBLE else View.INVISIBLE
     }
 
     private fun updateFocusFromFirstVisible() {
@@ -252,7 +276,7 @@ class TreeExplorerFragment : Fragment() {
         }
     }
 
-    private fun setupViewModel(isFreshEntry: Boolean) {
+    private fun setupViewModelLogic(isFreshEntry: Boolean) {
         val username = org.libera.pictotree.data.SessionManager(requireContext()).getUsername() ?: "default"
         val database = AppDatabase.getDatabase(requireContext(), username)
         val userConfigRepository = org.libera.pictotree.data.repository.UserConfigRepository(database.userConfigDao())
@@ -271,21 +295,22 @@ class TreeExplorerFragment : Fragment() {
     }
 
     private fun setupListeners(view: View) {
-        view.findViewById<View>(R.id.card_eye)?.setOnClickListener {
-            val dialog = TreeGlobalMapDialog.newInstance(viewModel.getProfileTreeIds(), viewModel.getCurrentTreeId(), org.libera.pictotree.data.SessionManager(requireContext()).getUsername() ?: "default", viewModel.uiState.value.previewNode?.id ?: "")
+        cardEye.setOnClickListener {
+            val dialog = TreeGlobalMapDialog.newInstance(viewModel.getProfileTreeIds(), viewModel.getCurrentTreeId(), org.libera.pictotree.data.SessionManager(requireContext()).getUsername() ?: "default")
             dialog.show(childFragmentManager, "TreeGlobalMapDialog")
         }
-        view.findViewById<View>(R.id.card_search)?.setOnClickListener {
+        cardSearch.setOnClickListener {
             val dialog = org.libera.pictotree.ui.common.PictoSearchDialog()
-            dialog.onPictoSelected = { result -> viewModel.addToPhrase(TreeNode("search_${result.id}_recherche", result.name, result.imageUrl, emptyList())) }
+            dialog.onPictoSelected = { result -> viewModel.addToPhrase(TreeNode("search_${result.id}_recherche", result.name ?: "", result.imageUrl ?: "", emptyList())) }
             dialog.show(childFragmentManager, "PictoSearch")
         }
-        view.findViewById<View>(R.id.card_speak)?.setOnClickListener {
+        cardSpeak.setOnClickListener {
             val phrase = viewModel.phraseList.value
-            if (phrase.isNotEmpty()) { ttsManager.stop(); phrase.forEachIndexed { index, node -> ttsManager.speak(node.label, index.toString()) } }
+            if (phrase.isNotEmpty()) { ttsManager.stop(); phrase.forEachIndexed { index, card -> ttsManager.speak(card.node.description?.takeIf { it.isNotBlank() } ?: card.node.label, index.toString()) } }
         }
         view.findViewById<View>(R.id.card_back_to_trees)?.setOnClickListener { findNavController().popBackStack() }
-        view.findViewById<View>(R.id.card_rotate)?.setOnClickListener { (requireActivity() as? org.libera.pictotree.MainActivity)?.toggleOrientation() }
+        cardRotate.setOnClickListener { (requireActivity() as? org.libera.pictotree.MainActivity)?.toggleOrientation() }
+        
         btnAddToPhrase.setOnClickListener { viewModel.addToPhrase() }
         view.findViewById<View>(R.id.btn_fullscreen_phrase)?.setOnClickListener { findNavController().navigate(R.id.action_treeExplorerFragment_to_phraseFullscreenFragment) }
         view.findViewById<View>(R.id.btn_clear_phrase)?.setOnClickListener { showClearPhraseConfirmation() }
@@ -293,7 +318,10 @@ class TreeExplorerFragment : Fragment() {
     }
 
     private fun showClearPhraseConfirmation() {
-        com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext()).setTitle("Effacer le bandeau ?").setMessage("Voulez-vous vraiment vider toute la phrase ?")
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext()).setTitle(
+            getString(
+                R.string.effacer_le_bandeau
+            )).setMessage(getString(R.string.voulez_vous_vraiment_vider_toute_la_phrase))
             .setPositiveButton("Oui") { _, _ -> viewModel.clearPhrase() }.setNegativeButton("Non", null).setIcon(android.R.drawable.ic_menu_delete).show()
     }
 
@@ -301,84 +329,115 @@ class TreeExplorerFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 launch {
-                    viewModel.settings.collect { settings ->
-                        view?.findViewById<View>(R.id.card_search)?.visibility = 
-                            if (settings.enableSearch) View.VISIBLE else View.GONE
+                    viewModel.userConfig.collect { config ->
+                        if (config != null) {
+                            cardSearch.visibility = if (config.enableSearch) View.VISIBLE else View.GONE
+                            cardSpeak.visibility = if (config.enableTTSButton) View.VISIBLE else View.GONE
+                            cardRotate.visibility = if (config.enableRotationButton) View.VISIBLE else View.GONE
+                            cardEye.visibility = if (config.enableViewChangeButton) View.VISIBLE else View.GONE
+                            
+                            // Restaurer le réglage de langue
+                            ttsManager.setLanguage(config.locale)
+                        }
                     }
                 }
-                launch { viewModel.uiState.collect { state -> 
-                    updateUI(state)
-                    rvBreadcrumbs.post { if (::scrollTopIndicator.isInitialized && ::scrollBottomIndicator.isInitialized) updateVerticalScrollIndicators(rvBreadcrumbs, scrollTopIndicator, scrollBottomIndicator) } 
-                } }
-                launch { var lastPhraseSize = 0; viewModel.phraseList.collect { phrase -> if (!isDraggingPhrase) { phraseAdapter.submitList(phrase); if (phrase.size > lastPhraseSize) rvPhrase.smoothScrollToPosition(phrase.size - 1) }; lastPhraseSize = phrase.size } }
-                launch { viewModel.userConfig.collect { config -> config?.let { ttsManager.setLanguage(it.locale) } } }
+                
+                launch {
+                    viewModel.currentTimeFlow.collect { elapsed ->
+                        val firstCard = viewModel.phraseList.value.firstOrNull()
+                        if (firstCard?.timeConfig?.mode == org.libera.pictotree.data.model.TimeMode.TIMER && firstCard.timeConfig.endTimeMillis > 0) {
+                            phraseAdapter.notifyItemChanged(0)
+                            activity?.window?.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                        } else {
+                            activity?.window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                        }
+                    }
+                }
+
+                launch { viewModel.uiState.collect { updateUI(it) } }
+                
+                launch { 
+                    var lastPhraseSize = 0
+                    viewModel.phraseList.collect { phrase -> 
+                        if (!isDraggingPhrase) { 
+                            phraseAdapter.submitList(phrase)
+                            if (phrase.size > lastPhraseSize) rvPhrase.smoothScrollToPosition(phrase.size - 1) 
+                        }
+                        lastPhraseSize = phrase.size 
+                    } 
+                }
             }
         }
-        ttsManager.setListeners(onStart = { id -> id.toIntOrNull()?.let { idx -> requireActivity().runOnUiThread { phraseAdapter.highlightPosition(idx); rvPhrase.smoothScrollToPosition(idx) } } }, onDone = { id -> if (id.toIntOrNull() == phraseAdapter.itemCount - 1) requireActivity().runOnUiThread { phraseAdapter.highlightPosition(-1) } })
+        
+        // Restaurer les écouteurs de TTS pour le surlignage des mots
+        ttsManager.setListeners(
+            onStart = { id -> 
+                id.toIntOrNull()?.let { idx -> 
+                    activity?.runOnUiThread { 
+                        phraseAdapter.highlightPosition(idx)
+                        rvPhrase.smoothScrollToPosition(idx) 
+                    } 
+                } 
+            }, 
+            onDone = { id -> 
+                if (id.toIntOrNull() == phraseAdapter.itemCount - 1) {
+                    activity?.runOnUiThread { 
+                        phraseAdapter.highlightPosition(-1) 
+                    } 
+                } 
+            }
+        )
     }
 
     private fun updateUI(state: HierarchicalUiState) {
         if (state.isLoading) return
         siblingAdapter.setColorCode(state.colorCode); childrenAdapter.setColorCode(state.colorCode)
-        try { containerParent.strokeColor = android.graphics.Color.parseColor(state.colorCode); containerParent.strokeWidth = (3 * resources.displayMetrics.density).toInt() } catch (e: Exception) { containerParent.strokeColor = android.graphics.Color.BLACK }
-        if (state.parent != null) { 
-            containerParent.visibility = View.VISIBLE; tvParentLabel.text = state.parent.label
-            val cleanUrl = org.libera.pictotree.utils.FileUtils.getCleanUrl(state.parent.imageUrl)
-            val fileName = org.libera.pictotree.utils.FileUtils.getLocalFileNameFromUrl(cleanUrl)
-            val username = org.libera.pictotree.data.SessionManager(requireContext()).getUsername() ?: "default"
-            val localFile = java.io.File(requireContext().filesDir, "$username/images/$fileName")
-            var finalSource: Any = if (localFile.exists()) localFile else state.parent.imageUrl
-            if (finalSource is String && !finalSource.startsWith("http") && !finalSource.startsWith("file")) finalSource = "${org.libera.pictotree.network.RetrofitClient.SERVER_URL.removeSuffix("/")}/${(finalSource as String).removePrefix("/")}"
-            ivParent.load(finalSource) { placeholder(R.drawable.ic_launcher_background); error(R.drawable.ic_launcher_background); diskCachePolicy(coil.request.CachePolicy.ENABLED); networkCachePolicy(coil.request.CachePolicy.DISABLED)
-                if (finalSource is String && ((finalSource as String).contains("/api/v1/mobile/") || (finalSource as String).contains("/pictograms/"))) {
-                    val token = org.libera.pictotree.data.SessionManager(requireContext()).getToken()
-                    if (!token.isNullOrEmpty()) addHeader("Authorization", "Bearer $token")
-                }
-            } 
-        } else containerParent.visibility = View.INVISIBLE
-        breadcrumbAdapter.submitList(state.breadcrumbs) { rvBreadcrumbs.post { if (state.breadcrumbs.isNotEmpty()) rvBreadcrumbs.scrollToPosition(state.breadcrumbs.size - 1); if (::scrollTopIndicator.isInitialized && ::scrollBottomIndicator.isInitialized) updateVerticalScrollIndicators(rvBreadcrumbs, scrollTopIndicator, scrollBottomIndicator) } }
-        val oldSiblings = siblingAdapter.currentList
+        try { containerParent.strokeColor = Color.parseColor(state.colorCode); containerParent.strokeWidth = (3 * resources.displayMetrics.density).toInt() } catch (e: Exception) { containerParent.strokeColor = Color.BLACK }
+        
+        state.parent?.let { parent ->
+            containerParent.visibility = View.VISIBLE; tvParentLabel.text = parent.description?.takeIf { it.isNotBlank() } ?: parent.label
+            ivParent.load(getFinalUrl(parent.imageUrl)) { placeholder(R.drawable.ic_launcher_background); error(R.drawable.ic_launcher_background) }
+        } ?: run { containerParent.visibility = View.INVISIBLE }
+        
+        breadcrumbAdapter.submitList(state.breadcrumbs)
         siblingAdapter.submitList(state.siblings) {
             val navPos = state.siblings.indexOfFirst { it.id == state.navigationNode?.id }
-            var highlightPos = state.siblings.indexOfFirst { it.id == state.previewNode?.id }
-            if (highlightPos == -1) highlightPos = state.siblings.indexOfFirst { it.id == state.previewNode?.parent?.id }
-            if (highlightPos == -1) highlightPos = navPos
-
             if (navPos != -1) { 
                 ignoreScrollEvents = true
                 rvSiblings.post { 
                     rvSiblings.scrollToPosition(navPos)
-                    siblingAdapter.setSelectedPosition(highlightPos) 
-                    rvSiblings.postDelayed({ ignoreScrollEvents = false }, 200)
+                    rvSiblings.postDelayed({ 
+                        ignoreScrollEvents = false 
+                        positionChildrenArrow() // Recalculer après défilement
+                    }, 200) 
                 }
             } else {
-                if (oldSiblings != state.siblings) rvSiblings.post { rvSiblings.scrollToPosition(0) }
-                siblingAdapter.setSelectedPosition(highlightPos)
+                positionChildrenArrow()
             }
-            rvSiblings.post { if (::siblingsGradLeft.isInitialized && ::siblingsArrowLeft.isInitialized && ::siblingsGradRight.isInitialized && ::siblingsArrowRight.isInitialized) updateHorizontalScrollIndicators(rvSiblings, siblingsGradLeft, siblingsArrowLeft, siblingsGradRight, siblingsArrowRight); positionChildrenArrow() }
         }
-        if (::ivArrowToSiblings.isInitialized) ivArrowToSiblings.visibility = if (state.parent != null) View.VISIBLE else View.INVISIBLE
-        if (::ivArrowToChildren.isInitialized) ivArrowToChildren.visibility = if (state.children.isNotEmpty()) View.VISIBLE else View.INVISIBLE
-        state.previewNode?.let { node -> 
-            val cleanUrl = org.libera.pictotree.utils.FileUtils.getCleanUrl(node.imageUrl)
-            val fileName = org.libera.pictotree.utils.FileUtils.getLocalFileNameFromUrl(cleanUrl)
-            val username = org.libera.pictotree.data.SessionManager(requireContext()).getUsername() ?: "default"
-            val localFile = java.io.File(requireContext().filesDir, "$username/images/$fileName")
-            var finalSource: Any = if (localFile.exists()) localFile else node.imageUrl
-            if (finalSource is String && !finalSource.startsWith("http") && !finalSource.startsWith("file")) finalSource = "${org.libera.pictotree.network.RetrofitClient.SERVER_URL.removeSuffix("/")}/${(finalSource as String).removePrefix("/")}"
-            ivSelectedLarge.load(finalSource) { placeholder(R.drawable.ic_launcher_foreground); error(R.drawable.ic_launcher_foreground); diskCachePolicy(coil.request.CachePolicy.ENABLED); networkCachePolicy(coil.request.CachePolicy.DISABLED)
-                if (finalSource is String && ((finalSource as String).contains("/api/v1/mobile/") || (finalSource as String).contains("/pictograms/"))) {
-                    val token = org.libera.pictotree.data.SessionManager(requireContext()).getToken()
-                    if (!token.isNullOrEmpty()) addHeader("Authorization", "Bearer $token")
-                }
-            } 
-        }
-        val oldChildren = childrenAdapter.currentList
-        childrenAdapter.submitList(state.children) { if (oldChildren != state.children) rvChildren.scrollToPosition(0)
-            childrenAdapter.setSelectedPosition(state.children.indexOfFirst { it.id == state.previewNode?.id })
-            rvChildren.post { if (::childrenGradLeft.isInitialized && ::childrenArrowLeft.isInitialized && ::childrenGradRight.isInitialized && ::childrenArrowRight.isInitialized) updateHorizontalScrollIndicators(rvChildren, childrenGradLeft, childrenArrowLeft, childrenGradRight, childrenArrowRight) }
+        
+        state.previewNode?.let { node -> ivSelectedLarge.load(getFinalUrl(node.imageUrl)) }
+        childrenAdapter.submitList(state.children) {
+            val previewPos = state.children.indexOfFirst { it.id == state.previewNode?.id }
+            childrenAdapter.setSelectedPosition(previewPos)
         }
     }
 
-    override fun onDestroyView() { super.onDestroyView(); if (::ttsManager.isInitialized) ttsManager.shutdown() }
+    private fun getFinalUrl(rawUrl: String): Any {
+        val ctx = context ?: return rawUrl
+        val username = org.libera.pictotree.data.SessionManager(ctx).getUsername() ?: "default"
+        val hostUrl = org.libera.pictotree.network.RetrofitClient.SERVER_URL
+        return FileUtils.getFinalImageSource(rawUrl, ctx, username, hostUrl)
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        activity?.window?.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        if (::ttsManager.isInitialized) ttsManager.stop()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        if (::ttsManager.isInitialized) ttsManager.shutdown()
+    }
 }

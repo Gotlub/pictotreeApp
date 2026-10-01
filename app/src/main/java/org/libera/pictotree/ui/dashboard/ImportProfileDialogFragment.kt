@@ -85,8 +85,14 @@ class ImportProfileDialogFragment(
             fun bind(profile: ProfileDTO, onImport: (ProfileDTO) -> Unit) {
                 tvName.text = profile.name
                 
-                if (!profile.remoteAvatarUrl.isNullOrEmpty()) {
-                    ivAvatar.load(profile.remoteAvatarUrl) {
+                val avatar = profile.remoteAvatarUrl
+                if (!avatar.isNullOrEmpty()) {
+                    val hostUrl = org.libera.pictotree.network.RetrofitClient.SERVER_URL
+                    val finalUrl = org.libera.pictotree.utils.FileUtils.normalizeUrl(avatar, hostUrl)
+                    val imageLoader = org.libera.pictotree.network.RetrofitClient.getImageLoader(ivAvatar.context)
+                    
+                    ivAvatar.load(finalUrl, imageLoader) {
+                        crossfade(true)
                         placeholder(R.drawable.ic_launcher_foreground)
                         error(R.drawable.ic_launcher_foreground)
                     }

@@ -14,15 +14,15 @@ import org.libera.pictotree.network.TreeApiService
 import org.libera.pictotree.network.dto.PictoSearchResultDTO
 import org.libera.pictotree.utils.ConnectivityObserver
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow as KStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.firstOrNull
+import org.libera.pictotree.utils.UiText
 
 sealed class SearchUiState {
     data object Idle : SearchUiState()
     data object Loading : SearchUiState()
     data class Success(val results: List<PictoSearchResultDTO>) : SearchUiState()
-    data class Error(val message: String) : SearchUiState()
+    data class Error(val message: UiText) : SearchUiState()
 }
 
 class PictoSearchViewModel(
@@ -32,8 +32,7 @@ class PictoSearchViewModel(
     private val arasaacRepository: ArasaacRepository,
     private val userConfigRepository: UserConfigRepository,
     private val connectivityObserver: ConnectivityObserver,
-    private val username: String,
-    private val hostUrl: String
+    private val username: String
 ) : AndroidViewModel(application) {
 
     private val _localResults = MutableStateFlow<SearchUiState>(SearchUiState.Idle)
@@ -45,7 +44,6 @@ class PictoSearchViewModel(
     private val _arasaacResults = MutableStateFlow<SearchUiState>(SearchUiState.Idle)
     val arasaacResults: StateFlow<SearchUiState> = _arasaacResults.asStateFlow()
 
-    // Observation du statut réseau en temps réel
     val networkStatus = connectivityObserver.observe().stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
@@ -66,13 +64,10 @@ class PictoSearchViewModel(
 
     fun search(type: Int) {
         if (currentGlobalQuery.isBlank()) return
-        
-        // Si on a déjà cherché ce mot clé pour ce type, on ne fait rien
         if (lastQueries[type] == currentGlobalQuery) return
         
-        // Pour les types "Online", on vérifie la connexion avant de lancer
         if (type != SearchTabFragment.TYPE_LOCAL && networkStatus.value != ConnectivityObserver.Status.Available) {
-            val errorState = SearchUiState.Error("Hors-ligne : Vérifiez votre connexion internet.")
+            val errorState = SearchUiState.Error(UiText.StringResource(org.libera.pictotree.R.string.error_offline_check_connection))
             if (type == SearchTabFragment.TYPE_BASE) _baseResults.value = errorState
             if (type == SearchTabFragment.TYPE_ARASAAC) _arasaacResults.value = errorState
             return
@@ -91,18 +86,22 @@ class PictoSearchViewModel(
         viewModelScope.launch {
             _localResults.value = SearchUiState.Loading
             try {
-                val entities = imageDao.searchImages(query)
+                // AJOUT DES WILDCARDS POUR ROOM
+                val fuzzyQuery = "%$query%"
+                val entities = imageDao.searchImages(fuzzyQuery)
                 val results = entities.map {
                     val file = java.io.File(getApplication<Application>().filesDir, "$username/${it.localPath}")
                     PictoSearchResultDTO(
                         id = it.id,
-                        name = it.name ?: "Picto",
+                        // Priorité au nom, puis description
+                        name = it.name ?: it.description ?: "Picto",
                         imageUrl = "file://${file.absolutePath}"
                     )
                 }
                 _localResults.value = SearchUiState.Success(results)
             } catch (e: Exception) {
-                _localResults.value = SearchUiState.Error(e.localizedMessage ?: "Erreur")
+                val errorUiText = e.localizedMessage?.let { UiText.DynamicString(it) } ?: UiText.StringResource(org.libera.pictotree.R.string.error_generic)
+                _localResults.value = SearchUiState.Error(errorUiText)
             }
         }
     }
@@ -115,10 +114,10 @@ class PictoSearchViewModel(
                 if (response.isSuccessful) {
                     _baseResults.value = SearchUiState.Success(response.body() ?: emptyList())
                 } else {
-                    _baseResults.value = SearchUiState.Error("Erreur serveur")
+                    _baseResults.value = SearchUiState.Error(UiText.StringResource(org.libera.pictotree.R.string.error_server_code, response.code()))
                 }
             } catch (e: Exception) {
-                _baseResults.value = SearchUiState.Error("Erreur réseau")
+                _baseResults.value = SearchUiState.Error(UiText.StringResource(org.libera.pictotree.R.string.error_network))
             }
         }
     }
@@ -131,7 +130,7 @@ class PictoSearchViewModel(
                 val results = arasaacRepository.search(query, locale)
                 _arasaacResults.value = SearchUiState.Success(results)
             } catch (e: Exception) {
-                _arasaacResults.value = SearchUiState.Error("Erreur réseau")
+                _arasaacResults.value = SearchUiState.Error(UiText.StringResource(org.libera.pictotree.R.string.error_network))
             }
         }
     }

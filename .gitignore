@@ -1,3 +1,4 @@
+# Android Studio / IntelliJ IDEA
 *.iml
 .gradle
 /local.properties
@@ -7,6 +8,7 @@
 /.idea/workspace.xml
 /.idea/navEditor.xml
 /.idea/assetWizardSettings.xml
+/.idea/deploymentTargetSelector.xml
 .DS_Store
 /build
 /captures
@@ -14,3 +16,13 @@
 .cxx
 local.properties
 app/build/
+
+# Kotlin & Compiler artifacts
+.kotlin/
+*.log
+
+# Workspace temporary logs/txt output files
+*.txt
+*.txt.utf8
+*log.txt
+*log_utf8.txt

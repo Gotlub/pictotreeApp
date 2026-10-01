@@ -57,7 +57,7 @@ class NodeAdapter(
         private val card: com.google.android.material.card.MaterialCardView = itemView as? com.google.android.material.card.MaterialCardView ?: itemView.findViewById(R.id.card_node)
 
         fun bind(node: TreeNode, isSelected: Boolean, colorCode: String) {
-            tvLabel.text = node.label
+            tvLabel.text = node.description?.takeIf { it.isNotBlank() } ?: node.label
             
             if (node.id == "MORE_CHILDREN") {
                 ivPicto.setImageResource(android.R.drawable.ic_menu_more)
@@ -65,18 +65,13 @@ class NodeAdapter(
                 ivHasChildren?.visibility = View.GONE
             } else {
                 if (node.imageUrl.isNotEmpty()) {
-                    // MAPPING LOCAL MANUEL (Priorité absolue)
-                    val cleanUrl = org.libera.pictotree.utils.FileUtils.getCleanUrl(node.imageUrl)
-                    val fileName = org.libera.pictotree.utils.FileUtils.getLocalFileNameFromUrl(cleanUrl)
-                    val localFile = java.io.File(itemView.context.filesDir, "$username/images/$fileName")
-                    
-                    var finalSource: Any = if (localFile.exists()) localFile else node.imageUrl
-                    
-                    // Normalisation si c'est un chemin relatif (fallback)
-                    if (finalSource is String && !finalSource.startsWith("http") && !finalSource.startsWith("file")) {
-                        val hostUrl = org.libera.pictotree.network.RetrofitClient.SERVER_URL
-                        finalSource = "${hostUrl.removeSuffix("/")}/${finalSource.removePrefix("/")}"
-                    }
+                    val hostUrl = org.libera.pictotree.network.RetrofitClient.SERVER_URL
+                    val finalSource = org.libera.pictotree.utils.FileUtils.getFinalImageSource(
+                        node.imageUrl,
+                        itemView.context,
+                        username,
+                        hostUrl
+                    )
 
                     ivPicto.load(finalSource) {
                         crossfade(true)
@@ -113,7 +108,7 @@ class NodeAdapter(
                 }
             } else {
                 card.strokeWidth = 2
-                card.strokeColor = androidx.core.content.ContextCompat.getColor(itemView.context, com.google.android.material.R.color.material_dynamic_neutral90)
+                card.strokeColor = android.graphics.Color.parseColor("#DDDDDD")
             }
 
             itemView.setOnClickListener { onNodeClick(node) }

@@ -1,12 +1,8 @@
 package org.libera.pictotree.data.model
 
-import com.google.gson.annotations.SerializedName
-
 /**
  * Preferences specific to a user profile, stored as JSON in the database.
+ * NOTE: Most global settings (Search, Rotation, etc.) have been moved to UserConfig.
+ * This class remains for profile-specific behaviors if needed in the future.
  */
-data class ProfileSettings(
-    @SerializedName("startup_view") val startupView: String = "EXPLORER", // "EXPLORER" or "MAP"
-    @SerializedName("default_orientation") val defaultOrientation: String = "PORTRAIT", // "PORTRAIT" or "LANDSCAPE"
-    @SerializedName("enable_search") val enableSearch: Boolean = true
-)
+class ProfileSettings

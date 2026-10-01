@@ -12,5 +12,11 @@ data class ImageEntity(
     val remotePath: String,
     @ColumnInfo(name = "local_path")
     val localPath: String,
-    val name: String? = null
+    val name: String? = null,
+    val description: String? = null,
+    @ColumnInfo(name = "remote_id")
+    val remoteId: Int = -1,
+    @ColumnInfo(name = "last_modif")
+    val lastModif: String? = null,
+    val hash: String? = null
 )

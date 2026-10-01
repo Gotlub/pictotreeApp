@@ -1,0 +1,187 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Pictotree App</string>
+
+    <string name="login_select_user_hint">Selecteer gebruiker / Nieuwe gebruiker</string>
+    <string name="login_online_mode">Online modus</string>
+    <string name="login_password_hint">Wachtwoord</string>
+    <string name="login_button">Inloggen</string>
+    <string name="login_quit_button">Applicatie afsluiten</string>
+
+    <string name="dashboard_new_title">PictoTree.eu</string>
+    <string name="dashboard_admin_status_desc">Beheerdersstatus</string>
+    <string name="dashboard_empty_state">Geen profielen gevonden, tik op + om te beginnen</string>
+    <string name="dashboard_logout_desc">Uitloggen</string>
+
+
+
+
+    <string name="dialog_create_profile_name_hint">Naam</string>
+    <string name="profile_choose_avatar">Kies een avatar:</string>
+
+
+
+
+    <string name="login_offline_not_allowed">Offline toegang niet toegestaan voor dit account.</string>
+    <string name="login_offline_read_only">Offline modus (Alleen-lezen)</string>
+
+
+    <string-array name="settings_languages">
+        <item>Français</item>
+        <item>English</item>
+        <item>Español</item>
+        <item>Deutsch</item>
+        <item>Italiano</item>
+        <item>Nederlands</item>
+        <item>Polski</item>
+    </string-array>
+    <string-array name="settings_language_codes">
+        <item>fr</item>
+        <item>en</item>
+        <item>es</item>
+        <item>de</item>
+        <item>it</item>
+        <item>nl</item>
+        <item>pl</item>
+    </string-array>
+
+    <string-array name="settings_startup_view_options">
+        <item>Spatial View</item>
+        <item>Global Map</item>
+    </string-array>
+    <string-array name="settings_startup_view_values">
+        <item>EXPLORER</item>
+        <item>MAP</item>
+    </string-array>
+
+    <string-array name="settings_orientation_options">
+        <item>Portrait</item>
+        <item>Landscape</item>
+    </string-array>
+    <string-array name="settings_orientation_values">
+        <item>PORTRAIT</item>
+        <item>LANDSCAPE</item>
+    </string-array>
+
+    <string-array name="settings_timer_color_options">
+        <item>Red</item>
+        <item>Green</item>
+    </string-array>
+    <string-array name="settings_timer_color_values">
+        <item>red</item>
+        <item>green</item>
+    </string-array>
+
+    <string name="dialog_lock_admin_title">Bewerken vergrendelen?</string>
+    <string name="dialog_lock_admin_message">Beheerdersmodus wordt uitgeschakeld. U moet opnieuw inloggen om profielen te bewerken.</string>
+    <string name="dialog_lock_admin_positive">Vergrendelen</string>
+    <string name="dialog_lock_admin_negative">Annuleren</string>
+    <string name="dialog_lock_admin_toast">Bewerken vergrendeld</string>
+    <string name="dialog_unlock_admin_title">Bewerken ontgrendelen</string>
+    <string name="dialog_unlock_admin_positive">Ontgrendelen</string>
+    <string name="dialog_unlock_admin_toast_success">Toegang verleend</string>
+    <string name="dialog_unlock_admin_toast_error">Mislukt: %s</string>
+    <string name="dialog_unlock_admin_user_prefix">Gebruiker: %s</string>
+    <string name="timer_config_title">Tijdconfiguratie</string>
+    <string name="timer_picto_none">Pictogram: Geen</string>
+    <string name="timer_mode">Modus</string>
+    <string name="timer_mode_no">Nee</string>
+    <string name="timer_mode_milestone">Mijlpaal</string>
+    <string name="timer_mode_timer">Timer</string>
+    <string name="timer_duration">Duur (min)</string>
+    <string name="timer_minus">-</string>
+    <string name="timer_one">1</string>
+    <string name="timer_plus">+</string>
+    <string name="timer_ring_end">Bellen aan het einde</string>
+    <string name="timer_auto_delete">Automatisch verwijderen</string>
+    <string name="timer_visual_pulse">Visuele puls</string>
+    <string name="timer_apply">Toepassen</string>
+    <string name="picto_search_title">Pictogram Zoeken</string>
+    <string name="search">Zoeken</string>
+    <string name="label">Label</string>
+    <string name="choose_tree">Kies een boom</string>
+    <string name="options">Opties</string>
+    <string name="add_tree">Boom toevoegen</string>
+    <string name="user_prefix_label">Gebruiker: </string>
+    <string name="internet_required_unlock">Een internetverbinding is vereist om bewerken te ontgrendelen als u nog niet bent ingelogd.</string>
+    <string name="menu">Menu</string>
+    <string name="import_btn">Importeren</string>
+    <string name="new_btn">Nieuw</string>
+    <string name="import_profile_title">Een Profiel Importeren</string>
+    <string name="import_remote_tree">Een externe boom importeren</string>
+    <string name="add_btn">Toevoegen</string>
+    <string name="no_result">Geen resultaat</string>
+    <string name="timer_finished_title">Timer afgelopen!</string>
+    <string name="stop">Stop</string>
+    <string name="profile_name">Profielnaam</string>
+    <string name="profile_options_title">Profielopties</string>
+    <string name="save_to_web">Opslaan op Web</string>
+    <string name="delete_local_profile">Lokaal profiel verwijderen</string>
+    <string name="app_settings_title">App Instellingen</string>
+    <string name="connection_security">Verbindingsbeveiliging</string>
+    <string name="allow_offline_access">Offline toegang toestaan</string>
+    <string name="offline_access_desc">Indien ingeschakeld, kan dit apparaat zonder wachtwoord profielen openen in de offline modus (Alleen-lezen).</string>
+    <string name="app_language">App taal</string>
+    <string name="app_display">App weergave</string>
+    <string name="start_on">Start op:</string>
+    <string name="fixed_orientation">Vaste oriëntatie:</string>
+    <string name="timer_color">Timerkleur:</string>
+    <string name="enable_text_search">Tekst zoeken inschakelen</string>
+    <string name="rotation_button">Rotatieknop</string>
+    <string name="tts_button">Knop voor spraaklezen</string>
+    <string name="view_switch">Schakelweergave (Kaart/Ruimtelijk)</string>
+    <string name="close">Sluiten</string>
+    <string name="search_pictogram">Zoek pictogram...</string>
+    <string name="search_by_name">Zoek op naam...</string>
+    <string name="password">Wachtwoord</string>
+    <string name="pictotree_logo">PictoTree Logo</string>
+    <string name="change_orientation">Verander oriëntatie</string>
+    <string name="back_to_dashboard">Terug naar Dashboard</string>
+    <string name="avatar_preview">Avatar Voorbeeld</string>
+    <string name="search_avatar">Zoek Avatar</string>
+    <string name="read_phrase">Lees zin</string>
+    <string name="pictogram">Pictogram</string>
+    <string name="avatar">Avatar</string>
+    <string name="edit_profile_desc">Bewerk profiel</string>
+    <string name="drag_to_reorder">Sleep om opnieuw te ordenen</string>
+    <string name="repair_images">Repareer afbeeldingen</string>
+    <string name="view_tree">Bekijk boom</string>
+    <string name="importation_partielle">Gedeeltelijke import</string>
+    <string name="le_profil_a_t_import_mais_image_s_n_ont_pas_pu_tre_t_l_charg_es_vous_pourrez_les_r_parer_plus_tard_dans_l_dition_du_profil">Het profiel is geïmporteerd, maar %1$d afbeelding(en) konden niet worden gedownload. U kunt ze later repareren in de profielbewerking.</string>
+    <string name="profil_import_avec_succ_s">Profiel succesvol geïmporteerd!</string>
+    <string name="r_paration_de_l_arbre_en_cours">Boom repareren...</string>
+    <string name="importation_de_l_arbre">Boom importeren...</string>
+    <string name="vert_verbes">Groen (Werkwoorden)</string>
+    <string name="importation_incompl_te">Onvolledige import</string>
+    <string name="il_manque_image_s_sur_un_total_de_voulez_vous_r_essayer">Er ontbreken %1$d afbeelding(en) van in totaal %2$d. Wilt u het opnieuw proberen?</string>
+    <string name="r_essayer">Probeer opnieuw</string>
+    <string name="plus_tard">Later</string>
+    <string name="synchronisation_r_ussie_images">Succesvolle synchronisatie (%1$d afbeeldingen)</string>
+    <string name="noir_d_faut">Zwart (Standaard)</string>
+    <string name="jaune_personnes">Geel (Personen)</string>
+    <string name="orange_noms">Oranje (Namen)</string>
+    <string name="bleu_adjectifs">Blauw (Bijvoeglijke naamwoorden)</string>
+    <string name="rose_social">Roze (Sociaal)</string>
+    <string name="couleur_caa">CAA-kleur</string>
+    <string name="session_expir_e">Sessie verlopen</string>
+    <string name="votre_connexion_au_serveur_a_expir_souhaitez_vous_continuer_en_mode_hors_ligne_votre_travail_actuel_sera_conserv_ou_vous_reconnecter">Uw verbinding met de server is verlopen. Wilt u doorgaan in de offline modus (uw huidige werk blijft behouden) of opnieuw verbinding maken?</string>
+    <string name="rester_hors_ligne">Blijf offline</string>
+    <string name="se_reconnecter">Opnieuw verbinden</string>
+    <string name="configuration_appliqu_e">Configuratie toegepast</string>
+    <string name="supprimer_le_profil">Profiel verwijderen?</string>
+    <string name="toutes_les_donn_es_locales_de_ce_profil_seront_perdues_cette_action_est_irr_versible">Alle lokale gegevens van dit profiel gaan verloren. Deze actie is onomkeerbaar.</string>
+    <string name="supprimer">Verwijderen</string>
+    <string name="annuler">Annuleren</string>
+    <string name="synchronisation_cloud_bient_t_disponible">Cloud-synchronisatie binnenkort beschikbaar</string>
+    <string name="effacer_le_bandeau">De banner wissen?</string>
+    <string name="voulez_vous_vraiment_vider_toute_la_phrase">Weet je zeker dat je de hele zin wilt leegmaken?</string>
+
+
+    <string name="error_invalid_username">Voer een geldige gebruikersnaam in.</string>
+    <string name="error_user_unknown_local">Gebruiker lokaal onbekend. Maak online verbinding.</string>
+    <string name="error_connection">Verbindingsfout</string>
+    <string name="error_offline_check_connection">Offline: Controleer uw internetverbinding.</string>
+    <string name="error_generic">Fout</string>
+    <string name="error_server_code">Serverfout: %1$d</string>
+    <string name="error_network">Netwerkfout</string>
+</resources>

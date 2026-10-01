@@ -51,12 +51,24 @@ class SessionManager(context: Context) {
         return prefs.getStringSet("KNOWN_USERS", emptySet()) ?: emptySet()
     }
 
-    fun clearSession() {
+    /**
+     * Nettoie uniquement les jetons d'administration pour forcer le verrouillage de l'édition,
+     * tout en préservant le nom d'utilisateur pour pouvoir afficher le mode de déverrouillage hors-ligne.
+     */
+    fun clearAdminSession() {
         prefs.edit()
             .remove("USER_TOKEN")
             .remove("REFRESH_TOKEN")
-            .remove("USERNAME")
             .remove("IS_ONLINE")
+            .apply()
+    }
+
+    fun logout() {
+        prefs.edit()
+            .remove("USER_TOKEN")
+            .remove("REFRESH_TOKEN")
+            .remove("IS_ONLINE")
+            .remove("USERNAME")
             .apply()
     }
 
@@ -68,11 +80,27 @@ class SessionManager(context: Context) {
         return prefs.getInt("ORIENTATION_$username", android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT)
     }
 
+    fun setOfflineAccessAllowed(username: String, allowed: Boolean) {
+        prefs.edit().putBoolean("OFFLINE_ALLOWED_$username", allowed).apply()
+    }
+
+    fun isOfflineAccessAllowed(username: String): Boolean {
+        return prefs.getBoolean("OFFLINE_ALLOWED_$username", false)
+    }
+
     fun switchToOfflineMode() {
         prefs.edit()
             .remove("USER_TOKEN")
             .remove("REFRESH_TOKEN")
             .putBoolean("IS_ONLINE", false)
             .apply()
+    }
+
+    fun getTimerColor(): String {
+        return prefs.getString("TIMER_COLOR", "green") ?: "green"
+    }
+
+    fun setTimerColor(color: String) {
+        prefs.edit().putString("TIMER_COLOR", color).apply()
     }
 }

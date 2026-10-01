@@ -9,7 +9,7 @@ import org.libera.pictotree.data.database.entity.TreeEntity
 
 @Dao
 interface ProfileDao {
-    @Query("SELECT * FROM profiles ORDER BY name ASC")
+    @Query("SELECT * FROM profiles ORDER BY displayOrder ASC, id ASC")
     fun getAllProfilesFlow(): Flow<List<Profile>>
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
@@ -18,8 +18,14 @@ interface ProfileDao {
     @Update
     suspend fun updateProfile(profile: Profile)
 
+    @Update
+    suspend fun updateProfiles(profiles: List<Profile>)
+
     @Delete
     suspend fun deleteProfile(profile: Profile)
+
+    @Query("SELECT MAX(displayOrder) FROM profiles")
+    suspend fun getMaxDisplayOrder(): Int?
 
     @Transaction
     @Query("SELECT * FROM profiles WHERE id = :profileId")

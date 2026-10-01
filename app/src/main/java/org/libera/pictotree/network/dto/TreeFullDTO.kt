@@ -5,7 +5,8 @@ import com.google.gson.annotations.SerializedName
 data class TreeFullDTO(
     @SerializedName("tree_id") val treeId: Int,
     @SerializedName("name") val name: String,
-    @SerializedName("root_node") val rootNode: TreeNodeDTO?
+    @SerializedName("root_node") val rootNode: TreeNodeDTO?,
+    @SerializedName("updated_at") val lastModif: String? = null
 )
 
 data class TreeNodeDTO(

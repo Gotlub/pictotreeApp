@@ -18,7 +18,8 @@ class ProfileTreeAdapter(
     private val onOrderChanged: (List<ProfileTreeUiModel>) -> Unit,
     private val onViewTree: (TreeEntity) -> Unit,
     private val onColorClick: (TreeEntity, String) -> Unit,
-    private val onStartDrag: (RecyclerView.ViewHolder) -> Unit
+    private val onStartDrag: (RecyclerView.ViewHolder) -> Unit,
+    private val onRepairTree: (TreeEntity) -> Unit // Ajouté
 ) : RecyclerView.Adapter<ProfileTreeAdapter.TreeViewHolder>() {
 
     private val trees = mutableListOf<ProfileTreeUiModel>()
@@ -70,21 +71,19 @@ class ProfileTreeAdapter(
         private val textOrderNumber: TextView = itemView.findViewById(R.id.textOrderNumber)
         private val deleteButton: ImageButton = itemView.findViewById(R.id.buttonDeleteTree)
         private val viewButton: ImageButton = itemView.findViewById(R.id.buttonViewTree)
+        private val repairButton: ImageButton = itemView.findViewById(R.id.buttonRepairTree) // Ajouté
         private val imageIcon: ImageView = itemView.findViewById(R.id.imageTreeIcon)
         private val colorIndicator: View = itemView.findViewById(R.id.indicator_tree_color)
-
-        private val dragRunnable = java.lang.Runnable { onStartDrag(this) }
+        private val btnDrag: ImageView = itemView.findViewById(R.id.btnDrag)
 
         init {
-            itemView.setOnTouchListener { v, event ->
-                val handler = v.handler
-                if (handler != null) {
-                    when (event.actionMasked) {
-                        android.view.MotionEvent.ACTION_DOWN -> handler.postDelayed(dragRunnable, 250)
-                        android.view.MotionEvent.ACTION_UP, android.view.MotionEvent.ACTION_CANCEL -> handler.removeCallbacks(dragRunnable)
-                    }
+            btnDrag.setOnTouchListener { _, event ->
+                if (event.actionMasked == android.view.MotionEvent.ACTION_DOWN) {
+                    onStartDrag(this)
+                    true
+                } else {
+                    false
                 }
-                false
             }
         }
 
@@ -95,7 +94,6 @@ class ProfileTreeAdapter(
             }
             treeName.text = model.tree.name
             
-            // Appliquer la couleur CAA
             try {
                 val color = android.graphics.Color.parseColor(model.colorCode)
                 val drawable = colorIndicator.background as? android.graphics.drawable.GradientDrawable
@@ -110,8 +108,8 @@ class ProfileTreeAdapter(
                 onColorClick(model.tree, model.colorCode)
             }
 
-            // Sécurité : masquer la suppression si hors-ligne
             deleteButton.visibility = if (isOnlineMode) View.VISIBLE else View.GONE
+            repairButton.visibility = if (isOnlineMode) View.VISIBLE else View.GONE // Réparation réservée au mode en ligne
             
             deleteButton.setOnClickListener {
                 onTreeDelete(model.tree)
@@ -119,6 +117,10 @@ class ProfileTreeAdapter(
             viewButton.setOnClickListener {
                 onViewTree(model.tree)
             }
+            repairButton.setOnClickListener {
+                onRepairTree(model.tree)
+            }
+            
             if (model.localThumbnailPath != null) {
                 imageIcon.load(File(model.localThumbnailPath)) {
                     crossfade(true)

@@ -4,9 +4,6 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.AdapterView
-import android.widget.ArrayAdapter
-import android.widget.Spinner
 import android.widget.Toast
 import androidx.fragment.app.DialogFragment
 import androidx.lifecycle.Lifecycle
@@ -15,7 +12,6 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import com.google.android.material.materialswitch.MaterialSwitch
 import kotlinx.coroutines.launch
 import org.libera.pictotree.R
 
@@ -55,84 +51,30 @@ class ProfileOptionsDialogFragment : DialogFragment() {
         profileId = arguments?.getInt("profileId") ?: -1
         viewModel = ViewModelProvider(requireParentFragment())[EditProfileViewModel::class.java]
 
-        val spinnerStartupView = view.findViewById<Spinner>(R.id.spinnerStartupView)
-        val spinnerOrientation = view.findViewById<Spinner>(R.id.spinnerOrientation)
-        val switchEnableSearch = view.findViewById<MaterialSwitch>(R.id.switchEnableSearch)
         val btnDeleteProfile = view.findViewById<MaterialButton>(R.id.btnDeleteProfile)
         val btnSyncProfile = view.findViewById<MaterialButton>(R.id.btnSyncProfile)
         val btnClose = view.findViewById<android.widget.ImageButton>(R.id.btnCloseOptions)
 
         btnClose.setOnClickListener { dismiss() }
 
-        // Setup Spinners
-        val startupViewOptions = arrayOf("Vue Spatiale", "Carte Globale")
-        val startupViewValues = arrayOf("EXPLORER", "MAP")
-        spinnerStartupView.adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_dropdown_item, startupViewOptions)
-
-        val orientationOptions = arrayOf("Portrait", "Paysage")
-        val orientationValues = arrayOf("PORTRAIT", "LANDSCAPE")
-        spinnerOrientation.adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_dropdown_item, orientationOptions)
-
-        // Sync with ViewModel
-        viewLifecycleOwner.lifecycleScope.launch {
-            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.settings.collect { settings ->
-                    val startupIdx = startupViewValues.indexOf(settings.startupView)
-                    if (startupIdx != -1) spinnerStartupView.setSelection(startupIdx)
-
-                    val orientIdx = orientationValues.indexOf(settings.defaultOrientation)
-                    if (orientIdx != -1) spinnerOrientation.setSelection(orientIdx)
-
-                    switchEnableSearch.isChecked = settings.enableSearch
-                }
-            }
-        }
-
-        // Listeners
-        spinnerStartupView.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                val current = viewModel.settings.value
-                if (current.startupView != startupViewValues[position]) {
-                    viewModel.updateSettings(current.copy(startupView = startupViewValues[position]), profileId)
-                }
-            }
-            override fun onNothingSelected(parent: AdapterView<*>?) {}
-        }
-
-        spinnerOrientation.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                val current = viewModel.settings.value
-                if (current.defaultOrientation != orientationValues[position]) {
-                    viewModel.updateSettings(current.copy(defaultOrientation = orientationValues[position]), profileId)
-                }
-            }
-            override fun onNothingSelected(parent: AdapterView<*>?) {}
-        }
-
-        switchEnableSearch.setOnCheckedChangeListener { _, isChecked ->
-            val current = viewModel.settings.value
-            if (current.enableSearch != isChecked) {
-                viewModel.updateSettings(current.copy(enableSearch = isChecked), profileId)
-            }
-        }
-
         btnDeleteProfile.setOnClickListener {
             MaterialAlertDialogBuilder(requireContext())
-                .setTitle("Supprimer le Profil ?")
-                .setMessage("Toutes les données locales de ce profil seront perdues. Cette action est irréversible.")
-                .setPositiveButton("Supprimer") { _, _ ->
+                .setTitle(getString(R.string.supprimer_le_profil))
+                .setMessage(getString(R.string.toutes_les_donn_es_locales_de_ce_profil_seront_perdues_cette_action_est_irr_versible))
+                .setPositiveButton(getString(R.string.supprimer)) { _, _ ->
                     viewModel.deleteFullProfile(profileId) {
                         dismiss()
                         requireActivity().onBackPressedDispatcher.onBackPressed()
                     }
                 }
-                .setNegativeButton("Annuler", null)
+                .setNegativeButton(getString(R.string.annuler), null)
                 .setIcon(android.R.drawable.ic_menu_delete)
                 .show()
         }
 
         btnSyncProfile.setOnClickListener {
-            Toast.makeText(requireContext(), "Synchronisation Cloud bientôt disponible", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(),
+                getString(R.string.synchronisation_cloud_bient_t_disponible), Toast.LENGTH_SHORT).show()
         }
     }
 }

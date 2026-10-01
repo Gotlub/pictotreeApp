@@ -14,8 +14,8 @@ class TreeNavigatorTest {
         val root = TreeNode("${treeId}_root_r", "Root", "", emptyList())
         
         // Children paths are "r_0", "r_1"
-        val nodeA = TreeNode("${treeId}_${imgId}_r_0", "aabb", "", emptyList(), root)
-        val nodeB = TreeNode("${treeId}_${imgId}_r_1", "ccdd", "", emptyList(), root)
+        val nodeA = TreeNode("${treeId}_${imgId}_r_0", "aabb", "", emptyList(), parent = root)
+        val nodeB = TreeNode("${treeId}_${imgId}_r_1", "ccdd", "", emptyList(), parent = root)
         
         val rootWithChildren = TreeNode("${treeId}_root_r", "Root", "", listOf(nodeA, nodeB))
         nodeA.parent = rootWithChildren

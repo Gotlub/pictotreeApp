@@ -21,7 +21,7 @@ interface TreeApiService {
         @Path("id") treeId: Int
     ): Response<TreeFullDTO>
 
-    @GET("pictograms/search")
+    @GET("pictosearch")
     suspend fun searchPictograms(
         @Query("q") query: String
     ): Response<List<org.libera.pictotree.network.dto.PictoSearchResultDTO>>

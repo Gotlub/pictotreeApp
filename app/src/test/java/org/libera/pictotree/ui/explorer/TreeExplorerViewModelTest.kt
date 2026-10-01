@@ -4,6 +4,7 @@ import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import io.mockk.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.*
 import org.junit.After
@@ -12,6 +13,11 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import android.app.Application
+import android.media.MediaPlayer
+import android.media.RingtoneManager
+import android.util.Log
+import android.os.SystemClock
+import androidx.lifecycle.viewModelScope
 import org.libera.pictotree.data.database.dao.TreeDao
 import org.libera.pictotree.data.database.dao.ProfileDao
 import org.libera.pictotree.data.database.dao.ImageDao
@@ -38,6 +44,27 @@ class TreeExplorerViewModelTest {
     fun setup() {
         Dispatchers.setMain(testDispatcher)
         
+        mockkStatic(SystemClock::class)
+        every { SystemClock.elapsedRealtime() } answers { testDispatcher.scheduler.currentTime }
+        
+        mockkStatic(Log::class)
+        every { Log.i(any(), any()) } returns 0
+        every { Log.e(any(), any()) } returns 0
+        every { Log.e(any(), any(), any()) } returns 0
+        every { Log.w(any(), any<String>()) } returns 0
+        every { Log.d(any(), any()) } returns 0
+        
+        mockkConstructor(MediaPlayer::class)
+        every { anyConstructed<MediaPlayer>().setDataSource(any<Application>(), any()) } returns Unit
+        every { anyConstructed<MediaPlayer>().setAudioAttributes(any()) } returns Unit
+        every { anyConstructed<MediaPlayer>().setOnCompletionListener(any()) } returns Unit
+        every { anyConstructed<MediaPlayer>().prepare() } returns Unit
+        every { anyConstructed<MediaPlayer>().start() } returns Unit
+        every { anyConstructed<MediaPlayer>().release() } returns Unit
+        
+        mockkStatic(RingtoneManager::class)
+        every { RingtoneManager.getDefaultUri(any()) } returns null
+        
         every { userConfigRepository.userConfig } returns flowOf(null)
         
         viewModel = TreeExplorerViewModel(
@@ -53,7 +80,12 @@ class TreeExplorerViewModelTest {
 
     @After
     fun tearDown() {
+        viewModel.viewModelScope.cancel()
         Dispatchers.resetMain()
+        unmockkStatic(SystemClock::class)
+        unmockkStatic(Log::class)
+        unmockkStatic(RingtoneManager::class)
+        unmockkConstructor(MediaPlayer::class)
     }
 
     @Test
@@ -68,7 +100,7 @@ class TreeExplorerViewModelTest {
         coEvery { treeDao.getTreeById(1) } returns TreeEntity(1, "Tree 1", json)
         
         viewModel.loadTree(1)
-        advanceUntilIdle()
+        runCurrent()
         
         // When selecting the child ID
         viewModel.selectNodeWithoutNavigatingById("1_child_r_0")
@@ -89,7 +121,7 @@ class TreeExplorerViewModelTest {
         coEvery { treeDao.getTreeById(1) } returns TreeEntity(1, "Tree 1", json)
         
         viewModel.loadTree(1)
-        advanceUntilIdle()
+        runCurrent()
         
         // Then previewNode should still be the old one
         assertEquals("1_old_r_0", viewModel.uiState.value.previewNode?.id)
@@ -108,9 +140,9 @@ class TreeExplorerViewModelTest {
         // Then phraseList should have 2 items with unique IDs
         val phrase = viewModel.phraseList.value
         assertEquals(2, phrase.size)
-        assertNotEquals(phrase[0].id, phrase[1].id)
-        assertTrue(phrase[0].id.startsWith("1_picto_r_"))
-        assertEquals("Apple", phrase[0].label)
+        assertNotEquals(phrase[0].node.id, phrase[1].node.id)
+        assertTrue(phrase[0].node.id.startsWith("1_picto_r_"))
+        assertEquals("Apple", phrase[0].node.label)
     }
 
     @Test
@@ -148,13 +180,13 @@ class TreeExplorerViewModelTest {
         
         // We set the context for Tree 2 so it caches the root
         viewModel.setProfileTreeContext(1, listOf(2))
-        advanceUntilIdle()
+        runCurrent()
         
         // Given current tree is Tree 1
         val json1 = """{"root_node": {"id": "r1", "label": "Tree 1 Root"}}"""
         coEvery { treeDao.getTreeById(1) } returns TreeEntity(1, "Tree 1", json1)
         viewModel.loadTree(1)
-        advanceUntilIdle()
+        runCurrent()
         
         // When selecting an ID from Tree 2
         viewModel.selectNodeWithoutNavigatingById("2_r2_r")
@@ -162,5 +194,83 @@ class TreeExplorerViewModelTest {
         // Then previewNode should be updated from Tree 2
         assertEquals("2_r2_r", viewModel.uiState.value.previewNode?.id)
         assertEquals("Tree 2 Root", viewModel.uiState.value.previewNode?.label)
+    }
+
+    @Test
+    fun `updateCardTimeConfig should change mode from TIMER to JALON`() = runTest {
+        val node = TreeNode("1_node_1", "Test", "", emptyList())
+        val card = PhraseCard(node, org.libera.pictotree.data.model.CardTimeConfig(
+            mode = org.libera.pictotree.data.model.TimeMode.TIMER,
+            durationMinutes = 5,
+            endTimeMillis = 1000L
+        ))
+        viewModel.updatePhraseListSilently(listOf(card))
+
+        val newConfig = org.libera.pictotree.data.model.CardTimeConfig(
+            mode = org.libera.pictotree.data.model.TimeMode.JALON,
+            durationMinutes = 0
+        )
+        viewModel.updateCardTimeConfig(0, newConfig)
+
+        assertEquals(org.libera.pictotree.data.model.TimeMode.JALON, viewModel.phraseList.value[0].timeConfig.mode)
+    }
+
+    @Test
+    fun `removeItemFromPhrase should schedule next card if first is timer`() = runTest {
+        val node1 = TreeNode("1_node_1", "Card 1", "", emptyList())
+        val card1 = PhraseCard(node1, org.libera.pictotree.data.model.CardTimeConfig(
+            mode = org.libera.pictotree.data.model.TimeMode.TIMER,
+            endTimeMillis = 5000L
+        ))
+        
+        val node2 = TreeNode("1_node_2", "Card 2", "", emptyList())
+        val card2 = PhraseCard(node2, org.libera.pictotree.data.model.CardTimeConfig(
+            mode = org.libera.pictotree.data.model.TimeMode.TIMER,
+            durationMinutes = 3,
+            endTimeMillis = 0L
+        ))
+        
+        viewModel.updatePhraseListSilently(listOf(card1, card2))
+        viewModel.isTimerActivated.value = true
+
+        viewModel.removeItemFromPhrase(0)
+        
+        val phrase = viewModel.phraseList.value
+        assertEquals(1, phrase.size)
+        assertEquals("1_node_2", phrase[0].node.id)
+        assertTrue(phrase[0].timeConfig.endTimeMillis > 0L)
+        
+        viewModel.stopAllTimers()
+    }
+
+    @Test
+    fun `stopAllTimers should reset active timers`() = runTest {
+        val node = TreeNode("1_node_1", "Card 1", "", emptyList())
+        val card = PhraseCard(node, org.libera.pictotree.data.model.CardTimeConfig(
+            mode = org.libera.pictotree.data.model.TimeMode.TIMER,
+            endTimeMillis = 5000L
+        ))
+        viewModel.updatePhraseListSilently(listOf(card))
+        viewModel.isTimerActivated.value = true
+        
+        viewModel.stopAllTimers()
+        
+        assertFalse(viewModel.isTimerActivated.value)
+        assertEquals(0L, viewModel.phraseList.value[0].timeConfig.endTimeMillis)
+    }
+
+    @Test
+    fun `jumpToTreeAndNode should load new tree if different and focus on node`() = runTest {
+        val treeId = 42
+        val nodeUniqueId = "42_leaf_r"
+        
+        val json = """{"root_node": {"id": "leaf", "label": "Leaf"}}"""
+        coEvery { treeDao.getTreeById(treeId) } returns TreeEntity(treeId, "Tree 42", json)
+        
+        viewModel.jumpToTreeAndNode(treeId, nodeUniqueId)
+        runCurrent()
+        
+        assertEquals(treeId, viewModel.getCurrentTreeId())
+        assertEquals("42_leaf_r", viewModel.uiState.value.navigationNode?.id)
     }
 }

@@ -18,7 +18,9 @@ import org.libera.pictotree.data.database.entity.Profile
 import org.libera.pictotree.data.database.entity.ProfileTreeCrossRef
 import org.libera.pictotree.data.database.entity.TreeEntity
 import org.libera.pictotree.network.dto.TreeMetadataDTO
+import org.libera.pictotree.network.dto.TreeFullDTO
 import org.libera.pictotree.data.repository.ImageSyncEngine
+import org.libera.pictotree.data.repository.SyncResult
 import org.libera.pictotree.data.repository.ProfileRepository
 import org.libera.pictotree.network.TreeApiService
 import org.libera.pictotree.data.model.ProfileSettings
@@ -34,6 +36,8 @@ class EditProfileViewModel(
     private val treeApiService: TreeApiService
 ) : AndroidViewModel(application) {
 
+    var ioDispatcher: kotlinx.coroutines.CoroutineDispatcher = kotlinx.coroutines.Dispatchers.IO
+
     private val TAG = "EditProfileViewModel"
 
     private val _uiState = MutableStateFlow<EditProfileUiState>(EditProfileUiState.Loading)
@@ -44,6 +48,12 @@ class EditProfileViewModel(
 
     private val _showTreeSelectionEvent = Channel<Unit>(Channel.BUFFERED)
     val showTreeSelectionEvent = _showTreeSelectionEvent.receiveAsFlow()
+
+    private val _syncResultEvent = Channel<SyncResult>(Channel.BUFFERED)
+    val syncResultEvent = _syncResultEvent.receiveAsFlow()
+
+    private val _saveCompletedEvent = Channel<Unit>(Channel.BUFFERED)
+    val saveCompletedEvent = _saveCompletedEvent.receiveAsFlow()
 
     private val _remoteTrees = MutableStateFlow<List<TreeMetadataDTO>>(emptyList())
     val remoteTrees: StateFlow<List<TreeMetadataDTO>> = _remoteTrees.asStateFlow()
@@ -73,7 +83,7 @@ class EditProfileViewModel(
                         try {
                             if (!tree.rootUrl.isNullOrEmpty()) {
                                 val hostUrl = org.libera.pictotree.network.RetrofitClient.SERVER_URL
-                                val normalizedUrl = org.libera.pictotree.utils.FileUtils.normalizeUrl(tree.rootUrl, hostUrl)
+                                val normalizedUrl = org.libera.pictotree.utils.FileUtils.normalizeUrl(tree.rootUrl!!, hostUrl)
                                 val cleanUrl = org.libera.pictotree.utils.FileUtils.getCleanUrl(normalizedUrl)
                                 val imageEntity = imageDao.getImageByRemotePath(cleanUrl)
                                 if (imageEntity != null) {
@@ -103,7 +113,9 @@ class EditProfileViewModel(
         }
     }
 
-    fun loadMoreTrees() { /* Implementation via scroll */ }
+    fun loadMoreTrees() {
+        // Version simplifiée : on pourrait ajouter de la pagination réelle ici
+    }
 
     fun openTreeSelection() {
         viewModelScope.launch { searchTrees(""); _showTreeSelectionEvent.send(Unit) }
@@ -126,18 +138,55 @@ class EditProfileViewModel(
                         org.libera.pictotree.utils.FileUtils.getCleanUrl(normalized)
                     }
 
-                    val treeEntity = TreeEntity(id = fullTree.treeId, name = fullTree.name, jsonPayload = jsonPayload, isPublic = false, lastSync = System.currentTimeMillis(), rootUrl = cleanRootUrl)
+                    val treeEntity = TreeEntity(
+                        id = fullTree.treeId,
+                        name = fullTree.name,
+                        jsonPayload = jsonPayload,
+                        isPublic = false,
+                        lastSync = System.currentTimeMillis(),
+                        rootUrl = cleanRootUrl,
+                        lastModif = fullTree.lastModif
+                    )
                     treeDao.insertTree(treeEntity)
 
                     val engine = ImageSyncEngine(getApplication(), imageDao, username, hostUrl, authToken)
-                    fullTree.rootNode?.let { engine.syncImagesFromNode(it, fullTree.treeId) }
+                    val result = fullTree.rootNode?.let { engine.syncImagesFromNode(it, fullTree.treeId) } ?: SyncResult(0, 0)
                     
                     val maxOrder = profileDao.getMaxDisplayOrderForProfile(profileId) ?: -1
                     profileRepository.insertProfileTreeCrossRef(ProfileTreeCrossRef(profileId, treeEntity.id, maxOrder + 1))
                     
+                    _syncResultEvent.send(result)
                     loadProfile(profileId)
                 }
+            } catch (e: org.libera.pictotree.data.repository.UnauthorizedException) {
+                org.libera.pictotree.utils.AuthEvents.triggerLogout()
             } catch (e: Exception) { e.printStackTrace() }
+        }
+    }
+
+    /**
+     * Tente de réparer un arbre en téléchargeant les images manquantes.
+     */
+    fun repairTree(treeId: Int, username: String) {
+        viewModelScope.launch {
+            try {
+                val treeEntity = treeDao.getTreeById(treeId) ?: return@launch
+                val fullTree = Gson().fromJson(treeEntity.jsonPayload, TreeFullDTO::class.java)
+                
+                val sessionManager = SessionManager(getApplication())
+                val authToken = sessionManager.getToken() ?: ""
+                val hostUrl = org.libera.pictotree.network.RetrofitClient.SERVER_URL
+                
+                val engine = ImageSyncEngine(getApplication(), imageDao, username, hostUrl, authToken)
+                val result = fullTree.rootNode?.let { engine.syncImagesFromNode(it, treeId) } ?: SyncResult(0, 0)
+                
+                _syncResultEvent.send(result)
+                loadProfile(profileId)
+            } catch (e: org.libera.pictotree.data.repository.UnauthorizedException) {
+                org.libera.pictotree.utils.AuthEvents.triggerLogout()
+            } catch (e: Exception) {
+                Log.e(TAG, "Repair failed for tree $treeId", e)
+            }
         }
     }
 
@@ -163,42 +212,60 @@ class EditProfileViewModel(
 
     fun updateProfile(profileId: Int, newName: String, avatarUrl: String?) {
         viewModelScope.launch {
-            try {
-                val sessionManager = SessionManager(getApplication())
-                val username = sessionManager.getUsername() ?: "default"
-                val token = sessionManager.getToken() ?: ""
-                val hostUrl = org.libera.pictotree.network.RetrofitClient.SERVER_URL
-                
-                val currentProfile = profileDao.getProfileById(profileId) ?: return@launch
-                
-                var finalLocalAvatarUrl = avatarUrl
-                var finalRemoteAvatarUrl = currentProfile.remoteAvatarUrl
-                
-                // Déterminer si l'entrée est une nouvelle URL distante
-                val isInputRemote = avatarUrl != null && (avatarUrl.startsWith("http") || avatarUrl.contains("/api/v1/mobile/"))
-                
-                if (isInputRemote) {
-                    // Nouvel avatar distant -> On télécharge et on met à jour le lien remote
-                    finalRemoteAvatarUrl = avatarUrl
-                    val engine = ImageSyncEngine(getApplication(), imageDao, username, hostUrl, token)
-                    finalLocalAvatarUrl = engine.downloadSingleImage(avatarUrl!!) ?: avatarUrl
-                } else {
-                    // L'entrée est soit file://, soit null, soit color:
-                    // On garde le remoteAvatarUrl actuel de la BDD pour ne pas le corrompre avec du local
-                    finalLocalAvatarUrl = avatarUrl ?: currentProfile.avatarUrl
-                }
+            updateProfileSuspend(profileId, newName, avatarUrl)
+        }
+    }
 
-                val updated = currentProfile.copy(
-                    name = newName, 
-                    avatarUrl = finalLocalAvatarUrl, 
-                    remoteAvatarUrl = finalRemoteAvatarUrl, 
-                    settingsJson = Gson().toJson(_settings.value)
-                )
-                
-                // Passer par le Repository pour un nettoyage sécurisé
-                profileRepository.updateProfile(updated)
+    fun saveProfile(profileId: Int, newName: String, avatarUrl: String?) {
+        viewModelScope.launch {
+            try {
+                updateProfileSuspend(profileId, newName, avatarUrl)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            } finally {
+                _saveCompletedEvent.send(Unit)
+            }
+        }
+    }
+
+    suspend fun updateProfileSuspend(profileId: Int, newName: String, avatarUrl: String?) = withContext(ioDispatcher) {
+        try {
+            val sessionManager = SessionManager(getApplication())
+            val username = sessionManager.getUsername() ?: "default"
+            val token = sessionManager.getToken() ?: ""
+            val hostUrl = org.libera.pictotree.network.RetrofitClient.SERVER_URL
+            
+            val currentProfile = profileDao.getProfileById(profileId)
+            if (currentProfile == null) return@withContext
+            
+            var finalLocalAvatarUrl = avatarUrl
+            var finalRemoteAvatarUrl = currentProfile.remoteAvatarUrl
+            
+            val isInputRemote = avatarUrl != null && !avatarUrl.startsWith("file://") && !avatarUrl.startsWith("color:")
+            
+            if (isInputRemote) {
+                finalRemoteAvatarUrl = avatarUrl
+                val engine = ImageSyncEngine(getApplication(), imageDao, username, hostUrl, token)
+                finalLocalAvatarUrl = engine.downloadSingleImage(avatarUrl!!) ?: avatarUrl
+            } else {
+                finalLocalAvatarUrl = avatarUrl ?: currentProfile.avatarUrl
+            }
+
+            val updated = currentProfile.copy(
+                name = newName, 
+                avatarUrl = finalLocalAvatarUrl, 
+                remoteAvatarUrl = finalRemoteAvatarUrl, 
+                settingsJson = Gson().toJson(_settings.value)
+            )
+            
+            profileRepository.updateProfile(updated)
+            withContext(Dispatchers.Main) {
                 loadProfile(profileId)
-            } catch (e: Exception) { e.printStackTrace() }
+            }
+        } catch (e: org.libera.pictotree.data.repository.UnauthorizedException) {
+            org.libera.pictotree.utils.AuthEvents.triggerLogout()
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 

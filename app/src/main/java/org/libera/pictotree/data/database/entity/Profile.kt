@@ -1,5 +1,6 @@
 package org.libera.pictotree.data.database.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
@@ -10,5 +11,8 @@ data class Profile(
     val name: String,
     val avatarUrl: String? = null, // Local file:// path or color: hex
     val remoteAvatarUrl: String? = null, // Original remote URL (Arasaac or Flask)
-    val settingsJson: String? = null // Stockage flexible des préférences
+    val settingsJson: String? = null, // Stockage flexible des préférences
+    val displayOrder: Int = 0, // Pour le drag & drop dans le dashboard
+    @ColumnInfo(name = "last_modif")
+    val lastModif: String? = null
 )

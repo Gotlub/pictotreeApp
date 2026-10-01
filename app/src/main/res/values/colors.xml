@@ -5,8 +5,35 @@
     
     <!-- PictoTree Branding & UI Colors -->
     <color name="primary_color">#2196F3</color>
-    <color name="primary_light">#BBDEFB</color>
-    <color name="accent_color">#FF4081</color>
     <color name="highlight_bg">#E3F2FD</color>
     <color name="highlight_stroke">#1E88E5</color>
+
+    <!-- PhraseAdapter Timer & Jalon Colors -->
+    <color name="timer_standard_green">#4CAF50</color>
+    <color name="timer_standard_red">#E53935</color>
+    <color name="jalon_standard_blue">#2196F3</color>
+    <color name="timer_pastel_green">#A5D6A7</color>
+    <color name="timer_pastel_red">#EF9A9A</color>
+    <color name="jalon_pastel_blue">#90CAF9</color>
+
+    <!-- TimeTimerView Colors -->
+    <color name="timer_dial_text">#212121</color>
+    <color name="timer_dial_outline">#CCCCCC</color>
+    <color name="timer_translucent_green">#444CAF50</color>
+    <color name="timer_translucent_red">#44E53935</color>
+
+    <!-- Brand Colors -->
+    <color name="brand_pink">#ff9ebb</color>
+    <color name="brand_orange">#ffb37c</color>
+    <color name="brand_yellow">#fdf196</color>
+    <color name="brand_green">#a5e1a9</color>
+    <color name="brand_blue">#9adcfa</color>
+    <color name="brand_indigo">#a0c4ff</color>
+    <color name="brand_red">#ff9e9e</color>
+    <color name="dark_background">#212529</color>
+
+    <!-- Panel Background Pastels -->
+    <color name="panel_pastel_green">#E8F5E9</color>
+    <color name="panel_pastel_blue">#E3F2FD</color>
+    <color name="panel_pastel_red">#FFEBEE</color>
 </resources>

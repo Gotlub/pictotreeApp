@@ -1,0 +1,187 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Pictotree App</string>
+
+    <string name="login_select_user_hint">Sélectionner un utilisateur / Nouvel utilisateur</string>
+    <string name="login_online_mode">Mode en ligne</string>
+    <string name="login_password_hint">Mot de passe</string>
+    <string name="login_button">Se connecter</string>
+    <string name="login_quit_button">Quitter l\'application</string>
+
+    <string name="dashboard_new_title">PictoTree.eu</string>
+    <string name="dashboard_admin_status_desc">Statut admin</string>
+    <string name="dashboard_empty_state">Aucun profil trouvé, appuyez sur + pour commencer</string>
+    <string name="dashboard_logout_desc">Se déconnecter</string>
+
+
+
+
+    <string name="dialog_create_profile_name_hint">Nom</string>
+    <string name="profile_choose_avatar">Choisissez un avatar:</string>
+
+
+
+
+    <string name="login_offline_not_allowed">Accès hors-ligne non autorisé pour ce compte.</string>
+    <string name="login_offline_read_only">Mode hors-ligne (Lecture seule)</string>
+
+
+    <string-array name="settings_languages">
+        <item>Français</item>
+        <item>English</item>
+        <item>Español</item>
+        <item>Deutsch</item>
+        <item>Italiano</item>
+        <item>Nederlands</item>
+        <item>Polski</item>
+    </string-array>
+    <string-array name="settings_language_codes">
+        <item>fr</item>
+        <item>en</item>
+        <item>es</item>
+        <item>de</item>
+        <item>it</item>
+        <item>nl</item>
+        <item>pl</item>
+    </string-array>
+
+    <string-array name="settings_startup_view_options">
+        <item>Spatial View</item>
+        <item>Global Map</item>
+    </string-array>
+    <string-array name="settings_startup_view_values">
+        <item>EXPLORER</item>
+        <item>MAP</item>
+    </string-array>
+
+    <string-array name="settings_orientation_options">
+        <item>Portrait</item>
+        <item>Landscape</item>
+    </string-array>
+    <string-array name="settings_orientation_values">
+        <item>PORTRAIT</item>
+        <item>LANDSCAPE</item>
+    </string-array>
+
+    <string-array name="settings_timer_color_options">
+        <item>Red</item>
+        <item>Green</item>
+    </string-array>
+    <string-array name="settings_timer_color_values">
+        <item>red</item>
+        <item>green</item>
+    </string-array>
+
+    <string name="dialog_lock_admin_title">Verrouiller l\'édition ?</string>
+    <string name="dialog_lock_admin_message">Le mode admin sera désactivé. Vous devrez vous reconnecter pour éditer les profils.</string>
+    <string name="dialog_lock_admin_positive">Verrouiller</string>
+    <string name="dialog_lock_admin_negative">Annuler</string>
+    <string name="dialog_lock_admin_toast">Édition verrouillée</string>
+    <string name="dialog_unlock_admin_title">Déverrouiller l\'édition</string>
+    <string name="dialog_unlock_admin_positive">Déverrouiller</string>
+    <string name="dialog_unlock_admin_toast_success">Accès accordé</string>
+    <string name="dialog_unlock_admin_toast_error">Échec : %s</string>
+    <string name="dialog_unlock_admin_user_prefix">Utilisateur : %s</string>
+    <string name="timer_config_title">Configuration de l\'heure</string>
+    <string name="timer_picto_none">Pictogramme: Aucun</string>
+    <string name="timer_mode">Mode</string>
+    <string name="timer_mode_no">Non</string>
+    <string name="timer_mode_milestone">Étape</string>
+    <string name="timer_mode_timer">Minuteur</string>
+    <string name="timer_duration">Durée (min)</string>
+    <string name="timer_minus">-</string>
+    <string name="timer_one">1</string>
+    <string name="timer_plus">+</string>
+    <string name="timer_ring_end">Sonner à la fin</string>
+    <string name="timer_auto_delete">Suppression auto</string>
+    <string name="timer_visual_pulse">Impulsion visuelle</string>
+    <string name="timer_apply">Appliquer</string>
+    <string name="picto_search_title">Recherche de Pictogramme</string>
+    <string name="search">Rechercher</string>
+    <string name="label">Étiquette</string>
+    <string name="choose_tree">Choisir un arbre</string>
+    <string name="options">Options</string>
+    <string name="add_tree">Ajouter un arbre</string>
+    <string name="user_prefix_label">Utilisateur : </string>
+    <string name="internet_required_unlock">Une connexion internet est requise pour déverrouiller l\'édition si vous n\'êtes pas déjà connecté.</string>
+    <string name="menu">Menu</string>
+    <string name="import_btn">Importer</string>
+    <string name="new_btn">Nouveau</string>
+    <string name="import_profile_title">Importer un Profil</string>
+    <string name="import_remote_tree">Importer un arbre distant</string>
+    <string name="add_btn">Ajouter</string>
+    <string name="no_result">Aucun résultat</string>
+    <string name="timer_finished_title">Minuteur terminé !</string>
+    <string name="stop">Arrêter</string>
+    <string name="profile_name">Nom du profil</string>
+    <string name="profile_options_title">Options du Profil</string>
+    <string name="save_to_web">Sauvegarder sur le Web</string>
+    <string name="delete_local_profile">Supprimer le profil local</string>
+    <string name="app_settings_title">Paramètres de l\'Application</string>
+    <string name="connection_security">Sécurité de connexion</string>
+    <string name="allow_offline_access">Autoriser l\'accès hors-ligne</string>
+    <string name="offline_access_desc">Si activé, cet appareil pourra accéder aux profils sans mot de passe en mode hors-ligne (Lecture seule).</string>
+    <string name="app_language">Langue de l\'application</string>
+    <string name="app_display">Affichage de l\'application</string>
+    <string name="start_on">Démarrer sur:</string>
+    <string name="fixed_orientation">Orientation fixe:</string>
+    <string name="timer_color">Couleur du minuteur:</string>
+    <string name="enable_text_search">Activer la recherche textuelle</string>
+    <string name="rotation_button">Bouton de rotation</string>
+    <string name="tts_button">Bouton de lecture vocale</string>
+    <string name="view_switch">Bouton de changement de vue (Carte/Spatial)</string>
+    <string name="close">Fermer</string>
+    <string name="search_pictogram">Rechercher un pictogramme...</string>
+    <string name="search_by_name">Rechercher par nom...</string>
+    <string name="password">Mot de passe</string>
+    <string name="pictotree_logo">Logo PictoTree</string>
+    <string name="change_orientation">Changer l\'orientation</string>
+    <string name="back_to_dashboard">Retour au tableau de bord</string>
+    <string name="avatar_preview">Aperçu de l\'avatar</string>
+    <string name="search_avatar">Rechercher un Avatar</string>
+    <string name="read_phrase">Lire la phrase</string>
+    <string name="pictogram">Pictogramme</string>
+    <string name="avatar">Avatar</string>
+    <string name="edit_profile_desc">Éditer le profil</string>
+    <string name="drag_to_reorder">Glisser pour réorganiser</string>
+    <string name="repair_images">Réparer les images</string>
+    <string name="view_tree">Voir l\'arbre</string>
+    <string name="importation_partielle">Importation partielle</string>
+    <string name="le_profil_a_t_import_mais_image_s_n_ont_pas_pu_tre_t_l_charg_es_vous_pourrez_les_r_parer_plus_tard_dans_l_dition_du_profil">Le profil a été importé, mais %1$d image(s) n\'ont pas pu être téléchargées. Vous pourrez les réparer plus tard dans l\'édition du profil.</string>
+    <string name="profil_import_avec_succ_s">Profil importé avec succès !</string>
+    <string name="r_paration_de_l_arbre_en_cours">Réparation de l\'arbre en cours...</string>
+    <string name="importation_de_l_arbre">Importation de l\'arbre...</string>
+    <string name="vert_verbes">Vert (Verbes)</string>
+    <string name="importation_incompl_te">Importation incomplète</string>
+    <string name="il_manque_image_s_sur_un_total_de_voulez_vous_r_essayer">Il manque %1$d image(s) sur un total de %2$d. Voulez-vous réessayer ?</string>
+    <string name="r_essayer">Réessayer</string>
+    <string name="plus_tard">Plus tard</string>
+    <string name="synchronisation_r_ussie_images">Synchronisation réussie (%1$d images)</string>
+    <string name="noir_d_faut">Noir (Défaut)</string>
+    <string name="jaune_personnes">Jaune (Personnes)</string>
+    <string name="orange_noms">Orange (Noms)</string>
+    <string name="bleu_adjectifs">Bleu (Adjectifs)</string>
+    <string name="rose_social">Rose (Social)</string>
+    <string name="couleur_caa">Couleur CAA</string>
+    <string name="session_expir_e">Session expirée</string>
+    <string name="votre_connexion_au_serveur_a_expir_souhaitez_vous_continuer_en_mode_hors_ligne_votre_travail_actuel_sera_conserv_ou_vous_reconnecter">Votre connexion au serveur a expiré. Souhaitez-vous continuer en mode hors-ligne (votre travail actuel sera conservé) ou vous reconnecter ?</string>
+    <string name="rester_hors_ligne">Rester hors-ligne</string>
+    <string name="se_reconnecter">Se reconnecter</string>
+    <string name="configuration_appliqu_e">Configuration appliquée</string>
+    <string name="supprimer_le_profil">Supprimer le Profil ?</string>
+    <string name="toutes_les_donn_es_locales_de_ce_profil_seront_perdues_cette_action_est_irr_versible">Toutes les données locales de ce profil seront perdues. Cette action est irréversible.</string>
+    <string name="supprimer">Supprimer</string>
+    <string name="annuler">Annuler</string>
+    <string name="synchronisation_cloud_bient_t_disponible">Synchronisation Cloud bientôt disponible</string>
+    <string name="effacer_le_bandeau">Effacer le bandeau ?</string>
+    <string name="voulez_vous_vraiment_vider_toute_la_phrase">Voulez-vous vraiment vider toute la phrase ?</string>
+
+
+    <string name="error_invalid_username">Veuillez entrer un nom d\'utilisateur valide.</string>
+    <string name="error_user_unknown_local">Utilisateur inconnu localement. Veuillez vous connecter en ligne.</string>
+    <string name="error_connection">Erreur de connexion</string>
+    <string name="error_offline_check_connection">Hors-ligne : Vérifiez votre connexion internet.</string>
+    <string name="error_generic">Erreur</string>
+    <string name="error_server_code">Erreur serveur : %1$d</string>
+    <string name="error_network">Erreur réseau</string>
+</resources>

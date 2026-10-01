@@ -42,7 +42,6 @@ class SearchTabFragment : Fragment() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         type = arguments?.getInt(ARG_TYPE) ?: TYPE_LOCAL
-        // Shared ViewModel with parent PictoSearchDialog
         viewModel = ViewModelProvider(requireParentFragment())[PictoSearchViewModel::class.java]
     }
 
@@ -58,7 +57,6 @@ class SearchTabFragment : Fragment() {
             (parentFragment as? PictoSearchDialog)?.dismiss()
         }
         
-        // Calcul dynamique du nombre de colonnes
         val displayMetrics = resources.displayMetrics
         val screenWidthDp = displayMetrics.widthPixels / displayMetrics.density
         val spanCount = (screenWidthDp / 120).toInt().coerceAtLeast(3)
@@ -80,7 +78,6 @@ class SearchTabFragment : Fragment() {
 
         viewLifecycleOwner.lifecycleScope.launch {
             resultsFlow.collect { state ->
-                android.util.Log.d("PictoSearch", "Tab $type received state: ${state::class.simpleName}")
                 when(state) {
                     is SearchUiState.Loading -> {
                         progressBar.visibility = View.VISIBLE
@@ -89,13 +86,12 @@ class SearchTabFragment : Fragment() {
                     }
                     is SearchUiState.Success -> {
                         progressBar.visibility = View.GONE
-                        android.util.Log.d("PictoSearch", "Tab $type Success: ${state.results.size} items")
                         adapter.submitList(state.results)
                         tvEmpty.visibility = if (state.results.isEmpty()) View.VISIBLE else View.GONE
                     }
                     is SearchUiState.Error -> {
                         progressBar.visibility = View.GONE
-                        tvEmpty.text = state.message
+                        tvEmpty.text = state.message.asString(requireContext())
                         tvEmpty.visibility = View.VISIBLE
                         adapter.submitList(emptyList())
                     }
@@ -131,25 +127,37 @@ class SearchResultAdapter(private val onClick: (PictoSearchResultDTO) -> Unit) :
         private val tv = view.findViewById<TextView>(R.id.tv_label)
 
         fun bind(item: PictoSearchResultDTO) {
-            tv.text = item.name
+            tv.text = item.name ?: "Picto"
             
-            // On affiche la miniature dans la grille si elle existe, sinon l'image pleine
-            val displayUrl = item.thumbnailUrl ?: item.imageUrl
+            // Sécurisation contre les URLs nulles et centralisation de la résolution de source d'image
+            val displayUrl = item.thumbnailUrl ?: item.imageUrl ?: ""
             val hostUrl = org.libera.pictotree.network.RetrofitClient.SERVER_URL
+            val sessionManager = org.libera.pictotree.data.SessionManager(iv.context)
+            val username = sessionManager.getUsername() ?: "default"
             
-            // 1. Normalisation de l'URL (Absolue + Host Correct)
-            var finalUrl = if (displayUrl.startsWith("http") || displayUrl.startsWith("file")) displayUrl
-                          else "${hostUrl.removeSuffix("/")}/${displayUrl.removePrefix("/")}"
-            
-            finalUrl = org.libera.pictotree.utils.FileUtils.normalizeServerAddress(finalUrl)
-
-            val imageLoader = org.libera.pictotree.network.RetrofitClient.getImageLoader(iv.context)
-            iv.load(finalUrl, imageLoader) {
-                crossfade(true)
-                placeholder(R.drawable.ic_launcher_foreground)
-                error(R.drawable.ic_launcher_foreground)
-                Log.d("searchTabFragment getImageLoader", "Loading image from $finalUrl")
+            val imageSource = org.libera.pictotree.utils.FileUtils.getFinalImageSource(displayUrl, iv.context, username, hostUrl)
+            val hasImage = when (imageSource) {
+                is java.io.File -> true
+                is String -> imageSource.isNotBlank()
+                else -> false
             }
+            
+            if (hasImage) {
+                val finalSource = if (imageSource is String) {
+                    org.libera.pictotree.utils.FileUtils.normalizeServerAddress(imageSource)
+                } else {
+                    imageSource
+                }
+                val imageLoader = org.libera.pictotree.network.RetrofitClient.getImageLoader(iv.context)
+                iv.load(finalSource, imageLoader) {
+                    crossfade(true)
+                    placeholder(R.drawable.ic_launcher_foreground)
+                    error(R.drawable.ic_launcher_foreground)
+                }
+            } else {
+                iv.setImageResource(R.drawable.ic_launcher_foreground)
+            }
+            
             itemView.setOnClickListener { onClick(item) }
         }
     }
